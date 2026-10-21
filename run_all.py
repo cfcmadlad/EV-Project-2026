@@ -23,7 +23,7 @@ from src.dataset import TARGET_NAMES, Dataset, generate_dataset
 from src.experiments import baseline_pack, random_streams, run_baseline
 from src.identification import table_slope_mv_per_percent
 from src.pack import PackBatch, tile_pack
-from src.params import ASSUMED, SECONDS_PER_HOUR
+from src.params import ASSUMED, SECONDS_PER_HOUR, FlyingCapModel
 from src.plots import (
     plot_importance,
     plot_parity,
@@ -32,6 +32,8 @@ from src.plots import (
     plot_sweep,
 )
 from src.predictor import PredictorReport, train_and_evaluate
+from src.spice_check import converter_check
+from src.spice_plots import plot_current_parity
 from src.uncertainty import (
     BOOTSTRAP_PATH,
     IDENTIFICATION_PATH,
@@ -289,6 +291,48 @@ def cell_stages(
     )
 
 
+def with_flying_model(config: ProjectConfig, model: FlyingCapModel) -> ProjectConfig:
+    spec = replace(config.flying_capacitor, model=model)
+    return replace(config, params=replace(config.params, flying_capacitor=spec))
+
+
+def flying_model_comparison(pack: PackBatch, config: ProjectConfig) -> dict[str, object]:
+    baseline: dict[str, dict[str, float]] = {}
+    sweep: dict[str, list[float]] = {}
+    for model in FlyingCapModel:
+        variant = with_flying_model(config, model)
+        result = run_baseline(pack, variant, trace=False)[Technique.FLYING_CAPACITOR]
+        baseline[model.value] = {
+            "balancing_time_s": float(result.balancing_time_s[0]),
+            "energy_dissipated_j": float(result.energy_dissipated_j[0]),
+            "efficiency_pct": float(result.efficiency[0] * PERCENT),
+        }
+        values, times = run_sweeps(pack, variant)["flying_capacitor_frequency_hz"]
+        sweep["frequency_hz"] = values.tolist()
+        sweep[f"balancing_time_s_{model.value}"] = times.tolist()
+    old, new = baseline[FlyingCapModel.MIDSEM.value], baseline[FlyingCapModel.TWO_PHASE.value]
+    return {
+        "status": "ok",
+        "parameter_set": config.params.name,
+        "baseline": baseline,
+        "time_ratio_two_phase_over_midsem": new["balancing_time_s"] / old["balancing_time_s"],
+        "energy_ratio_two_phase_over_midsem": new["energy_dissipated_j"]
+        / old["energy_dissipated_j"],
+        "frequency_sweep": sweep,
+        "active_model": config.flying_capacitor.model.value,
+    }
+
+
+def write_comparison_csv(rows: list[dict[str, object]], path: Path) -> None:
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(
+            {k: (f"{v:.10g}" if isinstance(v, float) else v) for k, v in row.items()}
+            for row in rows
+        )
+
+
 def summary_lines(
     table: list[Row],
     sanity: dict[str, bool | dict[str, float]],
@@ -342,6 +386,10 @@ def run(config: ProjectConfig, results_dir: Path) -> list[str]:
     ident_block, valid_block, comparison_block, comparison = cell_stages(config, pack, baseline)
     write_baseline_csv(comparison, results_dir / "baseline_assumed_vs_fitted.csv")
     plot_baseline_comparison(comparison, results_dir / "baseline_assumed_vs_fitted", config.plot)
+    converter_block, converter_rows = converter_check(config)
+    if converter_rows:
+        write_comparison_csv(converter_rows, results_dir / "spice_vs_averaged.csv")
+        plot_current_parity(converter_rows, config, results_dir / "spice_vs_averaged")
     write_baseline_csv(table, results_dir / "baseline_table.csv")
     write_dataset_csv(dataset, results_dir / "dataset.csv")
     save_figures(baseline, sweeps, dataset, report, config, results_dir)
@@ -361,6 +409,8 @@ def run(config: ProjectConfig, results_dir: Path) -> list[str]:
         "cell_identification": ident_block,
         "cell_validation": valid_block,
         "baseline_assumed_vs_fitted": comparison_block,
+        "converter_check": converter_block,
+        "flying_capacitor_model_comparison": flying_model_comparison(pack, config),
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start

@@ -10,6 +10,7 @@ from src.params import (
     BuckBoostSpec,
     CellParams,
     CheckSpec,
+    ConverterCheckSpec,
     DatasetSpec,
     FlyingCapSpec,
     IdentificationSpec,
@@ -92,6 +93,7 @@ class ProjectConfig:
     sanity: SanitySpec = SanitySpec()
     checks: CheckSpec = CheckSpec()
     identification: IdentificationSpec = IdentificationSpec()
+    converter_check: ConverterCheckSpec = ConverterCheckSpec()
     plot: PlotConfig = PlotConfig()
 
     @property

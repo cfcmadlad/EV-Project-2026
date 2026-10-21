@@ -183,7 +183,9 @@ def main() -> int:
         print(f"FETCH FAILED: {error}")
         return 1
     PROVENANCE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    existing = json.loads(PROVENANCE_PATH.read_text()) if PROVENANCE_PATH.exists() else {}
     provenance = {
+        **existing,
         "dataset": {
             "title": TITLE,
             "doi": DOI,

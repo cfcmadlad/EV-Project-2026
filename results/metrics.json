@@ -18,10 +18,10 @@
     },
     {
       "technique": "flying_capacitor",
-      "balancing_time_s": 4251.0,
-      "balancing_time_h": 1.1808333333333334,
-      "energy_dissipated_j": 29.93941219119006,
-      "efficiency_pct": 99.43366866160082
+      "balancing_time_s": 7069.0,
+      "balancing_time_h": 1.9636111111111112,
+      "energy_dissipated_j": 29.936444768834917,
+      "efficiency_pct": 99.43595645181315
     }
   ],
   "sanity_checks": {
@@ -31,7 +31,7 @@
     "tail_to_head_time_ratio": {
       "passive": 1.0144578313253012,
       "buck_boost": 2.7195121951219514,
-      "flying_capacitor": 7.175862068965517
+      "flying_capacitor": 7.476086956521739
     }
   },
   "sweeps": {
@@ -98,26 +98,26 @@
         10000.0
       ],
       "balancing_time_s": [
-        10343.0,
-        7662.0,
-        6401.0,
-        5667.0,
-        5188.0,
-        4850.0,
-        4599.0,
-        4405.0,
-        4251.0,
-        4125.0,
-        4021.0,
-        3933.0,
-        3857.0,
-        3792.0,
-        3736.0,
-        3685.0,
-        3641.0
+        9736.0,
+        8163.0,
+        7626.0,
+        7383.0,
+        7253.0,
+        7176.0,
+        7126.0,
+        7092.0,
+        7069.0,
+        7051.0,
+        7038.0,
+        7027.0,
+        7019.0,
+        7012.0,
+        7007.0,
+        7003.0,
+        6999.0
       ],
-      "min_time_s": 3641.0,
-      "max_time_s": 10343.0
+      "min_time_s": 6999.0,
+      "max_time_s": 9736.0
     }
   },
   "dataset": {
@@ -127,38 +127,38 @@
   "ml": {
     "balancing_time_s": {
       "overall": {
-        "r2": 0.9891952041081605,
-        "mae": 250.23600395257176
+        "r2": 0.9886054831923883,
+        "mae": 281.7148470372423
       },
       "passive": {
-        "r2": 0.9951721547471637,
-        "mae": 242.897491595412
+        "r2": 0.994994864836757,
+        "mae": 249.62082681868526
       },
       "buck_boost": {
-        "r2": 0.9616349609636163,
-        "mae": 153.564460511515
+        "r2": 0.9552160958388701,
+        "mae": 170.510316157736
       },
       "flying_capacitor": {
-        "r2": 0.9033204370194224,
-        "mae": 354.2460597507885
+        "r2": 0.9079376349473108,
+        "mae": 425.01339813530564
       }
     },
     "energy_dissipated_j": {
       "overall": {
-        "r2": 0.9948686531865883,
-        "mae": 67.25918349753435
+        "r2": 0.9952196011512786,
+        "mae": 65.1019770283187
       },
       "passive": {
-        "r2": 0.9843956593697912,
-        "mae": 185.5948038522912
+        "r2": 0.9854938361703781,
+        "mae": 178.96435065157164
       },
       "buck_boost": {
-        "r2": 0.9513070515964179,
-        "mae": 15.97747479725756
+        "r2": 0.9510992686417085,
+        "mae": 16.1279897626082
       },
       "flying_capacitor": {
-        "r2": 0.9964357947816069,
-        "mae": 0.2052718430543004
+        "r2": 0.99583141379544,
+        "mae": 0.21359067077626823
       }
     }
   },
@@ -232,32 +232,32 @@
       },
       "flying_capacitor": {
         "n_packs": 200,
-        "max_net_vs_removed": 0.0010360021105820713,
-        "median_net_vs_removed": 0.0001686927923798061,
-        "max_net_vs_dissipated": 0.17272492320636582,
-        "median_net_vs_dissipated": 0.03485158207527028,
-        "max_per_link_vs_removed": 1.6802485571698558e-05,
-        "max_per_link_vs_dissipated": 0.0015649262086130384,
+        "max_net_vs_removed": 0.0006735130743499876,
+        "median_net_vs_removed": 0.00010761438897787372,
+        "max_net_vs_dissipated": 0.0945822182449868,
+        "median_net_vs_dissipated": 0.025490450334757532,
+        "max_per_link_vs_removed": 5.123874236601721e-06,
+        "max_per_link_vs_dissipated": 0.0005528351683268983,
         "threshold_vs_removed": 0.01,
         "pass": true,
         "dt_scaling": {
           "dt_1_s": {
-            "max_net_vs_removed": 0.0007905170466975057,
-            "max_net_vs_dissipated": 0.1254296818984883,
-            "max_per_link_vs_removed": 9.415051724577353e-06,
-            "max_per_link_vs_dissipated": 0.001186064846662669
+            "max_net_vs_removed": 0.000608434930299448,
+            "max_net_vs_dissipated": 0.07372317496822071,
+            "max_per_link_vs_removed": 4.7602151392255925e-06,
+            "max_per_link_vs_dissipated": 0.00046992583213643896
           },
           "dt_0.5_s": {
-            "max_net_vs_removed": 0.0007846778006832555,
-            "max_net_vs_dissipated": 0.12580498780088906,
-            "max_per_link_vs_removed": 4.630978999398215e-06,
-            "max_per_link_vs_dissipated": 0.0005836593459506174
+            "max_net_vs_removed": 0.000605651927041655,
+            "max_net_vs_dissipated": 0.07375106997162957,
+            "max_per_link_vs_removed": 2.3584237949545204e-06,
+            "max_per_link_vs_dissipated": 0.00023282518953172848
           },
           "dt_0.25_s": {
-            "max_net_vs_removed": 0.0007818388318008173,
-            "max_net_vs_dissipated": 0.12593424350358404,
-            "max_per_link_vs_removed": 2.297036491204131e-06,
-            "max_per_link_vs_dissipated": 0.0002895454031692278
+            "max_net_vs_removed": 0.0006042471525031512,
+            "max_net_vs_dissipated": 0.07376891024035853,
+            "max_per_link_vs_removed": 1.173762395956715e-06,
+            "max_per_link_vs_dissipated": 0.00011588769754099764
           }
         }
       }
@@ -284,14 +284,14 @@
         "c1_stored_j": 0.018127326291106725
       },
       "flying_capacitor": {
-        "dissipated_j": 29.93941219119006,
-        "ledger_net_j": 26.21440944197611,
-        "ledger_per_link_j": 29.946401112532808,
-        "element_loss_j": 15.613127077628347,
-        "cell_r0_net_loss_j": 2.8243847901239567,
-        "cell_r0_per_link_loss_j": 6.5563764606806565,
-        "r1_branch_loss_j": 7.77590871901251,
-        "c1_stored_j": 0.000988855211295379
+        "dissipated_j": 29.936444768834917,
+        "ledger_net_j": 27.73351084430806,
+        "ledger_per_link_j": 29.939080106963562,
+        "element_loss_j": 20.848944046043353,
+        "cell_r0_net_loss_j": 1.8023474090808282,
+        "cell_r0_per_link_loss_j": 4.007916671736333,
+        "r1_branch_loss_j": 5.08186888419336,
+        "c1_stored_j": 0.00035050499051788946
       }
     },
     "passive_closed_form": {
@@ -306,7 +306,7 @@
     },
     "flying_capacitor_charge": {
       "n_packs": 200,
-      "max_relative_imbalance": 3.69357981549713e-13,
+      "max_relative_imbalance": 4.412308621050639e-13,
       "threshold": 1e-09,
       "pass": true
     },
@@ -823,15 +823,15 @@
       {
         "technique": "flying_capacitor",
         "time_s_assumed": 9140.0,
-        "time_s_fitted": 4251.0,
-        "time_ratio": 0.4650984682713348,
+        "time_s_fitted": 7069.0,
+        "time_ratio": 0.7734135667396062,
         "time_h_assumed": 2.5388888888888888,
-        "time_h_fitted": 1.1808333333333334,
+        "time_h_fitted": 1.9636111111111112,
         "energy_j_assumed": 20.49609370298367,
-        "energy_j_fitted": 29.93941219119006,
-        "energy_ratio": 1.4607374763724708,
+        "energy_j_fitted": 29.936444768834917,
+        "energy_ratio": 1.4605926964744989,
         "efficiency_pct_assumed": 99.64135850584262,
-        "efficiency_pct_fitted": 99.43366866160082
+        "efficiency_pct_fitted": 99.43595645181315
       }
     ],
     "ocv_slope_at_50_percent": {
@@ -881,22 +881,625 @@
       },
       "flying_capacitor": {
         "balancing_time_s": {
-          "median": 4300.5,
-          "low": 4227.0,
-          "high": 4381.05
+          "median": 7134.0,
+          "low": 7025.475,
+          "high": 7259.0
         },
         "energy_dissipated_j": {
-          "median": 29.95094986699951,
-          "low": 29.591367265542136,
-          "high": 30.28008864179096
+          "median": 29.94821974622664,
+          "low": 29.588771090218142,
+          "high": 30.277209465166514
         },
         "efficiency": {
-          "median": 0.994334214234418,
-          "low": 0.9942724908702959,
-          "high": 0.9944021782178569
+          "median": 0.9943560419432176,
+          "low": 0.9942936738255024,
+          "high": 0.9944219143767041
         },
         "all_balanced": true
       }
     }
+  },
+  "converter_check": {
+    "status": "ok",
+    "tool": "LTspice 26.1.1",
+    "parameter_set": "fitted_hg2_25c",
+    "thresholds": {
+      "mean_current": 0.05,
+      "total_loss": 0.15
+    },
+    "measurement_quality": {
+      "stationarity": {
+        "max_cycle_to_cycle_change": 0.00038449971775022753,
+        "threshold": 0.001,
+        "measured_periods": 60,
+        "pass": true
+      },
+      "step_independence": {
+        "max_current_change_at_half_step": 3.070752802480925e-06,
+        "threshold": 0.005,
+        "pass": true
+      },
+      "energy_balance": {
+        "max_gap_fraction_of_removed_power": 0.0010056584774244138,
+        "threshold": 0.005,
+        "pass": true
+      },
+      "buck_boost_dcm": {
+        "min_idle_fraction": 0.20672256893795182,
+        "threshold": 0.05,
+        "pass": true
+      },
+      "flying_capacitor_phase_overlap": {
+        "max_overlap_fraction": 0.0,
+        "pass": true
+      },
+      "pass": true
+    },
+    "buck_boost": {
+      "n_points": 6,
+      "n_pass": 6,
+      "max_abs_current_error": 0.029230266288157836,
+      "max_abs_total_loss_error": 0.04964576716627467,
+      "max_abs_element_loss_error": 0.13557679384929577,
+      "pass": true,
+      "points": [
+        {
+          "case": "buck_boost_s0_p0",
+          "component": 1e-05,
+          "frequency_hz": 50000.0,
+          "spice_sink_a": 0.5306234365318606,
+          "averaged_sink_a": 0.5454335127604407,
+          "sink_error": 0.027910708817119545,
+          "source_error": 0.029230266288157836,
+          "spice_total_loss_w": 0.24125113085290367,
+          "averaged_total_loss_w": 0.2532282283238274,
+          "total_loss_error": 0.04964576716627467,
+          "element_loss_error": 0.13557679384929577,
+          "pass": true
+        },
+        {
+          "case": "buck_boost_s0_p1",
+          "component": 5.5e-05,
+          "frequency_hz": 30000.0,
+          "spice_sink_a": 0.177753654999967,
+          "averaged_sink_a": 0.17978617118704082,
+          "sink_error": 0.011434455100651553,
+          "source_error": 0.009405533149074108,
+          "spice_total_loss_w": 0.024232660498688496,
+          "averaged_total_loss_w": 0.02338510349480616,
+          "total_loss_error": -0.03497581307377329,
+          "element_loss_error": 0.04149900615230817,
+          "pass": true
+        },
+        {
+          "case": "buck_boost_s0_p2",
+          "component": 0.0001,
+          "frequency_hz": 10000.0,
+          "spice_sink_a": 0.28520804319455106,
+          "averaged_sink_a": 0.28985744883818376,
+          "sink_error": 0.016301804085031346,
+          "source_error": 0.014087815553157412,
+          "spice_total_loss_w": 0.06438150201464696,
+          "averaged_total_loss_w": 0.06356290128799769,
+          "total_loss_error": -0.012714843565827971,
+          "element_loss_error": 0.06631400385861497,
+          "pass": true
+        },
+        {
+          "case": "buck_boost_s1_p0",
+          "component": 1e-05,
+          "frequency_hz": 50000.0,
+          "spice_sink_a": 0.5198717199847083,
+          "averaged_sink_a": 0.5344343741486809,
+          "sink_error": 0.028012014510812255,
+          "source_error": 0.029230258720768676,
+          "spice_total_loss_w": 0.23513514201032054,
+          "averaged_total_loss_w": 0.2466257173254225,
+          "total_loss_error": 0.04886796255490222,
+          "element_loss_error": 0.13485575724753218,
+          "pass": true
+        },
+        {
+          "case": "buck_boost_s1_p1",
+          "component": 5.5e-05,
+          "frequency_hz": 30000.0,
+          "spice_sink_a": 0.17408542273460975,
+          "averaged_sink_a": 0.17607653191648265,
+          "sink_error": 0.011437541125475459,
+          "source_error": 0.009405500476299178,
+          "spice_total_loss_w": 0.023608155933019386,
+          "averaged_total_loss_w": 0.022774167986950422,
+          "total_loss_error": -0.03532626387402471,
+          "element_loss_error": 0.041282953198634065,
+          "pass": true
+        },
+        {
+          "case": "buck_boost_s1_p2",
+          "component": 0.0001,
+          "frequency_hz": 10000.0,
+          "spice_sink_a": 0.2793513795197388,
+          "averaged_sink_a": 0.2839130746154117,
+          "sink_error": 0.016329595735361524,
+          "source_error": 0.014098576472979296,
+          "spice_total_loss_w": 0.06272943981102136,
+          "averaged_total_loss_w": 0.06190328405449619,
+          "total_loss_error": -0.013170144018726293,
+          "element_loss_error": 0.06597289819553187,
+          "pass": true
+        }
+      ]
+    },
+    "flying_capacitor": {
+      "midsem": {
+        "n_points": 6,
+        "n_pass": 2,
+        "max_abs_current_error": 1.5199447920530278,
+        "max_abs_total_loss_error": 1.5203063044169998,
+        "max_abs_element_loss_error": 1.219307422793018,
+        "pass": false,
+        "points": [
+          {
+            "case": "flying_capacitor_s0_p0",
+            "component": 0.001,
+            "frequency_hz": 1000.0,
+            "spice_sink_a": 0.04909684384940548,
+            "averaged_sink_a": 0.046845012653920166,
+            "sink_error": -0.04586509068469535,
+            "source_error": -0.04601140042208507,
+            "spice_total_loss_w": 0.0024116549881116572,
+            "averaged_total_loss_w": 0.0023001229256338074,
+            "total_loss_error": -0.04624710542248012,
+            "element_loss_error": 0.36455938665368803,
+            "pass": true
+          },
+          {
+            "case": "flying_capacitor_s0_p1",
+            "component": 0.0055,
+            "frequency_hz": 5500.0,
+            "spice_sink_a": 0.33000595104767566,
+            "averaged_sink_a": 0.6046140304680376,
+            "sink_error": 0.832130689002907,
+            "source_error": 0.832088886130741,
+            "spice_total_loss_w": 0.016203643219134384,
+            "averaged_total_loss_w": 0.029686972291233182,
+            "total_loss_error": 0.8321171288304317,
+            "element_loss_error": 0.9162927566354606,
+            "pass": false
+          },
+          {
+            "case": "flying_capacitor_s0_p2",
+            "component": 0.01,
+            "frequency_hz": 10000.0,
+            "spice_sink_a": 0.3350821499752446,
+            "averaged_sink_a": 0.8443489793473699,
+            "sink_error": 1.5198267929513678,
+            "source_error": 1.5197835191728477,
+            "spice_total_loss_w": 0.0164496420729323,
+            "averaged_total_loss_w": 0.041458126161267206,
+            "total_loss_error": 1.5203056685036378,
+            "element_loss_error": 1.219306831348248,
+            "pass": false
+          },
+          {
+            "case": "flying_capacitor_s1_p0",
+            "component": 0.001,
+            "frequency_hz": 1000.0,
+            "spice_sink_a": 0.009444803283460776,
+            "averaged_sink_a": 0.009014498573116418,
+            "sink_error": -0.045559944175638245,
+            "source_error": -0.04631625797767214,
+            "spice_total_loss_w": 8.930414338928757e-05,
+            "averaged_total_loss_w": 8.517408447947239e-05,
+            "total_loss_error": -0.046247114109943976,
+            "element_loss_error": 0.36455937517847614,
+            "pass": true
+          },
+          {
+            "case": "flying_capacitor_s1_p1",
+            "component": 0.0055,
+            "frequency_hz": 5500.0,
+            "spice_sink_a": 0.06350081912333702,
+            "averaged_sink_a": 0.11634733360423569,
+            "sink_error": 0.8322178392416544,
+            "source_error": 0.8320017491399836,
+            "spice_total_loss_w": 0.0006000246605943299,
+            "averaged_total_loss_w": 0.0010993154573147312,
+            "total_loss_error": 0.8321171270291612,
+            "element_loss_error": 0.9162927549902475,
+            "pass": false
+          },
+          {
+            "case": "flying_capacitor_s1_p2",
+            "component": 0.01,
+            "frequency_hz": 10000.0,
+            "spice_sink_a": 0.0644776455167509,
+            "averaged_sink_a": 0.16248010702377771,
+            "sink_error": 1.5199447920530278,
+            "source_error": 1.5196655267828643,
+            "spice_total_loss_w": 0.0006091339008219973,
+            "averaged_total_loss_w": 0.0015352040104757991,
+            "total_loss_error": 1.5203063044169998,
+            "element_loss_error": 1.219307422793018,
+            "pass": false
+          }
+        ]
+      },
+      "two_phase": {
+        "n_points": 6,
+        "n_pass": 6,
+        "max_abs_current_error": 0.0003966566913912173,
+        "max_abs_total_loss_error": 0.00032418356610908194,
+        "max_abs_element_loss_error": 0.4287070093239498,
+        "pass": true,
+        "points": [
+          {
+            "case": "flying_capacitor_s0_p0",
+            "component": 0.001,
+            "frequency_hz": 1000.0,
+            "spice_sink_a": 0.04909684384940548,
+            "averaged_sink_a": 0.04910058670696766,
+            "sink_error": 7.623417858915182e-05,
+            "source_error": -7.712033109674721e-05,
+            "spice_total_loss_w": 0.0024116549881116572,
+            "averaged_total_loss_w": 0.002410873191157431,
+            "total_loss_error": -0.00032417446031052233,
+            "element_loss_error": 0.4287070093239498,
+            "pass": true
+          },
+          {
+            "case": "flying_capacitor_s0_p1",
+            "component": 0.0055,
+            "frequency_hz": 5500.0,
+            "spice_sink_a": 0.33000595104767566,
+            "averaged_sink_a": 0.3300095740557721,
+            "sink_error": 1.0978614430889877e-05,
+            "source_error": -1.1838170067557385e-05,
+            "spice_total_loss_w": 0.016203643219134384,
+            "averaged_total_loss_w": 0.01620370118313552,
+            "total_loss_error": 3.577220280215343e-06,
+            "element_loss_error": 0.23538734332346234,
+            "pass": true
+          },
+          {
+            "case": "flying_capacitor_s0_p2",
+            "component": 0.01,
+            "frequency_hz": 10000.0,
+            "spice_sink_a": 0.3350821499752446,
+            "averaged_sink_a": 0.3350850674918827,
+            "sink_error": 8.706869758068336e-06,
+            "source_error": -8.466594473621747e-06,
+            "spice_total_loss_w": 0.0164496420729323,
+            "averaged_total_loss_w": 0.016452911465082876,
+            "total_loss_error": 0.00019875156772908298,
+            "element_loss_error": 0.2321396149695718,
+            "pass": true
+          },
+          {
+            "case": "flying_capacitor_s1_p0",
+            "component": 0.001,
+            "frequency_hz": 1000.0,
+            "spice_sink_a": 0.009444803283460776,
+            "averaged_sink_a": 0.00944854411886041,
+            "sink_error": 0.00039607340538116986,
+            "source_error": -0.0003966566913912173,
+            "spice_total_loss_w": 8.930414338928757e-05,
+            "averaged_total_loss_w": 8.927519245361532e-05,
+            "total_loss_error": -0.00032418356610908194,
+            "element_loss_error": 0.42870699730929096,
+            "pass": true
+          },
+          {
+            "case": "flying_capacitor_s1_p1",
+            "component": 0.0055,
+            "frequency_hz": 5500.0,
+            "spice_sink_a": 0.06350081912333702,
+            "averaged_sink_a": 0.06350453689527537,
+            "sink_error": 5.854683435058128e-05,
+            "source_error": -5.939915898800496e-05,
+            "spice_total_loss_w": 0.0006000246605943299,
+            "averaged_total_loss_w": 0.0006000268064248193,
+            "total_loss_error": 3.576237162183915e-06,
+            "element_loss_error": 0.23538734226283364,
+            "pass": true
+          },
+          {
+            "case": "flying_capacitor_s1_p2",
+            "component": 0.01,
+            "frequency_hz": 10000.0,
+            "spice_sink_a": 0.0644776455167509,
+            "averaged_sink_a": 0.06448122631738512,
+            "sink_error": 5.553553647175136e-05,
+            "source_error": -5.529259761705152e-05,
+            "spice_total_loss_w": 0.0006091339008219973,
+            "averaged_total_loss_w": 0.0006092551208645158,
+            "total_loss_error": 0.00019900393387239923,
+            "element_loss_error": 0.23213994333450128,
+            "pass": true
+          }
+        ]
+      }
+    },
+    "flying_capacitor_active_model": "two_phase",
+    "hypothesis": {
+      "points": [
+        {
+          "case": "flying_capacitor_s0_p0",
+          "component": 0.001,
+          "frequency_hz": 1000.0,
+          "phase_resistance_ohm": 0.0365760701289449,
+          "phase_time_constant_s": 3.65760701289449e-05,
+          "half_period_s": 0.0005,
+          "regime": "slow",
+          "slow_limit_ohm": 1.0,
+          "fast_limit_ohm": 0.1463042805157796,
+          "spice_ohm": 1.000078547293604,
+          "two_phase_closed_form_ohm": 1.00000231293869,
+          "midsem_ohm": 1.0481521402578897,
+          "spice_over_midsem": 0.9541349093153045,
+          "spice_over_closed_form": 1.0000762341785892,
+          "midsem_current_error": -0.04586509068469535,
+          "two_phase_current_error": 7.623417858915182e-05
+        },
+        {
+          "case": "flying_capacitor_s0_p1",
+          "component": 0.0055,
+          "frequency_hz": 5500.0,
+          "phase_resistance_ohm": 0.0365760701289449,
+          "phase_time_constant_s": 0.00020116838570919692,
+          "half_period_s": 9.09090909090909e-05,
+          "regime": "fast",
+          "slow_limit_ohm": 0.03305785123966942,
+          "fast_limit_ohm": 0.1463042805157796,
+          "spice_ohm": 0.1487873176763434,
+          "two_phase_closed_form_ohm": 0.14878568421568358,
+          "midsem_ohm": 0.08120999149755923,
+          "spice_over_midsem": 1.832130689002907,
+          "spice_over_closed_form": 1.0000109786144307,
+          "midsem_current_error": 0.832130689002907,
+          "two_phase_current_error": 1.0978614430889877e-05
+        },
+        {
+          "case": "flying_capacitor_s0_p2",
+          "component": 0.01,
+          "frequency_hz": 10000.0,
+          "phase_resistance_ohm": 0.0365760701289449,
+          "phase_time_constant_s": 0.000365760701289449,
+          "half_period_s": 5e-05,
+          "regime": "fast",
+          "slow_limit_ohm": 0.01,
+          "fast_limit_ohm": 0.1463042805157796,
+          "spice_ohm": 0.1465333210892966,
+          "two_phase_closed_form_ohm": 0.14653204525386315,
+          "midsem_ohm": 0.0581521402578898,
+          "spice_over_midsem": 2.5198267929513682,
+          "spice_over_closed_form": 1.0000087068697583,
+          "midsem_current_error": 1.5198267929513678,
+          "two_phase_current_error": 8.706869758068336e-06
+        },
+        {
+          "case": "flying_capacitor_s1_p0",
+          "component": 0.001,
+          "frequency_hz": 1000.0,
+          "phase_resistance_ohm": 0.0365760701289449,
+          "phase_time_constant_s": 3.65760701289449e-05,
+          "half_period_s": 0.0005,
+          "regime": "slow",
+          "slow_limit_ohm": 1.0,
+          "fast_limit_ohm": 0.1463042805157796,
+          "spice_ohm": 1.0003983872601647,
+          "two_phase_closed_form_ohm": 1.00000231293869,
+          "midsem_ohm": 1.0481521402578897,
+          "spice_over_midsem": 0.954440055824362,
+          "spice_over_closed_form": 1.0003960734053814,
+          "midsem_current_error": -0.045559944175638245,
+          "two_phase_current_error": 0.00039607340538116986
+        },
+        {
+          "case": "flying_capacitor_s1_p1",
+          "component": 0.0055,
+          "frequency_hz": 5500.0,
+          "phase_resistance_ohm": 0.0365760701289449,
+          "phase_time_constant_s": 0.00020116838570919692,
+          "half_period_s": 9.09090909090909e-05,
+          "regime": "fast",
+          "slow_limit_ohm": 0.03305785123966942,
+          "fast_limit_ohm": 0.1463042805157796,
+          "spice_ohm": 0.1487943951464911,
+          "two_phase_closed_form_ohm": 0.14878568421568358,
+          "midsem_ohm": 0.08120999149755923,
+          "spice_over_midsem": 1.8322178392416544,
+          "spice_over_closed_form": 1.0000585468343506,
+          "midsem_current_error": 0.8322178392416544,
+          "two_phase_current_error": 5.854683435058128e-05
+        },
+        {
+          "case": "flying_capacitor_s1_p2",
+          "component": 0.01,
+          "frequency_hz": 10000.0,
+          "phase_resistance_ohm": 0.0365760701289449,
+          "phase_time_constant_s": 0.000365760701289449,
+          "half_period_s": 5e-05,
+          "regime": "fast",
+          "slow_limit_ohm": 0.01,
+          "fast_limit_ohm": 0.1463042805157796,
+          "spice_ohm": 0.14654018298960664,
+          "two_phase_closed_form_ohm": 0.14653204525386315,
+          "midsem_ohm": 0.0581521402578898,
+          "spice_over_midsem": 2.5199447920530282,
+          "spice_over_closed_form": 1.0000555355364718,
+          "midsem_current_error": 1.5199447920530278,
+          "two_phase_current_error": 5.553553647175136e-05
+        }
+      ],
+      "baseline_point": {
+        "case": "flying_capacitor_s0_p1",
+        "component": 0.0055,
+        "frequency_hz": 5500.0,
+        "phase_resistance_ohm": 0.0365760701289449,
+        "phase_time_constant_s": 0.00020116838570919692,
+        "half_period_s": 9.09090909090909e-05,
+        "regime": "fast",
+        "slow_limit_ohm": 0.03305785123966942,
+        "fast_limit_ohm": 0.1463042805157796,
+        "spice_ohm": 0.1487873176763434,
+        "two_phase_closed_form_ohm": 0.14878568421568358,
+        "midsem_ohm": 0.08120999149755923,
+        "spice_over_midsem": 1.832130689002907,
+        "spice_over_closed_form": 1.0000109786144307,
+        "midsem_current_error": 0.832130689002907,
+        "two_phase_current_error": 1.0978614430889877e-05
+      },
+      "baseline_midsem_current_overstatement_factor": 1.832130689002907,
+      "supported": true
+    },
+    "datasheet_checks": {
+      "bq76952": {
+        "document_revision": "SLUSE13B, January 2020, revised November 2021",
+        "internal_resistance_ohm": {
+          "min": 15.0,
+          "typ": 28.0,
+          "max": 46.0
+        },
+        "internal_resistance_page": 18,
+        "maximum_current_a": 0.1,
+        "maximum_current_page": 8,
+        "model_bleed_resistance_range_ohm": [
+          20.0,
+          100.0
+        ],
+        "model_bleed_current_a": {
+          "range_at_50_percent_soc": [
+            0.037399144671156855,
+            0.18690918641937132
+          ],
+          "high_end_at_100_percent_soc": 0.20930807446742272
+        },
+        "internal_switch_only_current_at_50_percent_soc_a": {
+          "min": 0.2493564934824774,
+          "typ": 0.13358383579418434,
+          "max": 0.08131190004863394
+        },
+        "internal_switch_only_exceeds_maximum": {
+          "min": true,
+          "typ": true,
+          "max": false
+        },
+        "minimum_total_resistance_for_maximum_current_ohm": 37.391897952242665,
+        "fraction_of_model_bleed_range_within_maximum": 0.7826012755969667
+      },
+      "ltc3300_1": {
+        "document_revision": "Rev. C",
+        "vendor_best_efficiency_percent": 92.0,
+        "vendor_best_efficiency_page": 1,
+        "vendor_maximum_current_a": 10.0,
+        "model_operating_points": [
+          {
+            "case": "buck_boost_s0_p0",
+            "spice_efficiency_percent": 89.07229694566745,
+            "averaged_efficiency_percent": 88.95809896806513,
+            "spice_mean_current_a": 0.5306234365318606
+          },
+          {
+            "case": "buck_boost_s0_p1",
+            "spice_efficiency_percent": 96.44547961328462,
+            "averaged_efficiency_percent": 96.63933663535515,
+            "spice_mean_current_a": 0.177753654999967
+          },
+          {
+            "case": "buck_boost_s0_p2",
+            "spice_efficiency_percent": 94.25607874323404,
+            "averaged_efficiency_percent": 94.46186158984392,
+            "spice_mean_current_a": 0.28520804319455106
+          }
+        ],
+        "model_exceeds_vendor_best": [
+          false,
+          true,
+          true
+        ],
+        "model_efficiency_is_upper_bound": true,
+        "omitted_losses": "switching transition, gate drive and core losses",
+        "topology_note": "transformer-based bidirectional flyback; range check only"
+      }
+    },
+    "pass": true
+  },
+  "flying_capacitor_model_comparison": {
+    "status": "ok",
+    "parameter_set": "fitted_hg2_25c",
+    "baseline": {
+      "midsem": {
+        "balancing_time_s": 4251.0,
+        "energy_dissipated_j": 29.93941219119006,
+        "efficiency_pct": 99.43366866160082
+      },
+      "two_phase": {
+        "balancing_time_s": 7069.0,
+        "energy_dissipated_j": 29.936444768834917,
+        "efficiency_pct": 99.43595645181315
+      }
+    },
+    "time_ratio_two_phase_over_midsem": 1.662902846389085,
+    "energy_ratio_two_phase_over_midsem": 0.9999008857509897,
+    "frequency_sweep": {
+      "frequency_hz": [
+        1000.0,
+        1562.5,
+        2125.0,
+        2687.5,
+        3250.0,
+        3812.5,
+        4375.0,
+        4937.5,
+        5500.0,
+        6062.5,
+        6625.0,
+        7187.5,
+        7750.0,
+        8312.5,
+        8875.0,
+        9437.5,
+        10000.0
+      ],
+      "balancing_time_s_midsem": [
+        10343.0,
+        7662.0,
+        6401.0,
+        5667.0,
+        5188.0,
+        4850.0,
+        4599.0,
+        4405.0,
+        4251.0,
+        4125.0,
+        4021.0,
+        3933.0,
+        3857.0,
+        3792.0,
+        3736.0,
+        3685.0,
+        3641.0
+      ],
+      "balancing_time_s_two_phase": [
+        9736.0,
+        8163.0,
+        7626.0,
+        7383.0,
+        7253.0,
+        7176.0,
+        7126.0,
+        7092.0,
+        7069.0,
+        7051.0,
+        7038.0,
+        7027.0,
+        7019.0,
+        7012.0,
+        7007.0,
+        7003.0,
+        6999.0
+      ]
+    },
+    "active_model": "two_phase"
   }
 }

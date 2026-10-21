@@ -1,0 +1,332 @@
+{
+  "status": "ok",
+  "tool": "LTspice 26.1.1",
+  "parameter_set": "fitted_hg2_25c",
+  "inputs": {
+    "soc_pairs": [
+      [
+        0.55,
+        0.5
+      ],
+      [
+        0.51,
+        0.5
+      ]
+    ],
+    "cases": [
+      {
+        "name": "buck_boost_s0_p0",
+        "ocv_source_v": 3.7894481025107756,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 1e-05,
+        "frequency_hz": 50000.0
+      },
+      {
+        "name": "buck_boost_s0_p1",
+        "ocv_source_v": 3.7894481025107756,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 5.5e-05,
+        "frequency_hz": 30000.0
+      },
+      {
+        "name": "buck_boost_s0_p2",
+        "ocv_source_v": 3.7894481025107756,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 0.0001,
+        "frequency_hz": 10000.0
+      },
+      {
+        "name": "flying_capacitor_s0_p0",
+        "ocv_source_v": 3.7894481025107756,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 0.001,
+        "frequency_hz": 1000.0
+      },
+      {
+        "name": "flying_capacitor_s0_p1",
+        "ocv_source_v": 3.7894481025107756,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 0.0055,
+        "frequency_hz": 5500.0
+      },
+      {
+        "name": "flying_capacitor_s0_p2",
+        "ocv_source_v": 3.7894481025107756,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 0.01,
+        "frequency_hz": 10000.0
+      },
+      {
+        "name": "buck_boost_s1_p0",
+        "ocv_source_v": 3.749795968209925,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 1e-05,
+        "frequency_hz": 50000.0
+      },
+      {
+        "name": "buck_boost_s1_p1",
+        "ocv_source_v": 3.749795968209925,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 5.5e-05,
+        "frequency_hz": 30000.0
+      },
+      {
+        "name": "buck_boost_s1_p2",
+        "ocv_source_v": 3.749795968209925,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 0.0001,
+        "frequency_hz": 10000.0
+      },
+      {
+        "name": "flying_capacitor_s1_p0",
+        "ocv_source_v": 3.749795968209925,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 0.001,
+        "frequency_hz": 1000.0
+      },
+      {
+        "name": "flying_capacitor_s1_p1",
+        "ocv_source_v": 3.749795968209925,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 0.0055,
+        "frequency_hz": 5500.0
+      },
+      {
+        "name": "flying_capacitor_s1_p2",
+        "ocv_source_v": 3.749795968209925,
+        "ocv_sink_v": 3.7403474022371612,
+        "r0_ohm": 0.0115760701289449,
+        "component": 0.01,
+        "frequency_hz": 10000.0
+      }
+    ],
+    "buck_boost": {
+      "duty": 0.4,
+      "r_inductor_ohm": 0.08,
+      "r_ds_on_ohm": 0.02
+    },
+    "flying_capacitor": {
+      "r_ds_on_ohm": 0.01,
+      "esr_ohm": 0.005
+    },
+    "periods": [
+      300,
+      60
+    ],
+    "step_divisors": [
+      400,
+      800
+    ]
+  },
+  "cases": [
+    {
+      "name": "buck_boost_s0_p0",
+      "netlist_sha256": "85fdaea4cea32a4d0926705ff4b34912fe4b5d47106ccc1ed3f8220ddc1b20cc",
+      "n_periods_measured": 60,
+      "n_raw_points": 172462,
+      "source_current_a": 0.588003286805389,
+      "sink_current_a": 0.5306234365318606,
+      "source_r0_loss_w": 0.013243336811953521,
+      "sink_r0_loss_w": 0.01177885076407953,
+      "switch_loss_direct_w": 0.21622894327687062,
+      "cycle_change_source": 1.4425266148118507e-13,
+      "cycle_change_sink": 1.3537176224769824e-13,
+      "peak_inductor_current_a": 2.896667118447055,
+      "switch_on_fraction": 0.39957565943854045,
+      "freewheel_fraction": 0.371241673489866,
+      "idle_fraction": 0.22951600040492492,
+      "step_refinement_change": 4.914823035218063e-07
+    },
+    {
+      "name": "buck_boost_s0_p1",
+      "netlist_sha256": "c36355489378b748ad60f4249d53bd9ca541e7a9b4b0bce6df257a249fe3e6a4",
+      "n_periods_measured": 60,
+      "n_raw_points": 169890,
+      "source_current_a": 0.18191672961213706,
+      "sink_current_a": 0.177753654999967,
+      "source_r0_loss_w": 0.0012740708129985775,
+      "sink_r0_loss_w": 0.0012393235121929658,
+      "switch_loss_direct_w": 0.021719266173496954,
+      "cycle_change_source": 3.605299266294382e-13,
+      "cycle_change_sink": 3.5492054087065737e-13,
+      "peak_inductor_current_a": 0.9054628501431455,
+      "switch_on_fraction": 0.39959133352311826,
+      "freewheel_fraction": 0.3940194317981881,
+      "idle_fraction": 0.20672256893795182,
+      "step_refinement_change": 1.3586795610809332e-07
+    },
+    {
+      "name": "buck_boost_s0_p2",
+      "netlist_sha256": "e50562e2eb7d70fe51de9740dd471dd29767d6ae20785039d067ad918f8b99dd",
+      "n_periods_measured": 60,
+      "n_raw_points": 175547,
+      "source_current_a": 0.2986677830492669,
+      "sink_current_a": 0.28520804319455106,
+      "source_r0_loss_w": 0.003429071775360498,
+      "sink_r0_loss_w": 0.0032504801572955295,
+      "switch_loss_direct_w": 0.05770195008199094,
+      "cycle_change_source": 2.483590120710497e-05,
+      "cycle_change_sink": 2.4113111594015486e-05,
+      "peak_inductor_current_a": 1.4821577146459526,
+      "switch_on_fraction": 0.3995904432651119,
+      "freewheel_fraction": 0.38728825672848033,
+      "idle_fraction": 0.21313130000640246,
+      "step_refinement_change": 3.070752802480925e-06
+    },
+    {
+      "name": "flying_capacitor_s0_p0",
+      "netlist_sha256": "237d3b28df26db2661e685b24de680519bf03246e8303cb0704b5c6304226dd4",
+      "n_periods_measured": 60,
+      "n_raw_points": 152793,
+      "source_current_a": 0.04910437365252204,
+      "sink_current_a": 0.04909684384940548,
+      "source_r0_loss_w": 0.00038164023899457325,
+      "sink_r0_loss_w": 0.00038163167923428986,
+      "switch_loss_direct_w": 0.0016483830698827942,
+      "cycle_change_source": 7.514816916737797e-13,
+      "cycle_change_sink": 3.4187909114966135e-13,
+      "peak_source_current_a": 1.342410738872104,
+      "phase_overlap_fraction": 0.0,
+      "step_refinement_change": 9.144503154701056e-09
+    },
+    {
+      "name": "flying_capacitor_s0_p1",
+      "netlist_sha256": "a41c1e0d46b0f2a28044369f71b294f9ab76e4e9e3e1a3117fcc836922fb643f",
+      "n_periods_measured": 60,
+      "n_raw_points": 149757,
+      "source_current_a": 0.3300134808114825,
+      "sink_current_a": 0.33000595104767566,
+      "source_r0_loss_w": 0.0025641998211992645,
+      "sink_r0_loss_w": 0.0025641422906737274,
+      "switch_loss_direct_w": 0.011075301107261393,
+      "cycle_change_source": 1.846259111646224e-12,
+      "cycle_change_sink": 5.689415280449908e-10,
+      "peak_source_current_a": 0.8203483546229222,
+      "phase_overlap_fraction": 0.0,
+      "step_refinement_change": 3.0584612031869796e-07
+    },
+    {
+      "name": "flying_capacitor_s0_p2",
+      "netlist_sha256": "cffe933ede8b585e25ac7b92c0e0871ae1ecba6f01f84067c8f5f6b0df33aa93",
+      "n_periods_measured": 60,
+      "n_raw_points": 149861,
+      "source_current_a": 0.33508790454528353,
+      "sink_current_a": 0.3350821499752446,
+      "source_r0_loss_w": 0.002603160636236097,
+      "sink_r0_loss_w": 0.0026031591479911812,
+      "switch_loss_direct_w": 0.011243322288705023,
+      "cycle_change_source": 0.00038449971775022753,
+      "cycle_change_sink": 0.0003354715308645987,
+      "peak_source_current_a": 0.7170244207915175,
+      "phase_overlap_fraction": 0.0,
+      "step_refinement_change": 2.409393169422458e-07
+    },
+    {
+      "name": "buck_boost_s1_p0",
+      "netlist_sha256": "c80e78166c82e544779de4514a79e148d4638b1a46f9058ea4142cc15ad25bb4",
+      "n_periods_measured": 60,
+      "n_raw_points": 175853,
+      "source_current_a": 0.5818505256497775,
+      "sink_current_a": 0.5198717199847083,
+      "source_r0_loss_w": 0.012967634976126456,
+      "sink_r0_loss_w": 0.011420177539769032,
+      "switch_loss_direct_w": 0.21074732949442504,
+      "cycle_change_source": 4.930503916667728e-13,
+      "cycle_change_sink": 4.702527577950392e-13,
+      "peak_inductor_current_a": 2.86635686240592,
+      "switch_on_fraction": 0.39957574100112264,
+      "freewheel_fraction": 0.36757820841548716,
+      "idle_fraction": 0.23317938391672155
+    },
+    {
+      "name": "buck_boost_s1_p1",
+      "netlist_sha256": "9550d951e85bf1ec14e5aa95619906ef6657b4e4ba95a194f56b0d5b0ee132e2",
+      "n_periods_measured": 60,
+      "n_raw_points": 174559,
+      "source_current_a": 0.18001319001509303,
+      "sink_current_a": 0.17408542273460975,
+      "source_r0_loss_w": 0.0012475470562074713,
+      "sink_r0_loss_w": 0.001201070587724277,
+      "switch_loss_direct_w": 0.021159538289087638,
+      "cycle_change_source": 9.883344641649002e-14,
+      "cycle_change_sink": 9.741571944827596e-14,
+      "peak_inductor_current_a": 0.8959882176057609,
+      "switch_on_fraction": 0.3995916724885361,
+      "freewheel_fraction": 0.3899783721810945,
+      "idle_fraction": 0.21076328958962753
+    },
+    {
+      "name": "buck_boost_s1_p2",
+      "netlist_sha256": "89b799ba19a8f085cc48c5bfa2bc124f6745e055a6a22c462a8bf23e0a511593",
+      "n_periods_measured": 60,
+      "n_raw_points": 176776,
+      "source_current_a": 0.2955394385528817,
+      "sink_current_a": 0.2793513795197388,
+      "source_r0_loss_w": 0.003357631544171148,
+      "sink_r0_loss_w": 0.0031505197563396112,
+      "switch_loss_direct_w": 0.05622128851051059,
+      "cycle_change_source": 2.4814880926710383e-05,
+      "cycle_change_sink": 2.4096141286082562e-05,
+      "peak_inductor_current_a": 1.4666486112995625,
+      "switch_on_fraction": 0.39961212966041065,
+      "freewheel_fraction": 0.3835253581814695,
+      "idle_fraction": 0.21687251215811465
+    },
+    {
+      "name": "flying_capacitor_s1_p0",
+      "netlist_sha256": "6086aa326676915b0a72b4f3d9db102a7b529b4c81d3d07c9c25e028ce5b5203",
+      "n_periods_measured": 60,
+      "n_raw_points": 152758,
+      "source_current_a": 0.009452293434300119,
+      "sink_current_a": 0.009444803283460776,
+      "source_r0_loss_w": 1.4132887326163935e-05,
+      "sink_r0_loss_w": 1.4131248824932422e-05,
+      "switch_loss_direct_w": 6.104000723819122e-05,
+      "cycle_change_source": 5.074440869207973e-13,
+      "cycle_change_sink": 2.990141492767461e-13,
+      "peak_source_current_a": 0.2583263507387983,
+      "phase_overlap_fraction": 0.0
+    },
+    {
+      "name": "flying_capacitor_s1_p1",
+      "netlist_sha256": "4c113ee4e7f8ab33eb71d4b45be964c4491832c572e9ec49390a70e18435e138",
+      "n_periods_measured": 60,
+      "n_raw_points": 149729,
+      "source_current_a": 0.0635083092354327,
+      "sink_current_a": 0.06350081912333702,
+      "source_r0_loss_w": 9.495735421747959e-05,
+      "sink_r0_loss_w": 9.494634177864465e-05,
+      "switch_loss_direct_w": 0.0004101209645982057,
+      "cycle_change_source": 5.9714754177798225e-12,
+      "cycle_change_sink": 5.720942601268752e-10,
+      "peak_source_current_a": 0.15786463057617084,
+      "phase_overlap_fraction": 0.0
+    },
+    {
+      "name": "flying_capacitor_s1_p2",
+      "netlist_sha256": "51ac7b16d11a521fe9b7f672f62f8d7d38ddaeea692f165f6e34635a3a692b11",
+      "n_periods_measured": 60,
+      "n_raw_points": 149826,
+      "source_current_a": 0.06448479184903325,
+      "sink_current_a": 0.0644776455167509,
+      "source_r0_loss_w": 9.640018071422994e-05,
+      "sink_r0_loss_w": 9.639100356641224e-05,
+      "switch_loss_direct_w": 0.00041634271654135516,
+      "cycle_change_source": 0.00033722272695589634,
+      "cycle_change_sink": 0.0002942466421549091,
+      "peak_source_current_a": 0.13798144945769764,
+      "phase_overlap_fraction": 0.0
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+* buck-boost link buck_boost_s1_p2: DCM, ideal-diode freewheel, DC sources with series R0
+VA ai 0 3.74979596821
+RA ai a 0.0115760701289
+VB 0 bi 3.74034740224
+RB bi bm 0.0115760701289
+S1 a x g 0 SWH
+D1 bm x DFW
+L1 x xl 0.0001
+RL xl 0 0.08
+VG g 0 PULSE(0 1 0 1e-07 1e-07 3.99e-05 0.0001)
+.model SWH SW(Ron=0.02 Roff=1000000 Vt=0.5 Vh=0)
+.model DFW D(Ron=0.02 Roff=1000000 Vfwd=0)
+.options plotwinsize=0 numdgt=15 reltol=0.0001
+.save I(VA) I(VB) I(L1) I(S1) I(D1) V(x)
+.tran 0 0.036 0 2.5e-07 uic
+.end

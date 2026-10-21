@@ -30,6 +30,7 @@ from src.ledger import (
 )
 from src.pack import PackBatch
 from src.params import BuckBoostSpec, FlyingCapSpec
+from src.switched_cap import link_resistance_ohm
 
 CurrentModel = Callable[[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray], StepFlow]
 
@@ -141,9 +142,7 @@ def flying_capacitor_currents(
     deadband: float,
 ) -> StepFlow:
     active, _ = _link_state(soc, deadband)
-    r_link = (
-        inverse_fc[:, None] + 2.0 * hardware.r_ds_on_ohm + hardware.esr_ohm + r0[:, :-1] + r0[:, 1:]
-    )
+    r_link = link_resistance_ohm(inverse_fc, r0, hardware)
     i_link = np.where(active, (emf[:, :-1] - emf[:, 1:]) / r_link, 0.0)
     forward = i_link > 0.0
     magnitude = np.abs(i_link)

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import StrEnum
 
 SECONDS_PER_HOUR = 3600.0
 
@@ -58,12 +59,18 @@ class BuckBoostSpec:
     r_ds_on_ohm: float = 0.02
 
 
+class FlyingCapModel(StrEnum):
+    MIDSEM = "midsem"
+    TWO_PHASE = "two_phase"
+
+
 @dataclass(frozen=True, slots=True)
 class FlyingCapSpec:
     component: ComponentRange = ComponentRange(1e-3, 10e-3)
     frequency_hz: ComponentRange = ComponentRange(1e3, 10e3)
     r_ds_on_ohm: float = 0.01
     esr_ohm: float = 0.005
+    model: FlyingCapModel = FlyingCapModel.TWO_PHASE
 
 
 TechniqueSpec = PassiveSpec | BuckBoostSpec | FlyingCapSpec
@@ -139,6 +146,34 @@ class IdentificationSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class ConverterCheckSpec:
+    soc_pairs: tuple[tuple[float, float], ...] = ((0.55, 0.50), (0.51, 0.50))
+    buck_boost_points: tuple[tuple[float, float], ...] = (
+        (10e-6, 50e3),
+        (55e-6, 30e3),
+        (100e-6, 10e3),
+    )
+    flying_capacitor_points: tuple[tuple[float, float], ...] = (
+        (1e-3, 1e3),
+        (5.5e-3, 5.5e3),
+        (10e-3, 10e3),
+    )
+    max_step_divisor: int = 400
+    refined_step_divisor: int = 800
+    settle_periods: int = 300
+    measured_periods: int = 60
+    stationarity_tolerance: float = 1e-3
+    current_tolerance: float = 0.05
+    loss_tolerance: float = 0.15
+    switch_roff_ohm: float = 1e6
+    gate_edge_fraction: float = 1e-3
+    relative_tolerance: float = 1e-4
+    dcm_idle_fraction_min: float = 0.05
+    energy_balance_tolerance: float = 0.005
+    step_independence_tolerance: float = 0.005
+
+
+@dataclass(frozen=True, slots=True)
 class ParameterSet:
     name: str
     cell: CellParams
@@ -209,5 +244,5 @@ ASSUMED = ParameterSet(
     pack=PackSpec(),
     passive=PassiveSpec(),
     buck_boost=BuckBoostSpec(),
-    flying_capacitor=FlyingCapSpec(),
+    flying_capacitor=FlyingCapSpec(model=FlyingCapModel.MIDSEM),
 )

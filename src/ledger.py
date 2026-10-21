@@ -6,6 +6,7 @@ import numpy as np
 from src.config import FloatArray
 from src.flow import StepFlow
 from src.params import BuckBoostSpec, FlyingCapSpec
+from src.switched_cap import element_resistance_ohm
 
 ElementLossModel = Callable[[StepFlow, FloatArray, FloatArray, FloatArray], FloatArray]
 
@@ -45,7 +46,7 @@ def flying_capacitor_element_loss_w(
     inverse_fc: FloatArray,
     hardware: FlyingCapSpec,
 ) -> FloatArray:
-    r_external = inverse_fc[:, None] + 2.0 * hardware.r_ds_on_ohm + hardware.esr_ohm
+    r_external = element_resistance_ohm(inverse_fc, r0, hardware)
     return (flow.link_source_a**2 * r_external).sum(axis=1)
 
 

@@ -113,6 +113,57 @@ def validation_claims() -> list[CheckedClaim]:
     return claims
 
 
+def converter_claims() -> list[CheckedClaim]:
+    note = "LTspice, DC sources with series R0, 6 points (3 operating points x 2 SOC pairs)"
+    rows = [
+        (
+            "Averaged buck-boost mean currents (source and sink cell) match switching-level SPICE",
+            "converter_check.buck_boost.max_abs_current_error",
+            "<= 5 %",
+            0.05,
+        ),
+        (
+            "Averaged buck-boost total dissipated power matches SPICE I^2 R loss",
+            "converter_check.buck_boost.max_abs_total_loss_error",
+            "<= 15 %",
+            0.15,
+        ),
+        (
+            "Two-phase flying-capacitor mean currents match switching-level SPICE",
+            "converter_check.flying_capacitor.two_phase.max_abs_current_error",
+            "<= 5 %",
+            0.05,
+        ),
+        (
+            "Two-phase flying-capacitor total dissipated power matches SPICE I^2 R loss",
+            "converter_check.flying_capacitor.two_phase.max_abs_total_loss_error",
+            "<= 15 %",
+            0.15,
+        ),
+        (
+            "Midsem flying-capacitor current formula (kept as a named option) matches SPICE",
+            "converter_check.flying_capacitor.midsem.max_abs_current_error",
+            "<= 5 %",
+            0.05,
+        ),
+    ]
+    claims = [
+        CheckedClaim(text, evidence, threshold, at_most(limit), percent, note)
+        for text, evidence, threshold, limit in rows
+    ]
+    claims.append(
+        CheckedClaim(
+            "SPICE runs are periodic steady state, step independent, energy conserving, "
+            "discontinuous-conduction for the buck-boost and non-overlapping for the capacitor",
+            "converter_check.measurement_quality.pass",
+            "all five quality checks",
+            is_true,
+            boolean,
+        )
+    )
+    return claims
+
+
 def checked_claims() -> list[CheckedClaim]:
     claims = [
         CheckedClaim(
@@ -142,6 +193,7 @@ def checked_claims() -> list[CheckedClaim]:
         ),
     ]
     claims.extend(validation_claims())
+    claims.extend(converter_claims())
     for key, label in TECHNIQUES:
         base = f"physics_checks.energy_ledger.{key}"
         claims.append(
@@ -206,9 +258,29 @@ UNSUPPORTED = (
         "ASSUMED; the dataset has a single cell, so this stays assumed",
     ),
     UnsupportedClaim(
-        "The averaged buck-boost and flying-capacitor current equations match "
-        "switching-level behaviour",
-        "not yet compared with a circuit simulator (Phase 2)",
+        "The averaged converter models hold outside the six checked points",
+        "buck-boost checked only in discontinuous conduction at D = 0.4 and three (L, f) points; "
+        "flying capacitor only at three (C, f) points and 4-switch two-phase operation",
+    ),
+    UnsupportedClaim(
+        "Converter efficiencies and losses match a built converter",
+        "SPICE used ideal DC sources and ideal-threshold switches; switching transition, gate "
+        "drive, dead-time and core losses are not modelled, so efficiency is an upper bound",
+    ),
+    UnsupportedClaim(
+        "The flying-capacitor split between cell R0 heating and converter heating is exact",
+        "R0 loss is booked with the mean link current; SPICE shows pulsed currents, so the element "
+        "loss differs by 23 to 43 % (total dissipated power agrees)",
+    ),
+    UnsupportedClaim(
+        "Converter component values (switch resistance, ESR, inductor resistance, duty) are "
+        "measured",
+        "ASSUMED; no hardware data, only the vendor range checks in the README",
+    ),
+    UnsupportedClaim(
+        "The vendor datasheets validate the model",
+        "range checks only: different topologies; the LTC3300-1 efficiency curve values were "
+        "not read; the BQ76952 application note was not downloaded",
     ),
     UnsupportedClaim(
         "The reported energy dissipated by the active schemes is physically exact",
