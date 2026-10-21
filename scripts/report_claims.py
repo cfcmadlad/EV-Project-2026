@@ -57,6 +57,22 @@ def at_most(limit: float) -> Callable[[object], bool]:
     return lambda value: float(value) <= limit
 
 
+def abs_at_most(limit: float) -> Callable[[object], bool]:
+    return lambda value: abs(float(value)) <= limit
+
+
+def between(low: float, high: float) -> Callable[[object], bool]:
+    return lambda value: low <= float(value) <= high
+
+
+def positive(value: object) -> bool:
+    return float(value) > 0.0
+
+
+def signed_percent(value: object) -> str:
+    return f"{float(value) * 100.0:+.4g} %"
+
+
 def is_true(value: object) -> bool:
     return value is True
 
@@ -164,6 +180,76 @@ def converter_claims() -> list[CheckedClaim]:
     return claims
 
 
+MODEL_NAMES = {
+    "hgb": "the midsem HGB model",
+    "physics": "the physics formula",
+    "hybrid": "the hybrid (HGB on the physics residual)",
+}
+VERDICT_PAIRS = (("hgb", "physics"), ("hybrid", "hgb"), ("hybrid", "physics"))
+TARGET_TEXT = (("balancing_time_s", "balancing time"), ("energy_dissipated_j", "energy dissipated"))
+VERDICT_NOTE = "MAE lower in all 5 folds and mean gain above the larger fold std"
+
+
+def ml_eval_claims() -> list[CheckedClaim]:
+    base = "ml_eval.physics_baseline_check"
+    claims = [
+        CheckedClaim(
+            "Passive physics baseline reproduces the simulated balancing time on the baseline pack",
+            f"{base}.passive.time_error",
+            "<= 3 %",
+            abs_at_most(0.03),
+            signed_percent,
+        ),
+        CheckedClaim(
+            "Passive physics baseline reproduces the simulated energy dissipated on the baseline "
+            "pack",
+            f"{base}.passive.energy_error",
+            "<= 3 %",
+            abs_at_most(0.03),
+            signed_percent,
+        ),
+    ]
+    for target, target_text in TARGET_TEXT:
+        for key, label in TECHNIQUES:
+            for better, worse in VERDICT_PAIRS:
+                claims.append(
+                    CheckedClaim(
+                        f"{MODEL_NAMES[better].capitalize()} beats {MODEL_NAMES[worse]} on "
+                        f"{target_text} for {label} (5-fold CV)",
+                        f"ml_eval.cross_validation.verdicts.{target}.{key}."
+                        f"{better}_vs_{worse}.beats",
+                        VERDICT_NOTE,
+                        is_true,
+                        boolean,
+                    )
+                )
+    for target, target_text in TARGET_TEXT:
+        for key, label in TECHNIQUES:
+            claims.append(
+                CheckedClaim(
+                    f"Conformal 90 % interval on {target_text} for {label} keeps nominal "
+                    "test coverage",
+                    f"ml_eval.conformal.{target}.techniques.{key}.coverage",
+                    "87 to 93 %",
+                    between(0.87, 0.93),
+                    percent,
+                    "Mondrian by technique, absolute log residual, best model by CV MAE",
+                )
+            )
+    for target, target_text in TARGET_TEXT:
+        claims.append(
+            CheckedClaim(
+                f"The four individual cell SOCs carry information the HGB model uses for "
+                f"{target_text} (removing them raises the CV MAE)",
+                f"ml_eval.feature_ablation.{target}.cross_validation.mae_change_percent.overall",
+                "> 0 %",
+                positive,
+                lambda value: f"{float(value):+.4g} %",
+            )
+        )
+    return claims
+
+
 def checked_claims() -> list[CheckedClaim]:
     claims = [
         CheckedClaim(
@@ -194,6 +280,7 @@ def checked_claims() -> list[CheckedClaim]:
     ]
     claims.extend(validation_claims())
     claims.extend(converter_claims())
+    claims.extend(ml_eval_claims())
     for key, label in TECHNIQUES:
         base = f"physics_checks.energy_ledger.{key}"
         claims.append(
@@ -288,17 +375,21 @@ UNSUPPORTED = (
         "a coupled link solution has not been implemented",
     ),
     UnsupportedClaim(
-        "The ML surrogate is more accurate than physics-based formulas",
-        "no physics baselines or cross-validated comparison yet (Phase 3)",
+        "ML speedups over simulation are fixed factors",
+        "measured in results/timing.json for batch sizes 1 and 1000 on one host CPU; they depend "
+        "on the machine and batch size, and the physics formulas are faster than the HGB model",
     ),
     UnsupportedClaim(
-        "The ML surrogate is a fixed factor faster than simulation",
-        "timings live in results/timing.json, depend on the machine and batch size, and "
-        "are not compared with closed-form baselines yet (Phase 3)",
+        "The plain HGB model is reliable outside its training range",
+        "median error rises several-fold when it is tested above the 80th percentile of the "
+        "component value or above 8 % initial spread (ml_eval.out_of_range); only the hybrid "
+        "and the physics-based models hold up there",
     ),
     UnsupportedClaim(
-        "ML predictions are reliable outside the training range or carry calibrated uncertainty",
-        "not evaluated (Phase 3)",
+        "ML results or prediction intervals carry over to other cells or to strings longer than "
+        "4 cells",
+        "the dataset is simulated from one fitted cell and one pack layout; intervals are "
+        "calibrated on that distribution only",
     ),
     UnsupportedClaim(
         "Balancing results hold when SOC is estimated rather than known exactly",

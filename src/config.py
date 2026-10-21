@@ -14,6 +14,7 @@ from src.params import (
     DatasetSpec,
     FlyingCapSpec,
     IdentificationSpec,
+    MLEvalSpec,
     MLSpec,
     PackSpec,
     ParameterSet,
@@ -90,6 +91,7 @@ class ProjectConfig:
     sweep: SweepSpec = SweepSpec()
     dataset: DatasetSpec = DatasetSpec()
     ml: MLSpec = MLSpec()
+    ml_eval: MLEvalSpec = MLEvalSpec()
     sanity: SanitySpec = SanitySpec()
     checks: CheckSpec = CheckSpec()
     identification: IdentificationSpec = IdentificationSpec()

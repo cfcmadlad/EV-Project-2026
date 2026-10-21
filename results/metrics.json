@@ -1501,5 +1501,2053 @@
       ]
     },
     "active_model": "two_phase"
+  },
+  "ml_eval": {
+    "status": "ok",
+    "models": [
+      "physics",
+      "linear",
+      "hgb",
+      "hybrid"
+    ],
+    "n_rows": 6000,
+    "physics_baseline_check": {
+      "passive": {
+        "simulated_time_s": 15068.0,
+        "predicted_time_s": 15067.974408311833,
+        "time_error": -1.6984130718489254e-06,
+        "simulated_energy_j": 7175.509992712934,
+        "predicted_energy_j": 7175.435677169105,
+        "energy_error": -1.0356830929758587e-05
+      },
+      "buck_boost": {
+        "simulated_time_s": 3845.0,
+        "predicted_time_s": 3814.273999685315,
+        "time_error": -0.007991157429046769,
+        "simulated_energy_j": 199.91571791367187,
+        "predicted_energy_j": 207.8325463011983,
+        "energy_error": 0.03960083014055504
+      },
+      "flying_capacitor": {
+        "simulated_time_s": 7069.0,
+        "predicted_time_s": 7016.608391299946,
+        "time_error": -0.007411459711423762,
+        "simulated_energy_j": 29.936444768834917,
+        "predicted_energy_j": 29.928587970696952,
+        "energy_error": -0.0002624492720706417
+      },
+      "passive_tolerance": 0.03,
+      "passive_time_pass": true,
+      "passive_energy_pass": true
+    },
+    "physics_baseline_dataset_errors": {
+      "passive": {
+        "balancing_time_s": {
+          "median_abs_percent_error": 0.005742558260624087,
+          "p95_abs_percent_error": 0.030371080631711456,
+          "median_ratio": 0.9999425744173938
+        },
+        "energy_dissipated_j": {
+          "median_abs_percent_error": 0.011962678618893108,
+          "p95_abs_percent_error": 6.540505007865868,
+          "median_ratio": 0.9999425984509467
+        }
+      },
+      "buck_boost": {
+        "balancing_time_s": {
+          "median_abs_percent_error": 6.391563364496977,
+          "p95_abs_percent_error": 36.66447828345798,
+          "median_ratio": 1.0524889137270868
+        },
+        "energy_dissipated_j": {
+          "median_abs_percent_error": 10.115829807023557,
+          "p95_abs_percent_error": 32.76382208405798,
+          "median_ratio": 0.969277975779339
+        }
+      },
+      "flying_capacitor": {
+        "balancing_time_s": {
+          "median_abs_percent_error": 1.0375081398929453,
+          "p95_abs_percent_error": 6.153010655479636,
+          "median_ratio": 0.9896249186010706
+        },
+        "energy_dissipated_j": {
+          "median_abs_percent_error": 0.047507417000414165,
+          "p95_abs_percent_error": 0.5167708929856452,
+          "median_ratio": 0.9995422006924426
+        }
+      }
+    },
+    "cross_validation": {
+      "n_folds": 5,
+      "scores": {
+        "balancing_time_s": {
+          "physics": {
+            "overall": {
+              "r2": {
+                "mean": 0.9995235191908438,
+                "std": 6.842963723229191e-05
+              },
+              "mae": {
+                "mean": 51.205573002965956,
+                "std": 2.6169336570473796
+              },
+              "mdape": {
+                "mean": 0.8091590979494574,
+                "std": 0.07045581291630569
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9999999883880613,
+                "std": 4.892511853787589e-10
+              },
+              "mae": {
+                "mean": 0.46209417702317535,
+                "std": 0.008979418137973025
+              },
+              "mdape": {
+                "mean": 0.005771107677988797,
+                "std": 0.00014643354358577528
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.990896331012198,
+                "std": 0.001510665692061308
+              },
+              "mae": {
+                "mean": 93.48893889439537,
+                "std": 7.061938267384154
+              },
+              "mdape": {
+                "mean": 6.310101545841243,
+                "std": 0.47317983728156465
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.9981802068347626,
+                "std": 0.00024606981590158546
+              },
+              "mae": {
+                "mean": 59.66568593747927,
+                "std": 2.338228158131025
+              },
+              "mdape": {
+                "mean": 1.044290751235835,
+                "std": 0.09908877360491943
+              }
+            }
+          },
+          "linear": {
+            "overall": {
+              "r2": {
+                "mean": 0.9997064424177896,
+                "std": 2.6366571596895478e-05
+              },
+              "mae": {
+                "mean": 39.92938760280008,
+                "std": 1.334340243548984
+              },
+              "mdape": {
+                "mean": 0.9796818613398118,
+                "std": 0.05315947765258044
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9999999946084814,
+                "std": 2.526201801303844e-10
+              },
+              "mae": {
+                "mean": 0.29853247597095817,
+                "std": 0.003288090005853782
+              },
+              "mdape": {
+                "mean": 0.0038164992989912815,
+                "std": 0.00012191183888399991
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.994253265987323,
+                "std": 0.0007452907211725016
+              },
+              "mae": {
+                "mean": 70.13753926436443,
+                "std": 2.982848029949816
+              },
+              "mdape": {
+                "mean": 4.518182402955539,
+                "std": 0.25326270500441084
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.9989356149259173,
+                "std": 0.00010724866514454118
+              },
+              "mae": {
+                "mean": 49.35209106806485,
+                "std": 2.088199894756677
+              },
+              "mdape": {
+                "mean": 1.2730851063097863,
+                "std": 0.04526555720554258
+              }
+            }
+          },
+          "hgb": {
+            "overall": {
+              "r2": {
+                "mean": 0.9859539897271455,
+                "std": 0.0028364190740700146
+              },
+              "mae": {
+                "mean": 299.14652347344355,
+                "std": 16.872409558177754
+              },
+              "mdape": {
+                "mean": 6.739968095191879,
+                "std": 0.4010119412323593
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9931307084213798,
+                "std": 0.0011158229266254869
+              },
+              "mae": {
+                "mean": 304.34987546873134,
+                "std": 23.97109713851427
+              },
+              "mdape": {
+                "mean": 3.4771834129957733,
+                "std": 0.29184917478017214
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.9598855789587107,
+                "std": 0.006754334320422645
+              },
+              "mae": {
+                "mean": 172.18260473995366,
+                "std": 20.219537717046496
+              },
+              "mdape": {
+                "mean": 10.611059115107157,
+                "std": 1.0012098870825965
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.8801736222766564,
+                "std": 0.027896583823225247
+              },
+              "mae": {
+                "mean": 420.90709021164565,
+                "std": 24.752077997412027
+              },
+              "mdape": {
+                "mean": 9.509819166369766,
+                "std": 0.40081845066518074
+              }
+            }
+          },
+          "hybrid": {
+            "overall": {
+              "r2": {
+                "mean": 0.9998295347347332,
+                "std": 1.292570272400603e-05
+              },
+              "mae": {
+                "mean": 32.63419698111805,
+                "std": 0.747582040244876
+              },
+              "mdape": {
+                "mean": 0.6933170707260751,
+                "std": 0.04495691679950069
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9999826563767167,
+                "std": 3.3490688831415177e-06
+              },
+              "mae": {
+                "mean": 14.096373119858285,
+                "std": 1.2107184978451309
+              },
+              "mdape": {
+                "mean": 0.13625225264213728,
+                "std": 0.019820829025555153
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.9970443085786401,
+                "std": 0.00046043105300229084
+              },
+              "mae": {
+                "mean": 46.934241953418805,
+                "std": 2.003561526007752
+              },
+              "mdape": {
+                "mean": 2.8262443022454216,
+                "std": 0.3960297660888014
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.9993076133883327,
+                "std": 9.939983671921184e-05
+              },
+              "mae": {
+                "mean": 36.871975870077065,
+                "std": 1.8083053951350743
+              },
+              "mdape": {
+                "mean": 0.8661052538480611,
+                "std": 0.08221769345222488
+              }
+            }
+          }
+        },
+        "energy_dissipated_j": {
+          "physics": {
+            "overall": {
+              "r2": {
+                "mean": 0.9994923064461314,
+                "std": 0.00023122951838166776
+              },
+              "mae": {
+                "mean": 15.330989789331094,
+                "std": 1.2487460536312502
+              },
+              "mdape": {
+                "mean": 0.13183429001808228,
+                "std": 0.015880554190717336
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9989447366607929,
+                "std": 7.137999467516716e-05
+              },
+              "mae": {
+                "mean": 27.68183460717516,
+                "std": 1.788485560012854
+              },
+              "mdape": {
+                "mean": 0.012264749449865614,
+                "std": 0.0019431050252491674
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.9436708710521519,
+                "std": 0.033788256650369046
+              },
+              "mae": {
+                "mean": 18.303074289239525,
+                "std": 4.030661355822364
+              },
+              "mdape": {
+                "mean": 10.103772914692966,
+                "std": 0.6015844482145027
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.9999978738228862,
+                "std": 4.888352833227121e-07
+              },
+              "mae": {
+                "mean": 0.008060471578602107,
+                "std": 0.000531904984010621
+              },
+              "mdape": {
+                "mean": 0.04761876881189297,
+                "std": 0.0013335580490561778
+              }
+            }
+          },
+          "linear": {
+            "overall": {
+              "r2": {
+                "mean": 0.9996692600053423,
+                "std": 5.4350695428582606e-05
+              },
+              "mae": {
+                "mean": 19.058051916181988,
+                "std": 0.7470315061106813
+              },
+              "mdape": {
+                "mean": 0.9561182336996421,
+                "std": 0.06038787745167122
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9991015735447085,
+                "std": 4.929268419139252e-05
+              },
+              "mae": {
+                "mean": 45.0643674970226,
+                "std": 1.574353458777046
+              },
+              "mdape": {
+                "mean": 1.0734575537326674,
+                "std": 0.07941660387496324
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.9801193673279075,
+                "std": 0.006163746350372706
+              },
+              "mae": {
+                "mean": 12.1014762322845,
+                "std": 2.0527601460332945
+              },
+              "mdape": {
+                "mean": 7.85608618542381,
+                "std": 0.9651174147118715
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.9999976343632916,
+                "std": 3.8481575467622545e-07
+              },
+              "mae": {
+                "mean": 0.008312019238860331,
+                "std": 0.0007528182030302969
+              },
+              "mdape": {
+                "mean": 0.07169604174290312,
+                "std": 0.00763944999105255
+              }
+            }
+          },
+          "hgb": {
+            "overall": {
+              "r2": {
+                "mean": 0.9952629659256015,
+                "std": 0.000392067010417028
+              },
+              "mae": {
+                "mean": 65.8272992453676,
+                "std": 2.15276394727893
+              },
+              "mdape": {
+                "mean": 3.4591600780620935,
+                "std": 0.09042157880316466
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9853256881322551,
+                "std": 0.0013441950782012149
+              },
+              "mae": {
+                "mean": 180.38795534442025,
+                "std": 7.472509082482179
+              },
+              "mdape": {
+                "mean": 4.438063334036406,
+                "std": 0.29762933078687626
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.9211750179073611,
+                "std": 0.07844524307109632
+              },
+              "mae": {
+                "mean": 16.88558734285425,
+                "std": 4.833228656377334
+              },
+              "mdape": {
+                "mean": 8.380724841083804,
+                "std": 0.504717858675255
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.9975509141334513,
+                "std": 0.0012392710881776836
+              },
+              "mae": {
+                "mean": 0.2083550488283278,
+                "std": 0.011688679787209782
+              },
+              "mdape": {
+                "mean": 1.428787661446006,
+                "std": 0.04628626698105594
+              }
+            }
+          },
+          "hybrid": {
+            "overall": {
+              "r2": {
+                "mean": 0.9997342754681469,
+                "std": 0.00012949589000166008
+              },
+              "mae": {
+                "mean": 13.61316183904878,
+                "std": 1.0824328230933578
+              },
+              "mdape": {
+                "mean": 0.6242276215479465,
+                "std": 0.020698617609396352
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9993791923210591,
+                "std": 6.809891396341107e-05
+              },
+              "mae": {
+                "mean": 31.352966987639707,
+                "std": 1.724481224783794
+              },
+              "mdape": {
+                "mean": 0.5374537207299854,
+                "std": 0.039862619590127164
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.9798028629534847,
+                "std": 0.019852839459924682
+              },
+              "mae": {
+                "mean": 9.455962422332165,
+                "std": 2.2737420192996236
+              },
+              "mdape": {
+                "mean": 5.284173027654683,
+                "std": 0.19699991535138942
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.9999631195843101,
+                "std": 6.407627653334871e-06
+              },
+              "mae": {
+                "mean": 0.030556107174466957,
+                "std": 0.0021890294559550054
+              },
+              "mdape": {
+                "mean": 0.21782344011868196,
+                "std": 0.01739179340303629
+              }
+            }
+          }
+        }
+      },
+      "verdicts": {
+        "balancing_time_s": {
+          "overall": {
+            "hgb_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -247.9409504704776,
+              "fold_std": 16.872409558177754,
+              "beats": false
+            },
+            "hybrid_vs_hgb": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 266.51232649232554,
+              "fold_std": 16.872409558177754,
+              "beats": true
+            },
+            "hybrid_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 18.57137602184789,
+              "fold_std": 2.6169336570473796,
+              "beats": true
+            },
+            "hybrid_vs_linear": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 7.2951906216820275,
+              "fold_std": 1.334340243548984,
+              "beats": true
+            },
+            "linear_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 11.276185400165863,
+              "fold_std": 2.6169336570473796,
+              "beats": true
+            },
+            "hgb_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -259.2171358706435,
+              "fold_std": 16.872409558177754,
+              "beats": false
+            }
+          },
+          "passive": {
+            "hgb_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -303.8877812917082,
+              "fold_std": 23.97109713851427,
+              "beats": false
+            },
+            "hybrid_vs_hgb": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 290.2535023488731,
+              "fold_std": 23.97109713851427,
+              "beats": true
+            },
+            "hybrid_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -13.63427894283511,
+              "fold_std": 1.2107184978451309,
+              "beats": false
+            },
+            "hybrid_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -13.797840643887326,
+              "fold_std": 1.2107184978451309,
+              "beats": false
+            },
+            "linear_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 0.16356170105221718,
+              "fold_std": 0.008979418137973025,
+              "beats": true
+            },
+            "hgb_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -304.0513429927604,
+              "fold_std": 23.97109713851427,
+              "beats": false
+            }
+          },
+          "buck_boost": {
+            "hgb_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -78.69366584555829,
+              "fold_std": 20.219537717046496,
+              "beats": false
+            },
+            "hybrid_vs_hgb": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 125.24836278653484,
+              "fold_std": 20.219537717046496,
+              "beats": true
+            },
+            "hybrid_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 46.55469694097657,
+              "fold_std": 7.061938267384154,
+              "beats": true
+            },
+            "hybrid_vs_linear": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 23.20329731094563,
+              "fold_std": 2.982848029949816,
+              "beats": true
+            },
+            "linear_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 23.351399630030937,
+              "fold_std": 7.061938267384154,
+              "beats": true
+            },
+            "hgb_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -102.04506547558923,
+              "fold_std": 20.219537717046496,
+              "beats": false
+            }
+          },
+          "flying_capacitor": {
+            "hgb_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -361.2414042741664,
+              "fold_std": 24.752077997412027,
+              "beats": false
+            },
+            "hybrid_vs_hgb": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 384.0351143415686,
+              "fold_std": 24.752077997412027,
+              "beats": true
+            },
+            "hybrid_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 22.79371006740221,
+              "fold_std": 2.338228158131025,
+              "beats": true
+            },
+            "hybrid_vs_linear": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 12.480115197987786,
+              "fold_std": 2.088199894756677,
+              "beats": true
+            },
+            "linear_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 10.31359486941442,
+              "fold_std": 2.338228158131025,
+              "beats": true
+            },
+            "hgb_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -371.5549991435808,
+              "fold_std": 24.752077997412027,
+              "beats": false
+            }
+          }
+        },
+        "energy_dissipated_j": {
+          "overall": {
+            "hgb_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -50.496309456036506,
+              "fold_std": 2.15276394727893,
+              "beats": false
+            },
+            "hybrid_vs_hgb": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 52.21413740631882,
+              "fold_std": 2.15276394727893,
+              "beats": true
+            },
+            "hybrid_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 1.7178279502823142,
+              "fold_std": 1.2487460536312502,
+              "beats": true
+            },
+            "hybrid_vs_linear": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 5.444890077133208,
+              "fold_std": 1.0824328230933578,
+              "beats": true
+            },
+            "linear_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -3.7270621268508948,
+              "fold_std": 1.2487460536312502,
+              "beats": false
+            },
+            "hgb_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -46.76924732918562,
+              "fold_std": 2.15276394727893,
+              "beats": false
+            }
+          },
+          "passive": {
+            "hgb_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -152.70612073724507,
+              "fold_std": 7.472509082482179,
+              "beats": false
+            },
+            "hybrid_vs_hgb": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 149.0349883567805,
+              "fold_std": 7.472509082482179,
+              "beats": true
+            },
+            "hybrid_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -3.6711323804645533,
+              "fold_std": 1.788485560012854,
+              "beats": false
+            },
+            "hybrid_vs_linear": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 13.711400509382894,
+              "fold_std": 1.724481224783794,
+              "beats": true
+            },
+            "linear_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -17.382532889847447,
+              "fold_std": 1.788485560012854,
+              "beats": false
+            },
+            "hgb_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -135.32358784739762,
+              "fold_std": 7.472509082482179,
+              "beats": false
+            }
+          },
+          "buck_boost": {
+            "hgb_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 1.4174869463852733,
+              "fold_std": 4.833228656377334,
+              "beats": false
+            },
+            "hybrid_vs_hgb": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 7.429624920522086,
+              "fold_std": 4.833228656377334,
+              "beats": true
+            },
+            "hybrid_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 8.84711186690736,
+              "fold_std": 4.030661355822364,
+              "beats": true
+            },
+            "hybrid_vs_linear": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 2.6455138099523356,
+              "fold_std": 2.2737420192996236,
+              "beats": true
+            },
+            "linear_vs_physics": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 6.2015980569550235,
+              "fold_std": 4.030661355822364,
+              "beats": true
+            },
+            "hgb_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -4.78411111056975,
+              "fold_std": 4.833228656377334,
+              "beats": false
+            }
+          },
+          "flying_capacitor": {
+            "hgb_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -0.20029457724972569,
+              "fold_std": 0.011688679787209782,
+              "beats": false
+            },
+            "hybrid_vs_hgb": {
+              "lower_in_all_folds": true,
+              "mean_improvement": 0.17779894165386084,
+              "fold_std": 0.011688679787209782,
+              "beats": true
+            },
+            "hybrid_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -0.02249563559586485,
+              "fold_std": 0.0021890294559550054,
+              "beats": false
+            },
+            "hybrid_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -0.022244087935606623,
+              "fold_std": 0.0021890294559550054,
+              "beats": false
+            },
+            "linear_vs_physics": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -0.00025154766025822296,
+              "fold_std": 0.0007528182030302969,
+              "beats": false
+            },
+            "hgb_vs_linear": {
+              "lower_in_all_folds": false,
+              "mean_improvement": -0.20004302958946746,
+              "fold_std": 0.011688679787209782,
+              "beats": false
+            }
+          }
+        }
+      }
+    },
+    "best_model": {
+      "balancing_time_s": "hybrid",
+      "energy_dissipated_j": "hybrid"
+    },
+    "out_of_range": {
+      "component_quantile": 0.8,
+      "spread_limit": 0.08,
+      "component_thresholds": {
+        "passive": 84.56788135039578,
+        "buck_boost": 8.215843791243863e-05,
+        "flying_capacitor": 0.00819781876559727
+      },
+      "component": {
+        "n_train": 4800,
+        "n_test": 1200,
+        "balancing_time_s": {
+          "physics": {
+            "overall": {
+              "r2": 0.9995549868157229,
+              "mae": 66.26203989540714,
+              "mdape": 0.8455696124611954
+            },
+            "passive": {
+              "r2": 0.9999999906503193,
+              "mae": 0.49109890900760206,
+              "mdape": 0.004029312335199708
+            },
+            "buck_boost": {
+              "r2": 0.988988776572955,
+              "mae": 143.77101711059865,
+              "mdape": 5.3005164491794865
+            },
+            "flying_capacitor": {
+              "r2": 0.9977289122120536,
+              "mae": 54.52400366661517,
+              "mdape": 1.0620114038144355
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.0975,
+                "fraction_pred_above_train_max": 0.0975,
+                "median_ratio_near_edge": 0.9999574474811382,
+                "median_ratio_far_from_edge": 0.9999602433920999
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.0420885463865999,
+                "median_ratio_far_from_edge": 1.0397758245845075
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9902748583562476,
+                "median_ratio_far_from_edge": 0.9889568704050485
+              }
+            }
+          },
+          "linear": {
+            "overall": {
+              "r2": 0.999695705027265,
+              "mae": 52.60395219272888,
+              "mdape": 0.9858888643506609
+            },
+            "passive": {
+              "r2": 0.9999999866761106,
+              "mae": 0.5278577699419088,
+              "mdape": 0.004051335920575711
+            },
+            "buck_boost": {
+              "r2": 0.9922526255399284,
+              "mae": 112.377209398479,
+              "mdape": 3.8924145770212473
+            },
+            "flying_capacitor": {
+              "r2": 0.9987300533730922,
+              "mae": 44.90678940976575,
+              "mdape": 1.2807175548387486
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.0975,
+                "fraction_pred_above_train_max": 0.0975,
+                "median_ratio_near_edge": 0.9999683481705404,
+                "median_ratio_far_from_edge": 0.9999727944783369
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9983611613907774,
+                "median_ratio_far_from_edge": 1.0042381761126393
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.006835302399049,
+                "median_ratio_far_from_edge": 1.0074627787406891
+              }
+            }
+          },
+          "hgb": {
+            "overall": {
+              "r2": 0.959037194304611,
+              "mae": 781.7701244429918,
+              "mdape": 12.725745320671619
+            },
+            "passive": {
+              "r2": 0.8999042281437234,
+              "mae": 1502.6657621522384,
+              "mdape": 11.958553647089456
+            },
+            "buck_boost": {
+              "r2": 0.8666252164122917,
+              "mae": 433.6436091688341,
+              "mdape": 15.650432058141892
+            },
+            "flying_capacitor": {
+              "r2": 0.9067903757519284,
+              "mae": 409.001002007903,
+              "mdape": 11.671148748018602
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.0975,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9284468438089729,
+                "median_ratio_far_from_edge": 0.8389766432948297
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.0388402131735592,
+                "median_ratio_far_from_edge": 0.8773643310721617
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9535673042641268,
+                "median_ratio_far_from_edge": 0.9721027656314298
+              }
+            }
+          },
+          "hybrid": {
+            "overall": {
+              "r2": 0.9997872783362609,
+              "mae": 47.83115774820904,
+              "mdape": 0.6522590956102106
+            },
+            "passive": {
+              "r2": 0.9999755440318241,
+              "mae": 20.736074261470566,
+              "mdape": 0.12952649069671648
+            },
+            "buck_boost": {
+              "r2": 0.9947991368153967,
+              "mae": 88.58373637123758,
+              "mdape": 2.7489574525319456
+            },
+            "flying_capacitor": {
+              "r2": 0.999140422308645,
+              "mae": 34.173662611918964,
+              "mdape": 0.9177958607182911
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.0975,
+                "fraction_pred_above_train_max": 0.095,
+                "median_ratio_near_edge": 0.9996445916885603,
+                "median_ratio_far_from_edge": 0.999763532179127
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.0057374855771384,
+                "median_ratio_far_from_edge": 1.0098503918680417
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.00418560257977,
+                "median_ratio_far_from_edge": 1.0044917404083367
+              }
+            }
+          }
+        },
+        "energy_dissipated_j": {
+          "physics": {
+            "overall": {
+              "r2": 0.9996543980202339,
+              "mae": 12.426588376690393,
+              "mdape": 0.12579140097255312
+            },
+            "passive": {
+              "r2": 0.9989147764116377,
+              "mae": 28.44276844792983,
+              "mdape": 0.005913254384352729
+            },
+            "buck_boost": {
+              "r2": 0.9266742936091479,
+              "mae": 8.82913623243756,
+              "mdape": 11.774490701879284
+            },
+            "flying_capacitor": {
+              "r2": 0.9999981929729536,
+              "mae": 0.00786044970379184,
+              "mdape": 0.050999215634107364
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9999633421980789,
+                "median_ratio_far_from_edge": 0.9999679832313074
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.00882815567021,
+                "median_ratio_far_from_edge": 1.0162355384059454
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9995696610659538,
+                "median_ratio_far_from_edge": 0.9994607390370167
+              }
+            }
+          },
+          "linear": {
+            "overall": {
+              "r2": 0.9996947469137212,
+              "mae": 18.443621982789704,
+              "mdape": 1.0949125171317224
+            },
+            "passive": {
+              "r2": 0.9990205980454524,
+              "mae": 49.74723757239454,
+              "mdape": 1.2322250737338698
+            },
+            "buck_boost": {
+              "r2": 0.9726937852439472,
+              "mae": 5.575028819954946,
+              "mdape": 8.055040647667596
+            },
+            "flying_capacitor": {
+              "r2": 0.999997604369955,
+              "mae": 0.008599556019616358,
+              "mdape": 0.08679230340165639
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9961178280068294,
+                "median_ratio_far_from_edge": 0.993262279519261
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.0239311513230471,
+                "median_ratio_far_from_edge": 1.0357984977322932
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.0002417310264733,
+                "median_ratio_far_from_edge": 1.000204446460792
+              }
+            }
+          },
+          "hgb": {
+            "overall": {
+              "r2": 0.9957618027104947,
+              "mae": 63.36605207235418,
+              "mdape": 3.715021804901128
+            },
+            "passive": {
+              "r2": 0.986228824321279,
+              "mae": 181.44613175392166,
+              "mdape": 4.320024024100755
+            },
+            "buck_boost": {
+              "r2": 0.9312416722481347,
+              "mae": 8.45675189879676,
+              "mdape": 11.096331837647734
+            },
+            "flying_capacitor": {
+              "r2": 0.9982330480983616,
+              "mae": 0.19527256434407014,
+              "mdape": 1.5350470959927305
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9768744744894693,
+                "median_ratio_far_from_edge": 0.9964068586265344
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9896470998912054,
+                "median_ratio_far_from_edge": 1.121898046774907
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.0023391044331145,
+                "median_ratio_far_from_edge": 1.0020346572035317
+              }
+            }
+          },
+          "hybrid": {
+            "overall": {
+              "r2": 0.9997984143592732,
+              "mae": 13.398630767665557,
+              "mdape": 0.6782699146460973
+            },
+            "passive": {
+              "r2": 0.999366631669822,
+              "mae": 34.05242643024215,
+              "mdape": 0.577479239697039
+            },
+            "buck_boost": {
+              "r2": 0.9578947569400259,
+              "mae": 6.113928622838621,
+              "mdape": 7.704058414841726
+            },
+            "flying_capacitor": {
+              "r2": 0.9999646424637116,
+              "mae": 0.02953724991590594,
+              "mdape": 0.23194780763442258
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9978847614158696,
+                "median_ratio_far_from_edge": 0.9982515903381082
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.004133944755133,
+                "median_ratio_far_from_edge": 1.018576782796267
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.00056575217195,
+                "median_ratio_far_from_edge": 1.000433680126302
+              }
+            }
+          }
+        }
+      },
+      "spread": {
+        "n_train": 4533,
+        "n_test": 1467,
+        "balancing_time_s": {
+          "physics": {
+            "overall": {
+              "r2": 0.9996627519755612,
+              "mae": 56.19896000805858,
+              "mdape": 0.5877160001170398
+            },
+            "passive": {
+              "r2": 0.999999988355645,
+              "mae": 0.458670503738495,
+              "mdape": 0.0035497271781266063
+            },
+            "buck_boost": {
+              "r2": 0.9925600032217122,
+              "mae": 109.4481167289363,
+              "mdape": 4.339898804744075
+            },
+            "flying_capacitor": {
+              "r2": 0.998473964616002,
+              "mae": 61.76868994008768,
+              "mdape": 0.8919372526576028
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.1702970297029703,
+                "fraction_pred_above_train_max": 0.1702970297029703,
+                "median_ratio_near_edge": 0.9999638220611184,
+                "median_ratio_far_from_edge": 0.9999643236535785
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.02510460251046025,
+                "fraction_pred_above_train_max": 0.02510460251046025,
+                "median_ratio_near_edge": 1.044819379569955,
+                "median_ratio_far_from_edge": 1.0423544369535942
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9912557587520971,
+                "median_ratio_far_from_edge": 0.9912479621562917
+              }
+            }
+          },
+          "linear": {
+            "overall": {
+              "r2": 0.9997102071600432,
+              "mae": 47.35866574580339,
+              "mdape": 0.6489609875845002
+            },
+            "passive": {
+              "r2": 0.9999999883674101,
+              "mae": 0.4169389335776122,
+              "mdape": 0.0028612717110205244
+            },
+            "buck_boost": {
+              "r2": 0.9931515512245535,
+              "mae": 92.1146613636022,
+              "mdape": 3.007867206285518
+            },
+            "flying_capacitor": {
+              "r2": 0.9989909528438129,
+              "mae": 52.13595114841949,
+              "mdape": 0.8716737870112925
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.1702970297029703,
+                "fraction_pred_above_train_max": 0.1702970297029703,
+                "median_ratio_near_edge": 0.9999854276322524,
+                "median_ratio_far_from_edge": 0.9999859477568845
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.02510460251046025,
+                "fraction_pred_above_train_max": 0.027196652719665274,
+                "median_ratio_near_edge": 0.9935477025891671,
+                "median_ratio_far_from_edge": 0.9920139138417317
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.0043862882311936,
+                "median_ratio_far_from_edge": 1.0031306411766818
+              }
+            }
+          },
+          "hgb": {
+            "overall": {
+              "r2": 0.9048921825030857,
+              "mae": 1162.35282475022,
+              "mdape": 15.637958007355731
+            },
+            "passive": {
+              "r2": 0.7333281216113163,
+              "mae": 2140.583251783471,
+              "mdape": 15.655874112956678
+            },
+            "buck_boost": {
+              "r2": 0.7967707421219691,
+              "mae": 527.441972354015,
+              "mdape": 17.710843749681292
+            },
+            "flying_capacitor": {
+              "r2": 0.7148560258927396,
+              "mae": 768.7185722576464,
+              "mdape": 13.824356524812135
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.1702970297029703,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9076445360761641,
+                "median_ratio_far_from_edge": 0.7731414632617715
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.02510460251046025,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.8879007356769745,
+                "median_ratio_far_from_edge": 0.7766317394650315
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9683622795389445,
+                "median_ratio_far_from_edge": 0.891936842421653
+              }
+            }
+          },
+          "hybrid": {
+            "overall": {
+              "r2": 0.999828254208435,
+              "mae": 42.104858693242655,
+              "mdape": 0.4968913242486001
+            },
+            "passive": {
+              "r2": 0.9999358239825348,
+              "mae": 25.683918967967006,
+              "mdape": 0.1403759559632042
+            },
+            "buck_boost": {
+              "r2": 0.9965199434153681,
+              "mae": 60.72863047660152,
+              "mdape": 1.8421659818495133
+            },
+            "flying_capacitor": {
+              "r2": 0.9993554916036165,
+              "mae": 40.845378628818395,
+              "mdape": 0.6781591433297117
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.1702970297029703,
+                "fraction_pred_above_train_max": 0.16831683168316833,
+                "median_ratio_near_edge": 0.9994817818347062,
+                "median_ratio_far_from_edge": 1.0000288484285482
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.02510460251046025,
+                "fraction_pred_above_train_max": 0.02510460251046025,
+                "median_ratio_near_edge": 1.0008891804038118,
+                "median_ratio_far_from_edge": 1.005320964367501
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.0,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.001535181504761,
+                "median_ratio_far_from_edge": 1.0020254250848268
+              }
+            }
+          }
+        },
+        "energy_dissipated_j": {
+          "physics": {
+            "overall": {
+              "r2": 0.9996300627372715,
+              "mae": 15.23894006014768,
+              "mdape": 0.0505429391914345
+            },
+            "passive": {
+              "r2": 0.9990800437470307,
+              "mae": 14.469260595367938,
+              "mdape": 0.0056792717074665485
+            },
+            "buck_boost": {
+              "r2": 0.8890213378969072,
+              "mae": 31.47054109543857,
+              "mdape": 11.458636282675696
+            },
+            "flying_capacitor": {
+              "r2": 0.9999893687592929,
+              "mae": 0.011631867678105144,
+              "mdape": 0.04067156263312321
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.17425742574257425,
+                "fraction_pred_above_train_max": 0.17623762376237623,
+                "median_ratio_near_edge": 0.9999540190586345,
+                "median_ratio_far_from_edge": 0.9999597466952067
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.008368200836820083,
+                "fraction_pred_above_train_max": 0.0041841004184100415,
+                "median_ratio_near_edge": 0.9580240074177923,
+                "median_ratio_far_from_edge": 1.0105440949333917
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.20867768595041322,
+                "fraction_pred_above_train_max": 0.20867768595041322,
+                "median_ratio_near_edge": 0.9996037670141461,
+                "median_ratio_far_from_edge": 0.9995729202619845
+              }
+            }
+          },
+          "linear": {
+            "overall": {
+              "r2": 0.9996769776742023,
+              "mae": 28.844679813301152,
+              "mdape": 0.8612829344235314
+            },
+            "passive": {
+              "r2": 0.9969901603365054,
+              "mae": 66.53447230792891,
+              "mdape": 1.0094590129020866
+            },
+            "buck_boost": {
+              "r2": 0.9726037547111396,
+              "mae": 18.21104414538601,
+              "mdape": 6.676905639869634
+            },
+            "flying_capacitor": {
+              "r2": 0.9999603893642672,
+              "mae": 0.02140014279788452,
+              "mdape": 0.07757014675210494
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.17425742574257425,
+                "fraction_pred_above_train_max": 0.16831683168316833,
+                "median_ratio_near_edge": 1.0057455148227032,
+                "median_ratio_far_from_edge": 1.01068657633892
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.008368200836820083,
+                "fraction_pred_above_train_max": 0.006276150627615063,
+                "median_ratio_near_edge": 0.9884439717581602,
+                "median_ratio_far_from_edge": 1.0399568046748238
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.20867768595041322,
+                "fraction_pred_above_train_max": 0.2066115702479339,
+                "median_ratio_near_edge": 0.9994175054269895,
+                "median_ratio_far_from_edge": 0.9990052597530508
+              }
+            }
+          },
+          "hgb": {
+            "overall": {
+              "r2": 0.9549606201277001,
+              "mae": 319.98065005802374,
+              "mdape": 11.779845648797615
+            },
+            "passive": {
+              "r2": 0.4681531045974776,
+              "mae": 881.8410257020045,
+              "mdape": 14.224373011241548
+            },
+            "buck_boost": {
+              "r2": 0.7141021774654457,
+              "mae": 48.281196408812846,
+              "mdape": 15.308144703014372
+            },
+            "flying_capacitor": {
+              "r2": 0.37424166059414943,
+              "mae": 2.07331357891768,
+              "mdape": 3.8380908137624625
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.17425742574257425,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9131742164081795,
+                "median_ratio_far_from_edge": 0.8044740240498305
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.008368200836820083,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 0.9171521805532538,
+                "median_ratio_far_from_edge": 0.8048278500286925
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.20867768595041322,
+                "fraction_pred_above_train_max": 0.0,
+                "median_ratio_near_edge": 1.0076121829545739,
+                "median_ratio_far_from_edge": 0.8840379521748832
+              }
+            }
+          },
+          "hybrid": {
+            "overall": {
+              "r2": 0.9997103334976464,
+              "mae": 19.67436531975761,
+              "mdape": 0.633079189242999
+            },
+            "passive": {
+              "r2": 0.9984113517078458,
+              "mae": 39.360543441948984,
+              "mdape": 0.4492580339016293
+            },
+            "buck_boost": {
+              "r2": 0.940454698758264,
+              "mae": 18.70460939577731,
+              "mdape": 6.025905156640148
+            },
+            "flying_capacitor": {
+              "r2": 0.9992533006637457,
+              "mae": 0.09176899735251347,
+              "mdape": 0.33525773452779667
+            },
+            "plateau": {
+              "passive": {
+                "fraction_true_above_train_max": 0.17425742574257425,
+                "fraction_pred_above_train_max": 0.16633663366336635,
+                "median_ratio_near_edge": 0.9976011307981641,
+                "median_ratio_far_from_edge": 0.9974248314863476
+              },
+              "buck_boost": {
+                "fraction_true_above_train_max": 0.008368200836820083,
+                "fraction_pred_above_train_max": 0.006276150627615063,
+                "median_ratio_near_edge": 1.0033650344149079,
+                "median_ratio_far_from_edge": 1.0197167594968233
+              },
+              "flying_capacitor": {
+                "fraction_true_above_train_max": 0.20867768595041322,
+                "fraction_pred_above_train_max": 0.21074380165289255,
+                "median_ratio_near_edge": 1.0029510525104877,
+                "median_ratio_far_from_edge": 1.0023979988281142
+              }
+            }
+          }
+        }
+      }
+    },
+    "conformal": {
+      "nominal": 0.9,
+      "n_fit": 3600,
+      "n_calibration": 1200,
+      "n_test": 1200,
+      "balancing_time_s": {
+        "model": "hybrid",
+        "techniques": {
+          "passive": {
+            "n_calibration": 400,
+            "n_test": 400,
+            "log_quantile": 0.006359778284394935,
+            "half_width_factor": 1.0063800446146514,
+            "upper_over_lower": 1.0128007941985875,
+            "coverage": 0.88,
+            "pass": true
+          },
+          "buck_boost": {
+            "n_calibration": 400,
+            "n_test": 400,
+            "log_quantile": 0.12427758492774821,
+            "half_width_factor": 1.1323301451598033,
+            "upper_over_lower": 1.2821715576376214,
+            "coverage": 0.9,
+            "pass": true
+          },
+          "flying_capacitor": {
+            "n_calibration": 400,
+            "n_test": 400,
+            "log_quantile": 0.03475661907823557,
+            "half_width_factor": 1.0353676893899004,
+            "upper_over_lower": 1.0719862522325811,
+            "coverage": 0.8825,
+            "pass": true
+          }
+        },
+        "pass": true
+      },
+      "energy_dissipated_j": {
+        "model": "hybrid",
+        "techniques": {
+          "passive": {
+            "n_calibration": 400,
+            "n_test": 400,
+            "log_quantile": 0.028278076567449517,
+            "half_width_factor": 1.0286816969281738,
+            "upper_over_lower": 1.0581860335950273,
+            "coverage": 0.8525,
+            "pass": false
+          },
+          "buck_boost": {
+            "n_calibration": 400,
+            "n_test": 400,
+            "log_quantile": 0.1475530271763077,
+            "half_width_factor": 1.1589947414187949,
+            "upper_over_lower": 1.343268810636419,
+            "coverage": 0.865,
+            "pass": false
+          },
+          "flying_capacitor": {
+            "n_calibration": 400,
+            "n_test": 400,
+            "log_quantile": 0.010607491853259293,
+            "half_width_factor": 1.0106639507474662,
+            "upper_over_lower": 1.021441621340477,
+            "coverage": 0.915,
+            "pass": true
+          }
+        },
+        "pass": false
+      },
+      "repeated_splits": {
+        "n_repeats": 10,
+        "balancing_time_s": {
+          "passive": {
+            "mean_coverage": 0.90825,
+            "std_coverage": 0.01708028428074635,
+            "fraction_in_band": 0.9
+          },
+          "buck_boost": {
+            "mean_coverage": 0.8845000000000001,
+            "std_coverage": 0.02371122565837165,
+            "fraction_in_band": 0.6
+          },
+          "flying_capacitor": {
+            "mean_coverage": 0.9122499999999999,
+            "std_coverage": 0.015831140198987584,
+            "fraction_in_band": 0.9
+          }
+        },
+        "energy_dissipated_j": {
+          "passive": {
+            "mean_coverage": 0.8942500000000001,
+            "std_coverage": 0.015636939882499035,
+            "fraction_in_band": 1.0
+          },
+          "buck_boost": {
+            "mean_coverage": 0.8997499999999998,
+            "std_coverage": 0.027825098582235253,
+            "fraction_in_band": 0.6
+          },
+          "flying_capacitor": {
+            "mean_coverage": 0.9025000000000001,
+            "std_coverage": 0.010474837574980472,
+            "fraction_in_band": 1.0
+          }
+        }
+      }
+    },
+    "feature_ablation": {
+      "dropped_features": [
+        "soc0_1",
+        "soc0_2",
+        "soc0_3",
+        "soc0_4"
+      ],
+      "n_features_full": 19,
+      "n_features_reduced": 15,
+      "balancing_time_s": {
+        "cross_validation": {
+          "full": {
+            "overall": {
+              "r2": {
+                "mean": 0.9859539897271455,
+                "std": 0.0028364190740700146
+              },
+              "mae": {
+                "mean": 299.14652347344355,
+                "std": 16.872409558177754
+              },
+              "mdape": {
+                "mean": 6.739968095191879,
+                "std": 0.4010119412323593
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9931307084213798,
+                "std": 0.0011158229266254869
+              },
+              "mae": {
+                "mean": 304.34987546873134,
+                "std": 23.97109713851427
+              },
+              "mdape": {
+                "mean": 3.4771834129957733,
+                "std": 0.29184917478017214
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.9598855789587107,
+                "std": 0.006754334320422645
+              },
+              "mae": {
+                "mean": 172.18260473995366,
+                "std": 20.219537717046496
+              },
+              "mdape": {
+                "mean": 10.611059115107157,
+                "std": 1.0012098870825965
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.8801736222766564,
+                "std": 0.027896583823225247
+              },
+              "mae": {
+                "mean": 420.90709021164565,
+                "std": 24.752077997412027
+              },
+              "mdape": {
+                "mean": 9.509819166369766,
+                "std": 0.40081845066518074
+              }
+            }
+          },
+          "reduced": {
+            "overall": {
+              "r2": {
+                "mean": 0.9406295193957742,
+                "std": 0.0041248482368967075
+              },
+              "mae": {
+                "mean": 668.7872135663554,
+                "std": 13.052032849991344
+              },
+              "mdape": {
+                "mean": 16.035150137949195,
+                "std": 0.909210962195182
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9902867312255882,
+                "std": 0.002069462126333337
+              },
+              "mae": {
+                "mean": 353.68539667822745,
+                "std": 31.17038007324287
+              },
+              "mdape": {
+                "mean": 4.11012312364721,
+                "std": 0.40037976628286825
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.8331324602948442,
+                "std": 0.016037117957519723
+              },
+              "mae": {
+                "mean": 364.55461348866027,
+                "std": 24.274722637062258
+              },
+              "mdape": {
+                "mean": 22.551115689367027,
+                "std": 1.5678247569698414
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.3679333444491563,
+                "std": 0.04089965118503517
+              },
+              "mae": {
+                "mean": 1288.1216305321789,
+                "std": 42.27594969403717
+              },
+              "mdape": {
+                "mean": 33.98264145918698,
+                "std": 0.8925368172293687
+              }
+            }
+          },
+          "mae_change_percent": {
+            "overall": 123.56509639522062,
+            "passive": 16.210133529219984,
+            "buck_boost": 111.72557706351628,
+            "flying_capacitor": 206.03467142462955
+          },
+          "r2_change": {
+            "overall": -0.045324470331371325,
+            "passive": -0.002843977195791658,
+            "buck_boost": -0.12675311866386652,
+            "flying_capacitor": -0.5122402778275001
+          }
+        },
+        "holdout": {
+          "full": {
+            "overall": {
+              "r2": 0.9886054831923883,
+              "mae": 281.7148470372423,
+              "mdape": 7.256294946354511
+            },
+            "passive": {
+              "r2": 0.994994864836757,
+              "mae": 249.62082681868526,
+              "mdape": 2.8698061767278444
+            },
+            "buck_boost": {
+              "r2": 0.9552160958388701,
+              "mae": 170.510316157736,
+              "mdape": 11.61788182867079
+            },
+            "flying_capacitor": {
+              "r2": 0.9079376349473108,
+              "mae": 425.01339813530564,
+              "mdape": 10.335041849960062
+            }
+          },
+          "reduced": {
+            "overall": {
+              "r2": 0.9365928763304716,
+              "mae": 660.3937051907752,
+              "mdape": 15.737088657017107
+            },
+            "passive": {
+              "r2": 0.9915436802617207,
+              "mae": 308.9213845872639,
+              "mdape": 3.5636084586080656
+            },
+            "buck_boost": {
+              "r2": 0.8032124699024896,
+              "mae": 360.78400510682434,
+              "mdape": 24.247611691423383
+            },
+            "flying_capacitor": {
+              "r2": 0.35774448880115506,
+              "mae": 1311.4757258782372,
+              "mdape": 35.496856817793166
+            }
+          },
+          "mae_change_percent": {
+            "overall": 134.41920514167012,
+            "passive": 23.756254045121096,
+            "buck_boost": 111.59071969174556,
+            "flying_capacitor": 208.57279597118037
+          }
+        }
+      },
+      "energy_dissipated_j": {
+        "cross_validation": {
+          "full": {
+            "overall": {
+              "r2": {
+                "mean": 0.9952629659256015,
+                "std": 0.000392067010417028
+              },
+              "mae": {
+                "mean": 65.8272992453676,
+                "std": 2.15276394727893
+              },
+              "mdape": {
+                "mean": 3.4591600780620935,
+                "std": 0.09042157880316466
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.9853256881322551,
+                "std": 0.0013441950782012149
+              },
+              "mae": {
+                "mean": 180.38795534442025,
+                "std": 7.472509082482179
+              },
+              "mdape": {
+                "mean": 4.438063334036406,
+                "std": 0.29762933078687626
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.9211750179073611,
+                "std": 0.07844524307109632
+              },
+              "mae": {
+                "mean": 16.88558734285425,
+                "std": 4.833228656377334
+              },
+              "mdape": {
+                "mean": 8.380724841083804,
+                "std": 0.504717858675255
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.9975509141334513,
+                "std": 0.0012392710881776836
+              },
+              "mae": {
+                "mean": 0.2083550488283278,
+                "std": 0.011688679787209782
+              },
+              "mdape": {
+                "mean": 1.428787661446006,
+                "std": 0.04628626698105594
+              }
+            }
+          },
+          "reduced": {
+            "overall": {
+              "r2": {
+                "mean": 0.9180487108533516,
+                "std": 0.004881245851986114
+              },
+              "mae": {
+                "mean": 263.298465577407,
+                "std": 9.68131507624054
+              },
+              "mdape": {
+                "mean": 8.918110087620807,
+                "std": 0.5069535524905046
+              }
+            },
+            "passive": {
+              "r2": {
+                "mean": 0.7304719104823725,
+                "std": 0.0120095128231934
+              },
+              "mae": {
+                "mean": 760.2089588829367,
+                "std": 23.441436810321495
+              },
+              "mdape": {
+                "mean": 17.91601689807451,
+                "std": 0.5762343794871079
+              }
+            },
+            "buck_boost": {
+              "r2": {
+                "mean": 0.855003941245631,
+                "std": 0.07929222462164268
+              },
+              "mae": {
+                "mean": 29.39313390275239,
+                "std": 5.868951631621878
+              },
+              "mdape": {
+                "mean": 17.813788717713273,
+                "std": 0.6597053987463872
+              }
+            },
+            "flying_capacitor": {
+              "r2": {
+                "mean": 0.9959793900376518,
+                "std": 0.0011984742786969914
+              },
+              "mae": {
+                "mean": 0.29330394653174424,
+                "std": 0.017876496883208418
+              },
+              "mdape": {
+                "mean": 2.0634300240873786,
+                "std": 0.13658576326619748
+              }
+            }
+          },
+          "mae_change_percent": {
+            "overall": 299.9836976388422,
+            "passive": 321.4299992654423,
+            "buck_boost": 74.07232159555979,
+            "flying_capacitor": 40.77122113484721
+          },
+          "r2_change": {
+            "overall": -0.07721425507224988,
+            "passive": -0.2548537776498826,
+            "buck_boost": -0.06617107666173017,
+            "flying_capacitor": -0.0015715240957995258
+          }
+        },
+        "holdout": {
+          "full": {
+            "overall": {
+              "r2": 0.9952196011512786,
+              "mae": 65.1019770283187,
+              "mdape": 3.583801012174006
+            },
+            "passive": {
+              "r2": 0.9854938361703781,
+              "mae": 178.96435065157164,
+              "mdape": 4.852035570466339
+            },
+            "buck_boost": {
+              "r2": 0.9510992686417085,
+              "mae": 16.1279897626082,
+              "mdape": 7.969710673306382
+            },
+            "flying_capacitor": {
+              "r2": 0.99583141379544,
+              "mae": 0.21359067077626823,
+              "mdape": 1.5603024180584706
+            }
+          },
+          "reduced": {
+            "overall": {
+              "r2": 0.9098725657684642,
+              "mae": 256.176599702526,
+              "mdape": 9.019674264501266
+            },
+            "passive": {
+              "r2": 0.7193936289334535,
+              "mae": 740.4252940681117,
+              "mdape": 16.049104765634066
+            },
+            "buck_boost": {
+              "r2": 0.8913715255003652,
+              "mae": 27.80476367578465,
+              "mdape": 17.357678558901135
+            },
+            "flying_capacitor": {
+              "r2": 0.9949203517509104,
+              "mae": 0.29974136368178067,
+              "mdape": 2.1402783609702434
+            }
+          },
+          "mae_change_percent": {
+            "overall": 293.5004916841339,
+            "passive": 313.7278130378361,
+            "buck_boost": 72.40067785911155,
+            "flying_capacitor": 40.334483052283446
+          }
+        }
+      }
+    }
   }
 }

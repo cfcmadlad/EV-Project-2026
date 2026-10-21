@@ -1,5 +1,6 @@
 import csv
 import json
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from pathlib import Path
 from time import perf_counter
@@ -22,6 +23,8 @@ from src.config import (
 from src.dataset import TARGET_NAMES, Dataset, generate_dataset
 from src.experiments import baseline_pack, random_streams, run_baseline
 from src.identification import table_slope_mv_per_percent
+from src.ml_eval import evaluate
+from src.ml_plots import plot_conformal_coverage, plot_cv_comparison, plot_out_of_range
 from src.pack import PackBatch, tile_pack
 from src.params import ASSUMED, SECONDS_PER_HOUR, FlyingCapModel
 from src.plots import (
@@ -361,11 +364,48 @@ def summary_lines(
     return lines
 
 
+def timed_physics_checks(
+    config: ProjectConfig, rng: np.random.Generator
+) -> tuple[dict[str, object], float]:
+    start = perf_counter()
+    checks = physics_checks(config, rng)
+    return checks, perf_counter() - start
+
+
+def write_ml_eval_figures(
+    metrics: dict[str, object], extra: dict[str, object], config: ProjectConfig, results_dir: Path
+) -> None:
+    spec = config.ml_eval
+    plot_cv_comparison(metrics["cross_validation"], config.plot, results_dir / "ml_cv_comparison")
+    plot_out_of_range(
+        extra["out_of_range_arrays"], extra["data"], config.plot, results_dir / "ml_out_of_range"
+    )
+    plot_conformal_coverage(
+        metrics["conformal"],
+        config.plot,
+        spec.coverage_low,
+        spec.coverage_high,
+        results_dir / "ml_conformal_coverage",
+    )
+
+
 def run(config: ProjectConfig, results_dir: Path) -> list[str]:
     start = perf_counter()
     results_dir.mkdir(parents=True, exist_ok=True)
     streams = random_streams(config.seed)
 
+    with ProcessPoolExecutor(max_workers=1) as pool:
+        checks_future = pool.submit(timed_physics_checks, config, streams["checks"])
+        return _run_stages(config, results_dir, streams, start, checks_future)
+
+
+def _run_stages(
+    config: ProjectConfig,
+    results_dir: Path,
+    streams: dict[str, np.random.Generator],
+    start: float,
+    checks_future,
+) -> list[str]:
     pack = baseline_pack(config)
     baseline = run_baseline(pack, config)
     table = baseline_table(baseline)
@@ -379,9 +419,9 @@ def run(config: ProjectConfig, results_dir: Path) -> list[str]:
     report = train_and_evaluate(dataset, config.ml, config.seed)
     speedup = simulation_time / report.prediction_time_per_pack_s
 
-    checks_start = perf_counter()
-    checks = physics_checks(config, streams["checks"])
-    checks_time = perf_counter() - checks_start
+    ml_eval_block, ml_extra, ml_timing = evaluate(dataset, config, config.seed)
+    write_ml_eval_figures(ml_eval_block, ml_extra, config, results_dir)
+    checks, checks_time = checks_future.result()
 
     ident_block, valid_block, comparison_block, comparison = cell_stages(config, pack, baseline)
     write_baseline_csv(comparison, results_dir / "baseline_assumed_vs_fitted.csv")
@@ -411,6 +451,7 @@ def run(config: ProjectConfig, results_dir: Path) -> list[str]:
         "baseline_assumed_vs_fitted": comparison_block,
         "converter_check": converter_block,
         "flying_capacitor_model_comparison": flying_model_comparison(pack, config),
+        "ml_eval": ml_eval_block,
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start
@@ -420,6 +461,7 @@ def run(config: ProjectConfig, results_dir: Path) -> list[str]:
             "prediction_time_per_pack_s": report.prediction_time_per_pack_s,
             "speedup": speedup,
         },
+        "ml_eval": ml_timing,
         "physics_checks_s": checks_time,
         "run_all_s": runtime,
     }

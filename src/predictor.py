@@ -81,17 +81,19 @@ def _prediction_time(models: list[TransformedTargetRegressor], features: FloatAr
     return perf_counter() - start
 
 
+def build_hgb(config: MLSpec, seed: int) -> HistGradientBoostingRegressor:
+    return HistGradientBoostingRegressor(
+        learning_rate=config.learning_rate,
+        max_iter=config.max_iter,
+        max_leaf_nodes=config.max_leaf_nodes,
+        early_stopping=False,
+        random_state=seed,
+    )
+
+
 def _build_model(config: MLSpec, seed: int) -> TransformedTargetRegressor:
     return TransformedTargetRegressor(
-        regressor=HistGradientBoostingRegressor(
-            learning_rate=config.learning_rate,
-            max_iter=config.max_iter,
-            max_leaf_nodes=config.max_leaf_nodes,
-            early_stopping=False,
-            random_state=seed,
-        ),
-        func=np.log,
-        inverse_func=np.exp,
+        regressor=build_hgb(config, seed), func=np.log, inverse_func=np.exp
     )
 
 

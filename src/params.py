@@ -174,6 +174,25 @@ class ConverterCheckSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class MLEvalSpec:
+    n_folds: int = 5
+    oor_component_quantile: float = 0.80
+    oor_spread_limit: float = 0.08
+    conformal_fit_fraction: float = 0.75
+    conformal_level: float = 0.90
+    coverage_low: float = 0.87
+    coverage_high: float = 0.93
+    conformal_repeats: int = 10
+    passive_tolerance: float = 0.03
+    time_grid_points: int = 160
+    time_grid_min_s: float = 1.0
+    bisection_steps: int = 40
+    timing_repeats: int = 5
+    simulator_timing_repeats: int = 1
+    timing_batch_sizes: tuple[int, ...] = (1, 1000)
+
+
+@dataclass(frozen=True, slots=True)
 class ParameterSet:
     name: str
     cell: CellParams
