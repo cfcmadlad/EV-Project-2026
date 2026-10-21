@@ -72,6 +72,26 @@ def _figure(
             figure.savefig(stem.with_suffix(".svg"), bbox_inches="tight", metadata=SVG_METADATA)
 
 
+@contextmanager
+def figure_grid(
+    stem: Path,
+    config: PlotConfig,
+    nrows: int,
+    ncols: int,
+    figsize: tuple[float, float],
+    sharex: bool = False,
+) -> Iterator[np.ndarray]:
+    with mpl.rc_context(_style(config)):
+        figure = Figure(figsize=figsize, layout="constrained")
+        yield figure.subplots(nrows, ncols, sharex=sharex, squeeze=False)
+        figure.savefig(
+            stem.with_suffix(".png"),
+            dpi=config.dpi,
+            bbox_inches="tight",
+            metadata=PNG_METADATA,
+        )
+
+
 def _outside_legend(ax: Axes, config: PlotConfig) -> None:
     ax.legend(loc="upper left", bbox_to_anchor=config.legend_anchor, borderaxespad=0.0)
 

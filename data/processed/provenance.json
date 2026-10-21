@@ -1,0 +1,143 @@
+{
+  "dataset": {
+    "title": "LG 18650HG2 Li-ion Battery Data",
+    "doi": "10.17632/b5mj79w5w9.2",
+    "version": 2,
+    "licence": "CC BY 4.0",
+    "institution": "McMaster University",
+    "landing_page": "https://data.mendeley.com/datasets/b5mj79w5w9/2",
+    "api_root": "https://data.mendeley.com/public-api/datasets"
+  },
+  "files": [
+    {
+      "name": "Readme file - Description of Experimental Tests.txt",
+      "folder": "root",
+      "http_status": 200,
+      "size_bytes": 4052,
+      "sha256": "809c0045eabcf4913a380ad520e4016f52a9c4186e6d15958992df3baf0e1427",
+      "listing_sha256": "809c0045eabcf4913a380ad520e4016f52a9c4186e6d15958992df3baf0e1427",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/06a06a79-d31f-4f4c-81a7-8cb38eab6769/file_downloaded",
+      "parse_check": "cp1252 text, 43 lines"
+    },
+    {
+      "name": "Technical Information and Experimental Test Results for LG 18650HG2.pdf",
+      "folder": "root",
+      "http_status": 200,
+      "size_bytes": 699394,
+      "sha256": "7af5bfc6156a968316e57d8340005d7403c35d2da0eee3bbd47d8a3d41c347a5",
+      "listing_sha256": "7af5bfc6156a968316e57d8340005d7403c35d2da0eee3bbd47d8a3d41c347a5",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/e0ff062b-8d2a-4ebb-81c0-1625a49b7d4c/file_downloaded",
+      "parse_check": "pdf header present"
+    },
+    {
+      "name": "549_HPPC.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 6033634,
+      "sha256": "70ffb357511dd77e7c6bc14c642a095ddd51d6918b547987247100a3bd2ea29d",
+      "listing_sha256": "70ffb357511dd77e7c6bc14c642a095ddd51d6918b547987247100a3bd2ea29d",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/7d99de7c-e149-48d9-a172-ef0f9fc64aed/file_downloaded",
+      "parse_check": "csv, 48048 data rows, 14 columns"
+    },
+    {
+      "name": "549_C20DisCh.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 312505,
+      "sha256": "52eff1a8d273f353d557af8172139c2f23709499d36130ac24ffbbb820e8f232",
+      "listing_sha256": "52eff1a8d273f353d557af8172139c2f23709499d36130ac24ffbbb820e8f232",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/c2472dec-04f8-4ab5-9bf8-49b616782d53/file_downloaded",
+      "parse_check": "csv, 2423 data rows, 14 columns"
+    },
+    {
+      "name": "549_Charge.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 108521,
+      "sha256": "30d22f056402c19747481d5fff96cc43092866ea0ee83e6f265f28967c3b7073",
+      "listing_sha256": "30d22f056402c19747481d5fff96cc43092866ea0ee83e6f265f28967c3b7073",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/30548892-54ea-4eff-a757-81d668832e74/file_downloaded",
+      "parse_check": "csv, 857 data rows, 14 columns"
+    },
+    {
+      "name": "549_Dis_0p5C.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 15001,
+      "sha256": "85f6147f9bc21157e777a547229af5f252360c308a753672ef3eb1144b57fa75",
+      "listing_sha256": "85f6147f9bc21157e777a547229af5f252360c308a753672ef3eb1144b57fa75",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/aa1bd667-fcd6-486f-9455-54f5d3d87df5/file_downloaded",
+      "parse_check": "csv, 111 data rows, 14 columns"
+    },
+    {
+      "name": "549_Dis_2C.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 4178,
+      "sha256": "87b77c00e18242b177bd7a2eac8faa46ad2139c15aa94c146388ae13eba92a06",
+      "listing_sha256": "87b77c00e18242b177bd7a2eac8faa46ad2139c15aa94c146388ae13eba92a06",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/d09ae306-160a-4ed0-81ad-e9c801bd281d/file_downloaded",
+      "parse_check": "csv, 27 data rows, 14 columns"
+    },
+    {
+      "name": "551_Cap_1C.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 51428,
+      "sha256": "d9b9dd9b9b842ee6ba91f79a85512d2306527103d2f1cef5ecec4f962a75d83e",
+      "listing_sha256": "d9b9dd9b9b842ee6ba91f79a85512d2306527103d2f1cef5ecec4f962a75d83e",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/485e61a2-80c5-4de8-9bb6-d9170caf1e40/file_downloaded",
+      "parse_check": "csv, 397 data rows, 14 columns"
+    },
+    {
+      "name": "552_Cap_1C.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 50915,
+      "sha256": "8fb71c599b4b94e8875a768be2b1e72224203681b185d75193619709103a22ad",
+      "listing_sha256": "8fb71c599b4b94e8875a768be2b1e72224203681b185d75193619709103a22ad",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/59d179e0-f631-454b-abde-68bfa7d72fe3/file_downloaded",
+      "parse_check": "csv, 393 data rows, 14 columns"
+    },
+    {
+      "name": "551_UDDS.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 20706582,
+      "sha256": "1d6433fa388be9d411f8554bcfd3410e64ea605a2545ccf94ce362809b4b688c",
+      "listing_sha256": "1d6433fa388be9d411f8554bcfd3410e64ea605a2545ccf94ce362809b4b688c",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/0723af12-3756-4bf9-a825-e672cc4b81f3/file_downloaded",
+      "parse_check": "csv, 159646 data rows, 14 columns"
+    },
+    {
+      "name": "551_HWFET.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 750946,
+      "sha256": "5b774a7673d4e624758f59adc6d94efa981390ee728125cccca68846efd77eae",
+      "listing_sha256": "5b774a7673d4e624758f59adc6d94efa981390ee728125cccca68846efd77eae",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/61b1b860-5fbd-4c0f-a934-6b24ea2de0ab/file_downloaded",
+      "parse_check": "csv, 6002 data rows, 14 columns"
+    },
+    {
+      "name": "551_LA92.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 13057561,
+      "sha256": "baa7c87f649bdc247614b4b22ee590107e407e2bd45aedebb7ec3dd1022420e2",
+      "listing_sha256": "baa7c87f649bdc247614b4b22ee590107e407e2bd45aedebb7ec3dd1022420e2",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/526591a4-a5fd-4cb6-a33e-6b126fadffff/file_downloaded",
+      "parse_check": "csv, 100764 data rows, 14 columns"
+    },
+    {
+      "name": "551_US06.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 5237346,
+      "sha256": "4e43498d29ee21da6d6dcd7ef47bbedcd2cd3ed92100a0e8094976dbd0fa2d96",
+      "listing_sha256": "4e43498d29ee21da6d6dcd7ef47bbedcd2cd3ed92100a0e8094976dbd0fa2d96",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/ee36611b-918a-4aff-87e2-d1f5de2aea25/file_downloaded",
+      "parse_check": "csv, 40155 data rows, 14 columns"
+    }
+  ]
+}

@@ -41,6 +41,10 @@ def percent(value: object) -> str:
     return f"{float(value) * 100.0:.4g} %"
 
 
+def millivolts(value: object) -> str:
+    return f"{float(value) * 1000.0:.4g} mV"
+
+
 def scientific(value: object) -> str:
     return f"{float(value):.2e}"
 
@@ -55,6 +59,58 @@ def at_most(limit: float) -> Callable[[object], bool]:
 
 def is_true(value: object) -> bool:
     return value is True
+
+
+def validation_claims() -> list[CheckedClaim]:
+    claims = []
+    for cycle in ("UDDS", "LA92"):
+        for field, label, limit in (
+            ("rmse_whole_v", "whole cycle", 0.030),
+            ("rmse_window_v", "20 to 80 % SOC window", 0.020),
+        ):
+            claims.append(
+                CheckedClaim(
+                    f"Fitted 2RC cell model (HPPC only) reproduces measured {cycle} terminal "
+                    f"voltage at 25 C, {label} RMSE, no retuning",
+                    f"cell_validation.validation.{cycle}.2rc.{field}",
+                    f"<= {limit * 1000:.0f} mV",
+                    at_most(limit),
+                    millivolts,
+                )
+            )
+    claims.append(
+        CheckedClaim(
+            "Single-branch equivalent of the 2RC model (the form the balancing simulator can "
+            "use) reproduces measured UDDS voltage, whole cycle RMSE",
+            "cell_validation.validation.UDDS.lumped.rmse_whole_v",
+            "<= 30 mV",
+            at_most(0.030),
+            millivolts,
+            "simulator has one RC branch; the validated model has two",
+        )
+    )
+    claims.append(
+        CheckedClaim(
+            "Single-branch equivalent of the 2RC model reproduces measured LA92 voltage, "
+            "whole cycle RMSE",
+            "cell_validation.validation.LA92.lumped.rmse_whole_v",
+            "<= 30 mV",
+            at_most(0.030),
+            millivolts,
+            "simulator has one RC branch; the validated model has two",
+        )
+    )
+    claims.append(
+        CheckedClaim(
+            "A 1RC model fitted to the same HPPC data meets the UDDS whole cycle limit",
+            "cell_validation.validation.UDDS.1rc.rmse_whole_v",
+            "<= 30 mV",
+            at_most(0.030),
+            millivolts,
+            "reason the 2RC model was fitted and kept",
+        )
+    )
+    return claims
 
 
 def checked_claims() -> list[CheckedClaim]:
@@ -85,6 +141,7 @@ def checked_claims() -> list[CheckedClaim]:
             scientific,
         ),
     ]
+    claims.extend(validation_claims())
     for key, label in TECHNIQUES:
         base = f"physics_checks.energy_ledger.{key}"
         claims.append(
@@ -128,12 +185,25 @@ def checked_claims() -> list[CheckedClaim]:
 
 UNSUPPORTED = (
     UnsupportedClaim(
-        "The cell parameters (Q, R0, R1, C1, OCV table) describe a real 18650 cell",
-        "ASSUMED values; no fit or validation against measured data yet (Phase 1)",
+        "The fitted parameters describe other HG2 cells, cell lots or aged cells",
+        "one new cell measured at 25 C; no repeat cells or ageing data",
+    ),
+    UnsupportedClaim(
+        "The HWFET cycle validates the fitted model",
+        "the 25 C HWFET file in the dataset contains zero current for its full 600 s",
+    ),
+    UnsupportedClaim(
+        "The capacity used for SOC (C/20 discharge, 2.781 Ah) is accurate to better than 1 %",
+        "C/20 charge throughput is 2.968 Ah and the two 1C discharges differ by 1.2 %, so "
+        "current-measurement offset or scale error cannot be excluded",
+    ),
+    UnsupportedClaim(
+        "Parameter intervals in metrics.json include instrument accuracy and systematic error",
+        "intervals come from a residual bootstrap of the HPPC fit and the OCV slope only",
     ),
     UnsupportedClaim(
         "Cell-to-cell variation (Q +/-5 %, R0 +/-10 %) reflects real packs",
-        "ASSUMED; the planned dataset has a single cell, so this stays assumed",
+        "ASSUMED; the dataset has a single cell, so this stays assumed",
     ),
     UnsupportedClaim(
         "The averaged buck-boost and flying-capacitor current equations match "

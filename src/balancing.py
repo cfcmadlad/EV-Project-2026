@@ -8,6 +8,7 @@ from src.cell import (
     build_ocv_curve,
     open_circuit_voltage,
     rc_step_gain,
+    rc_step_gain_per_pack,
     soc_per_amp_step,
 )
 from src.config import (
@@ -19,6 +20,7 @@ from src.config import (
 from src.flow import StepFlow
 from src.ledger import (
     ElementLossModel,
+    RCSquareWeights,
     buck_boost_element_loss_w,
     flying_capacitor_element_loss_w,
     passive_element_loss_w,
@@ -31,21 +33,8 @@ from src.params import BuckBoostSpec, FlyingCapSpec
 
 CurrentModel = Callable[[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray], StepFlow]
 
-LIVE_KEYS = (
-    "index",
-    "soc",
-    "v1",
-    "r0",
-    "soc_step",
-    "parameter",
-    "removed",
-    "transferred",
-    "element_loss",
-    "r0_loss",
-    "r1_loss",
-    "r0_per_link_loss",
-)
 LEDGER_KEYS = ("element_loss", "r0_loss", "r1_loss", "r0_per_link_loss")
+TILT_PIVOT_SOC = 0.5
 
 
 @dataclass(frozen=True, slots=True)
@@ -182,12 +171,11 @@ def simulate(
     model = _current_model(technique, config)
     element_loss = _element_loss_model(technique, config)
     curve = build_ocv_curve(cell)
-    gain = rc_step_gain(sim.dt_s, cell)
-    rc_weights = rc_square_weights(sim.dt_s, cell.tau_s)
     n_steps = round(sim.t_max_s / sim.dt_s)
     trace_every = max(1, round(sim.trace_interval_s / sim.dt_s))
 
     n = packs.n_packs
+    r1_ohm, c1_farad, gain, cross, offset = _rc_branch(packs, config)
     balancing_time = np.full(n, sim.t_max_s)
     balanced = np.zeros(n, dtype=bool)
     totals = {key: np.zeros(n) for key in ("removed", "transferred", *LEDGER_KEYS)}
@@ -201,6 +189,10 @@ def simulate(
         "soc": packs.soc0.copy(),
         "v1": np.zeros_like(packs.soc0),
         "r0": packs.r0_ohm,
+        "r1": r1_ohm[:, None],
+        "gain": gain[:, None],
+        "cross": cross[:, None],
+        "offset": offset[:, None],
         "soc_step": soc_per_amp_step(sim.dt_s, packs.capacity_ah),
         "parameter": _technique_parameter(technique, component, frequency_hz),
         "removed": np.zeros(n),
@@ -210,6 +202,8 @@ def simulate(
         "r1_loss": np.zeros(n),
         "r0_per_link_loss": np.zeros(n),
     }
+    if packs.ocv_tilt_v_per_soc is not None:
+        live["tilt"] = packs.ocv_tilt_v_per_soc[:, None]
 
     for step in range(n_steps + 1):
         soc = live["soc"]
@@ -220,7 +214,7 @@ def simulate(
             balanced[finished] = True
             _store(totals, v1_full, soc_full, live, finished, done)
             keep = ~done
-            live = {key: live[key][keep] for key in LIVE_KEYS}
+            live = {key: live[key][keep] for key in live}
         if trace and step % trace_every == 0:
             soc_full[live["index"]] = live["soc"]
             trace_time.append(step * sim.dt_s)
@@ -229,6 +223,8 @@ def simulate(
             break
         soc, v1, r0 = live["soc"], live["v1"], live["r0"]
         ocv = open_circuit_voltage(soc, curve)
+        if "tilt" in live:
+            ocv = ocv + live["tilt"] * (soc - TILT_PIVOT_SOC)
         emf = ocv - v1
         flow = model(soc, ocv, emf, r0, live["parameter"])
         current = flow.cell_current_a
@@ -237,12 +233,13 @@ def simulate(
         live["element_loss"] += element_loss(flow, emf, r0, live["parameter"]) * sim.dt_s
         live["r0_loss"] += np.einsum("ij,ij->i", current**2, r0) * sim.dt_s
         live["r0_per_link_loss"] += per_link_r0_loss_w(flow, r0) * sim.dt_s
-        v1_target = current * cell.r1_ohm
+        v1_target = current * live["r1"]
+        weights = RCSquareWeights(sim.dt_s, live["cross"], live["offset"])
         live["r1_loss"] += (
-            rc_branch_square_integral(v1, v1_target, rc_weights).sum(axis=1) / cell.r1_ohm
+            rc_branch_square_integral(v1, v1_target, weights).sum(axis=1) / live["r1"][:, 0]
         )
         soc -= current * live["soc_step"]
-        v1 += gain * (v1_target - v1)
+        v1 += live["gain"] * (v1_target - v1)
 
     _store(totals, v1_full, soc_full, live, live["index"], np.ones(live["index"].size, bool))
     if trace and step % trace_every != 0:
@@ -259,8 +256,34 @@ def simulate(
         element_loss_j=totals["element_loss"],
         r0_loss_j=totals["r0_loss"],
         r1_loss_j=totals["r1_loss"],
-        c1_stored_j=0.5 * cell.c1_farad * (v1_full**2).sum(axis=1),
+        c1_stored_j=0.5 * c1_farad * (v1_full**2).sum(axis=1),
         r0_per_link_loss_j=totals["r0_per_link_loss"],
+    )
+
+
+def _rc_branch(
+    packs: PackBatch, config: ProjectConfig
+) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray]:
+    cell, dt_s, n = config.cell, config.sim.dt_s, packs.n_packs
+    if packs.r1_ohm is None and packs.c1_farad is None:
+        weights = rc_square_weights(dt_s, cell.tau_s)
+        return (
+            np.full(n, cell.r1_ohm),
+            np.full(n, cell.c1_farad),
+            np.full(n, rc_step_gain(dt_s, cell)),
+            np.full(n, weights.cross),
+            np.full(n, weights.offset),
+        )
+    r1_ohm = np.full(n, cell.r1_ohm) if packs.r1_ohm is None else packs.r1_ohm
+    c1_farad = np.full(n, cell.c1_farad) if packs.c1_farad is None else packs.c1_farad
+    tau_s = r1_ohm * c1_farad
+    weights = rc_square_weights(dt_s, tau_s)
+    return (
+        r1_ohm,
+        c1_farad,
+        rc_step_gain_per_pack(dt_s, tau_s),
+        np.asarray(weights.cross),
+        np.asarray(weights.offset),
     )
 
 

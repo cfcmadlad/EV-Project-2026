@@ -116,6 +116,29 @@ class CheckSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class IdentificationSpec:
+    ocv_points: int = 101
+    pulse_current_a: float = 3.0
+    pulse_current_tolerance_a: float = 0.15
+    pulse_max_samples: int = 110
+    tau_bounds_s: tuple[float, float] = (1.0, 300.0)
+    r1_bounds_ohm: tuple[float, float] = (1e-5, 0.5)
+    fast_tau_bounds_s: tuple[float, float] = (0.1, 30.0)
+    slow_tau_bounds_s: tuple[float, float] = (30.0, 3000.0)
+    bound_flag_tolerance: float = 1e-3
+    constant_window: tuple[float, float] = (0.30, 0.70)
+    validation_window: tuple[float, float] = (0.20, 0.80)
+    rmse_whole_cycle_v: float = 0.030
+    rmse_window_v: float = 0.020
+    bootstrap_resamples: int = 500
+    bootstrap_block_samples: int = 50
+    slope_window: tuple[float, float] = (0.45, 0.55)
+    slope_block_points: int = 5
+    ci_percent: float = 95.0
+    rest_noise_samples: int = 90
+
+
+@dataclass(frozen=True, slots=True)
 class ParameterSet:
     name: str
     cell: CellParams

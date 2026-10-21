@@ -4,9 +4,13 @@
 
 A battery pack is only as good as its weakest cell. When cells in a series string drift to different charge levels, usable capacity shrinks and some cells get stressed. This project simulates three ways of pulling cells back into line (passive shunt, inductor buck-boost and flying capacitor balancing) on a 4-cell pack of 18650 lithium-ion cells. It compares how fast each one balances and how much energy it wastes. It then trains a machine learning model that predicts those results about 100 times faster than running the simulation.
 
-- **Speed:** from a 10 % charge imbalance, the inductor buck-boost balances in **1.17 h**, the flying capacitor in **2.54 h** and the passive shunt in **4.56 h**.
-- **Energy:** passive balancing burns **7680 J** as heat. The buck-boost loses **221 J** (96.4 % efficient) and the flying capacitor only **20.5 J** (99.6 % efficient).
-- **Prediction:** the machine learning model, trained on 6000 simulated runs, predicts balancing time with **R² = 0.973** and wasted energy with **R² = 0.995** on unseen packs, about **93x** faster than simulating them: about 38 µs per prediction vs 3.6 ms per simulated pack at the midsem (the exact factor depends on the machine). Timings now live in `results/timing.json` and the speedup is not yet a supported claim; see `results/claims.md`.
+> **Parameter sets.** The midsem results used assumed cell parameters (`ASSUMED`). Since endsem Phase 1 the default is `FITTED_HG2_25C`, fitted to measured data from one LG HG2 cell at 25 °C (section o). Sections a, e, g and i below were written for the midsem run: where they quote numbers, those are the `ASSUMED` values, kept in `results/midsem_reference/` and in `results/baseline_assumed_vs_fitted.csv`. The figures in `results/` are regenerated with the fitted set. A full rewrite of those sections is planned for the final phase.
+
+Baseline from a 10 % charge imbalance (fitted parameters, with the midsem `ASSUMED` value in brackets):
+
+- **Speed:** the inductor buck-boost balances in **1.07 h** (1.17 h), the flying capacitor in **1.18 h** (2.54 h) and the passive shunt in **4.19 h** (4.56 h).
+- **Energy:** passive balancing burns **7176 J** (7680 J) as heat. The buck-boost loses **200 J** (221 J), 96.5 % efficient, and the flying capacitor **29.9 J** (20.5 J), 99.4 % efficient.
+- **Prediction:** the machine learning model, trained on 6000 simulated runs, predicts balancing time with **R² = 0.989** (0.973) and wasted energy with **R² = 0.995** (0.995) on unseen packs. It is about **114x** faster than simulating them: about 35 µs per prediction vs 4.0 ms per simulated pack. The factor depends on the machine and is not a supported claim; timings live in `results/timing.json` and `results/claims.md` lists what is and is not supported.
 
 ## b. Motivation
 
@@ -114,7 +118,7 @@ flowchart TD
 
 ## e. Cell model
 
-Each cell is a 3 Ah NMC 18650, modelled as a first-order Thevenin equivalent circuit. An ideal voltage source gives the open circuit voltage, which depends on state of charge. A series resistor R0 captures the instant voltage drop when current flows. One parallel R1 and C1 pair captures the slower voltage change that builds up over tens of seconds.
+Each cell is an LG HG2 18650 (about 2.8 Ah at C/20), modelled as a first-order Thevenin equivalent circuit. An ideal voltage source gives the open circuit voltage, which depends on state of charge. A series resistor R0 captures the instant voltage drop when current flows. One parallel R1 and C1 pair captures the slower voltage change that builds up over tens of seconds.
 
 ```mermaid
 flowchart LR
@@ -155,16 +159,16 @@ $$
 | Symbol | Meaning | Unit | Value in this project |
 | --- | --- | --- | --- |
 | $V$ | Terminal voltage | V | |
-| $\text{OCV}$ | Open circuit voltage, from a 21-point NMC table (3.00 V at 0 % to 4.20 V at 100 %) with PCHIP smoothing | V | about 3.71 V at 50 % |
+| $\text{OCV}$ | Open circuit voltage, from a 101-point table measured at C/20 (2.88 V at 0 % to 4.19 V at 100 %) with PCHIP smoothing | V | about 3.74 V at 50 % |
 | $\text{SOC}$ | State of charge | fraction, 0 to 1 | starts near 0.5 |
 | $i$ | Cell current, positive when discharging | A | |
-| $R_0$ | Series (ohmic) resistance | Ω | 30 mΩ ± 10 % |
-| $R_1$ | Polarisation resistance | Ω | 15 mΩ |
-| $C_1$ | Polarisation capacitance | F | 2000 F |
+| $R_0$ | Series (ohmic) resistance | Ω | 11.6 mΩ, ± 10 % cell to cell (assumed) |
+| $R_1$ | Polarisation resistance | Ω | 35.2 mΩ (two measured branches combined, section o) |
+| $C_1$ | Polarisation capacitance | F | 919 F |
 | $V_1$ | Voltage across the RC pair | V | starts at 0 V (cell at rest) |
-| $\tau$ | Time constant of the RC pair | s | 30 s |
+| $\tau$ | Time constant of the RC pair | s | 32 s |
 | $\Delta t$ | Simulation step | s | 1 s |
-| $Q$ | Cell capacity | Ah | 3 Ah ± 5 % |
+| $Q$ | Cell capacity | Ah | 2.78 Ah, ± 5 % cell to cell (assumed) |
 | $3600$ | Seconds per hour, converting Ah to coulombs | s/h | |
 
 The pack is 4 cells in series at rest, with no external load. For each pack, capacities are drawn within ± 5 % and R0 within ± 10 % of nominal. The four initial SOCs are spread around 50 % with a max-minus-min spread between 2 % and 10 %.
@@ -316,7 +320,7 @@ $$
 | $R_s$ | Total series resistance in the loop | Ω | about 0.09 Ω |
 | $R_\text{ds,on}$ | MOSFET on resistance | Ω | 10 mΩ |
 | $R_\text{ESR}$ | Capacitor equivalent series resistance | Ω | 5 mΩ |
-| $R_{0,a}$, $R_{0,b}$ | Series resistance of the two cells | Ω | about 30 mΩ each |
+| $R_{0,a}$, $R_{0,b}$ | Series resistance of the two cells | Ω | about 11.6 mΩ each |
 | $P_\text{sw}$ | Switching loss | W | |
 
 **Advantages:**
@@ -338,15 +342,15 @@ Baseline results for the same pack, which starts with a 10 % SOC spread, using m
 | Property | Passive shunt | Inductor buck-boost | Flying capacitor |
 | --- | --- | --- | --- |
 | Component values | R_b = 60 Ω | L = 55 µH, f = 30 kHz | C = 5.5 mF, f = 5.5 kHz |
-| Balancing time | 4.56 h (16400 s) | **1.17 h** (4203 s) | 2.54 h (9140 s) |
-| Energy dissipated | 7680 J | 220.8 J | **20.5 J** |
-| Efficiency | 0 % | 96.4 % | **99.6 %** |
-| Time for last 2 % vs first 2 % of spread | 1.0x | 2.7x | 8.3x |
+| Balancing time | 4.19 h (15068 s) | **1.07 h** (3845 s) | 1.18 h (4251 s) |
+| Energy dissipated | 7176 J | 199.9 J | **29.9 J** |
+| Efficiency | 0 % | 96.5 % | **99.4 %** |
+| Time for last 2 % vs first 2 % of spread | 1.0x | 2.7x | 7.2x |
 | Component count | 4 resistors, 4 MOSFETs | 3 inductors, 6 MOSFETs | 3 capacitors, 8 MOSFETs |
 | Cost | Low | High | Medium |
 | Control complexity | Low: on or off per cell | High: PWM, direction and current limits per link | Low to medium: fixed complementary clock |
 
-Across all 6000 dataset runs, the median balancing time was 2.09 h for passive, 0.32 h for buck-boost and 1.20 h for flying capacitor. The median dissipated energy was 3762 J, 94.8 J and 6.8 J respectively.
+Across all 6000 dataset runs, the median balancing time was 1.92 h for passive, 0.30 h for buck-boost and 0.62 h for flying capacitor. The median dissipated energy was 3516 J, 88.0 J and 10.0 J respectively. These numbers and the table above use the fitted parameters; the midsem table is in `results/midsem_reference/baseline_table.csv`.
 
 ## h. ML predictor
 
@@ -399,6 +403,8 @@ Reporting both, overall and per technique, shows whether a high overall score hi
 **How to read the feature importance plot.** Each bar shows how much the test R² drops when that one input is randomly shuffled, which breaks its link to the target. A long bar means the model depends heavily on that input. A bar near zero means the model barely uses it. The black whisker shows the variation over 10 shuffles. Importance reflects what *this model* relies on, not physical causation. When two inputs carry overlapping information, such as SOC spread and SOC standard deviation, the credit is shared between them.
 
 ## i. Results
+
+The narrative below was written for the midsem `ASSUMED` run. The qualitative behaviour is unchanged with the fitted parameters; the quoted times and ratios are the midsem ones (fitted values are in section g and `results/metrics.json`).
 
 ![Passive shunt cell SOC vs time](results/soc_passive.png)
 
@@ -462,7 +468,7 @@ Whether the technique is passive dominates energy, because in the dataset passiv
 
 ## l. How to run
 
-Requires Python 3.11 or newer. It's best to install into a virtual environment:
+Requires Python 3.13 or newer. It's best to install into a virtual environment:
 
 ```bash
 pip install -r requirements.txt
@@ -490,7 +496,19 @@ ruff check . && ruff format --check .
 python scripts/report_claims.py
 ```
 
-The run reproduces every result from scratch and takes about 1.5 to 2 minutes on a typical laptop CPU: about half of that is the vectorized simulation of 6000 packs and about 50 s is the physics checks of section n. It prints a short summary and writes everything into `results/`, creating the folder if needed. The seed is fixed, so two consecutive runs give a byte-identical `metrics.json`, identical CSV files and identical figures. All wall-clock measurements go to `timing.json`, which is the only output that changes between runs.
+To re-download and re-fit the measured cell data of section o (needs network access, about 47 MB; the raw files go to the git-ignored `data/raw/hg2/`):
+
+```bash
+python scripts/fetch_hg2.py
+```
+
+```bash
+python -m scripts.identify_hg2
+```
+
+`run_all.py` never downloads anything. It reads the small committed files in `data/processed/` written by those two scripts, and marks the stages that need them `"status": "not_run"` if they are missing.
+
+The run reproduces every result from the committed inputs and takes about 2 minutes on a typical laptop CPU: about half of that is the vectorized simulation of 6000 packs and about 50 s is the physics checks of section n. It prints a short summary and writes everything into `results/`, creating the folder if needed. The seed is fixed, so two consecutive runs give a byte-identical `metrics.json`, identical CSV files and identical figures. All wall-clock measurements go to `timing.json`, which is the only output that changes between runs.
 
 | Output file | Content |
 | --- | --- |
@@ -506,6 +524,8 @@ The run reproduces every result from scratch and takes about 1.5 to 2 minutes on
 | `dataset.csv` | 6000 simulated runs: features, targets, technique code, efficiency and a balanced flag |
 | `metrics.json` | Baseline table, sanity checks, sweep data, ML metrics per technique and physics checks (deterministic; no timings) |
 | `timing.json` | Simulation and prediction time per pack, speedup, physics-check and total runtime (machine dependent) |
+| `baseline_assumed_vs_fitted.csv` / `.png` | Baseline time, energy and efficiency with the assumed and the fitted parameters |
+| `hg2_raw_overview.png`, `hppc_params_vs_soc.png`, `cell_validation_udds.png`, `cell_validation_summary.png` | Measured-data overview, fitted parameters vs SOC, UDDS validation trace and RMSE per drive cycle (written by `scripts/identify_hg2.py`) |
 | `claims.md` | Each claim with its evidence key in `metrics.json`, value, threshold and PASS/FAIL/NOT RUN/NOT SUPPORTED (written by `scripts/report_claims.py`) |
 | `midsem_reference/` | Read-only copy of the midsem outputs for before/after comparison |
 
@@ -525,6 +545,13 @@ All PNG figures are 300 dpi, and all figures are saved with empty metadata.
 ├── src/
 │   ├── __init__.py              Marks src as a Python package
 │   ├── params.py                Frozen parameter dataclasses and the ASSUMED parameter set
+│   ├── fitted.py                Loads FITTED_HG2_25C from data/processed/hg2_25c_params.json
+│   ├── hg2.py                   Parser for the measured HG2 cycler CSV files
+│   ├── identify.py              OCV extraction, HPPC 1RC and 2RC fits, bootstrap
+│   ├── identification.py        Identification pipeline, model selection and validation
+│   ├── validate.py              Replay of measured current through a fitted cell model
+│   ├── uncertainty.py           Propagation of parameter intervals through the baseline
+│   ├── cell_plots.py            Figures for the measured data, fits and validation
 │   ├── config.py                Project config (seed, parameter set, specs), constants and plot style
 │   ├── cell.py                  1RC Thevenin cell model: OCV curve, RC update, coulomb counting
 │   ├── pack.py                  Random 4-cell series pack generation
@@ -538,7 +565,12 @@ All PNG figures are 300 dpi, and all figures are saved with empty metadata.
 │   ├── predictor.py             Gradient boosting training, metrics, importance and timing
 │   └── plots.py                 Shared figure style and every chart
 ├── scripts/
+│   ├── fetch_hg2.py             Verified download of the 25 °C HG2 files into data/raw/hg2
+│   ├── identify_hg2.py          Fits and validates the cell model, writes data/processed and figures
 │   └── report_claims.py         Writes results/claims.md from results/metrics.json
+├── data/
+│   ├── raw/                     Downloaded dataset files (git-ignored)
+│   └── processed/               provenance.json, fitted parameters, identification summary, bootstrap samples
 ├── tests/                       pytest suite (ledger, closed form, charge, regression, determinism)
 └── results/
     ├── baseline_table.csv       Baseline comparison table
@@ -554,9 +586,11 @@ All PNG figures are 300 dpi, and all figures are saved with empty metadata.
 
 ## n. Verification checks (endsem Phase 0)
 
+The numbers in this section were measured in Phase 0 under the `ASSUMED` parameter set. The checks are re-run on every `run_all.py` under whichever set is active (now the fitted one); current values are in `results/metrics.json` and `results/claims.md`.
+
 Phase 0 freezes the midsem behaviour and adds automated physics checks before any physics is changed. No model equation was changed: under the `ASSUMED` parameter set every baseline time, energy and efficiency, every sweep point and every ML metric equals the midsem values exactly (`results/midsem_reference/`, test `test_midsem_regression`).
 
-**Parameters.** All physical and numerical parameters now live in frozen dataclasses in `src/params.py` (`CellParams`, `OCVTable`, `PackSpec`, `PassiveSpec`, `BuckBoostSpec`, `FlyingCapSpec`, `SimSpec`, `MLSpec`, `CheckSpec`), grouped into a named `ParameterSet`. `ASSUMED` holds the midsem values and is the current default.
+**Parameters.** All physical and numerical parameters now live in frozen dataclasses in `src/params.py` (`CellParams`, `OCVTable`, `PackSpec`, `PassiveSpec`, `BuckBoostSpec`, `FlyingCapSpec`, `SimSpec`, `MLSpec`, `CheckSpec`), grouped into a named `ParameterSet`. `ASSUMED` holds the midsem values; since Phase 1 the default is `FITTED_HG2_25C` (section o).
 
 **Control rules as implemented.**
 
@@ -605,3 +639,97 @@ evaluated with the simulator's own OCV curve (`src/baselines.py`). Baseline: 163
 **Determinism.** `metrics.json` no longer contains wall-clock values. The midsem `speedup` block holds a pointer to `timing.json`; the key itself is kept so existing keys are never removed. Two consecutive runs give byte-identical `metrics.json`, CSV files and figures (`test_determinism` checks this on a reduced configuration).
 
 **Effect on runtime.** The ledger adds work to every simulation step. Mean simulation time per pack in the dataset rose from about 3.6 ms to about 4.9 ms on the same laptop, so the midsem speedup figure is not comparable with the current timing file and is listed as not supported in `results/claims.md`.
+
+## o. Fitted cell model (endsem Phase 1)
+
+Phase 1 replaces the assumed cell parameters with values fitted to measured data and checks the result against drive cycles that were not used in the fit.
+
+**Data.** "LG 18650HG2 Li-ion Battery Data", McMaster University, Mendeley Data, version 2, DOI 10.17632/b5mj79w5w9.2, licence CC BY 4.0 (Kollmeyer, Naguib and Skells). One new 3 Ah LG HG2 cell, tested on a Digatron cycler with 0.1 % of full scale voltage and current accuracy. `scripts/fetch_hg2.py` lists the folders through the public Mendeley API, downloads the 25 °C files that this project uses plus the readme and technical PDF, and checks HTTP status, size and sha256 against the API listing for all 13 files (47 MB). Results are recorded in `data/processed/provenance.json`. The `Mixed1` to `Mixed8` cycles and the charge files were not downloaded.
+
+**What the files contain.** Discharge current is negative in the cycler CSV files (found from the C/20 discharge). Two things differ from the readme:
+
+- The 25 °C HPPC file holds 12 SOC points, not 15. It ends before the 5 %, 2.5 % and 0 % points; the last block sits at 3 % true SOC. The 5 % SOC steps are defined against 3 Ah, so the measured SOC values (from ampere-hour counting against 2.78 Ah) are 100, 94.6, 89.2, 78.4, 67.6, 56.8, 46.0, 35.2, 24.4, 13.6, 8.2 and 2.8 %.
+- `551_HWFET.csv` has zero current for its entire 600 s (voltage constant at 4.185 V). It cannot be replayed, so HWFET is excluded and reported as such in `results/claims.md` and `metrics.json`. The matching `.mat` file (37 kB, sha256 equal to the API listing) was downloaded once for a one-off check and also has current, Ah and power identically zero over its 6002 samples; it is not kept in `data/raw/`.
+
+**Capacity.** C/20 discharge 2.781 Ah (the cycler counter; 2.779 Ah by integrating the current), C/20 charge 2.968 Ah, 1C discharges 2.726 Ah and 2.693 Ah. SOC uses the C/20 discharge capacity. The 6.7 % gap between C/20 discharge and charge throughput is larger than expected for a healthy cell, and the two 1C discharges differ by 1.2 %. The data cannot say whether this is current-measurement offset or cell behaviour, so capacity is treated as uncertain; it is not included in the parameter intervals below.
+
+**OCV.** The C/20 discharge and charge curves are corrected for the R0 drop (one iteration: R0 from the HPPC fit, then OCV, then refit; the table moved by at most 0.7 mV), averaged at equal SOC and resampled to 101 points. The measured endpoints are kept: 2.879 V at 0 % and 4.189 V at 100 %. The charge curve is placed on the SOC axis with its own total charge as denominator. Dividing the charge Ah by the discharge capacity instead, as the method note reads literally, puts the charge curve below the discharge curve between 60 and 90 % SOC (negative hysteresis), which is not physical; that variant gives 2.6 mV at 50 % SOC and is stored in `metrics.json` as a diagnostic. Hysteresis (half the charge-minus-discharge gap) at 50 % SOC is **17.0 mV**. The OCV slope at 50 % SOC is **9.35 mV per % SOC**, against **5.93 mV per % SOC** in the assumed table. The HPPC rest voltages before each 1C pulse differ from the OCV table by at most 40.1 mV and 16.1 mV RMS over the 12 points. This is large, because the HPPC and C/20 tests were counted from separate full charges and rest only one hour per step.
+
+**HPPC fit.** For each SOC point the 1C discharge pulse (3 A, 10 s) and its 40 s rest are isolated. R0 is the voltage step across the current step, using the samples 0.10 s apart (the limit on R0 accuracy: a fast branch with a time constant of about 0.2 s has already started to respond). R1 and C1 are fitted with `scipy.optimize.least_squares` on the exact discrete 1RC response to the measured current, in log space, with the time constant bounded to 1 to 300 s. No 1RC fit ends on a bound. Constants are the median over 30 to 70 % SOC (4 points).
+
+| SOC (%) | R0 (mΩ) | 1RC R1 (mΩ) | 1RC τ (s) | 1RC RMSE (mV) | 2RC fast | 2RC slow | 2RC RMSE (mV) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 100.0 | 13.12 | 16.9 | 2.5 | 8.1 | 11.2 mΩ, 0.21 s | 22.7 mΩ, 35.7 s | 1.6 |
+| 94.6 | 12.40 | 14.7 | 1.9 | 6.2 | 10.5 mΩ, 0.26 s | 15.7 mΩ, 30.0 s (at bound) | 1.3 |
+| 89.2 | 11.95 | 16.2 | 2.9 | 7.0 | 10.2 mΩ, 0.29 s | 18.8 mΩ, 30.0 s (at bound) | 1.4 |
+| 78.4 | 11.61 | 22.1 | 7.0 | 8.7 | 9.9 mΩ, 0.28 s | 27.8 mΩ, 34.5 s | 1.4 |
+| 67.6 | 11.55 | 26.2 | 10.6 | 9.4 | 10.0 mΩ, 0.32 s | 36.9 mΩ, 47.3 s | 1.3 |
+| 56.8 | 12.22 | 13.7 | 2.9 | 6.6 | 8.7 mΩ, 0.23 s | 18.8 mΩ, 36.6 s | 1.2 |
+| 46.0 | 11.55 | 15.6 | 3.7 | 7.7 | 9.3 mΩ, 0.23 s | 23.3 mΩ, 40.2 s | 1.0 |
+| 35.2 | 11.60 | 16.9 | 5.0 | 8.4 | 9.2 mΩ, 0.20 s | 28.6 mΩ, 49.6 s | 1.3 |
+| 24.4 | 11.77 | 14.7 | 3.1 | 7.8 | 9.3 mΩ, 0.19 s | 25.6 mΩ, 49.5 s | 1.3 |
+| 13.6 | 12.55 | 41.9 | 19.4 | 10.8 | 10.8 mΩ, 0.36 s | 74.6 mΩ, 79.3 s | 2.7 |
+| 8.2 | 13.62 | 57.9 | 23.1 | 13.0 | 13.1 mΩ, 0.49 s | 123.5 mΩ, 107.4 s | 3.5 |
+| 2.8 | 15.06 | 72.6 | 20.8 | 18.6 | 18.7 mΩ, 0.54 s | 171.7 mΩ, 118.7 s | 4.0 |
+
+![Fitted parameters vs SOC](results/hppc_params_vs_soc.png)
+
+A single RC branch leaves 6 to 19 mV of fit error because the voltage response has a fast part (about 0.2 s) and a slow part (30 to 120 s). Open markers in the figure and "at bound" in the table mark 2RC fits where the slow time constant sits on its lower bound of 30 s (the bounds for the 2RC fit, 0.1 to 30 s and 30 to 3000 s, were chosen before looking at validation results).
+
+**Validation (external check).** The measured current of each drive cycle at 25 °C is replayed through the model with no retuning. The initial SOC comes from inverting the OCV table at the rest voltage before the cycle, and SOC then follows coulomb counting with the fitted capacity. The cycles were not used in any fit. RMSE is over the whole cycle and over the part of the cycle where the model SOC is between 20 and 80 % (57 to 64 % of the samples).
+
+| Cycle | Assumed: whole / window (mV) | Fitted 1RC | Fitted 2RC | 2RC single branch |
+| --- | --- | --- | --- | --- |
+| UDDS | 92.9 / 56.6 | 37.8 / 28.1 | 28.5 / 16.6 | 31.5 / 21.1 |
+| LA92 | 106.7 / 62.0 | 42.5 / 33.7 | 28.8 / 14.4 | 35.0 / 24.7 |
+| US06 | 129.3 / 72.6 | 63.5 / 59.5 | 29.9 / 16.6 | 42.6 / 35.1 |
+
+- **Pass limits:** at most 30 mV over the whole cycle and at most 20 mV in the 20 to 80 % window, on UDDS and LA92. US06 is reported without a limit; HWFET cannot be replayed.
+- **Result:** the 1RC model fails (UDDS 37.8 mV whole cycle, LA92 42.5 mV). The 2RC model fitted on the same HPPC data passes (UDDS 28.5 / 16.6 mV, LA92 28.8 / 14.4 mV) and is kept. The margin on the whole-cycle limit is small (1.5 and 1.2 mV). Fitted parameters cut the error by a factor of 3 to 4 against the assumed values (93 to 129 mV whole cycle).
+- **Systematic errors remain:** the model voltage sits about 10 to 30 mV above the measurement for most of UDDS and drifts up to 100 mV and more below 10 % SOC, where the constant R0 and polarisation values (taken from 30 to 70 % SOC) are too low (see `results/cell_validation_udds.png`). Temperature, hysteresis and diffusion are not modelled.
+
+![UDDS validation](results/cell_validation_udds.png)
+
+![Validation summary](results/cell_validation_summary.png)
+
+**What the simulator uses.** The balancing simulator has one RC branch, so the 2RC model cannot be used as it is. `FITTED_HG2_25C` takes the fitted R0 and replaces the two branches by one with the same DC resistance (R1 = 35.2 mΩ, the sum of both) and the resistance-weighted time constant (32 s, C1 = 919 F). Replayed through the drive cycles this single-branch form gives 31.5 mV on UDDS and 35.0 mV on LA92 over the whole cycle, so it does not meet the 30 mV limit by itself. `claims.md` lists that as FAIL. The balancing currents are tens of milliamps and change over hours, so the time constants have little effect there; the DC resistance and OCV slope matter. The simulator's R0, R1, C1 and OCV are constant in SOC. The SOC-dependent tables are stored in `data/processed/hg2_25c_params.json` behind a flag (`enabled`, false) and the loader refuses to enable it.
+
+**What is still assumed.** The dataset has one cell, so the cell-to-cell spreads (capacity ± 5 %, R0 ± 10 %) and the balancing hardware values (inductor, MOSFET, capacitor, bleed resistor ranges) remain assumed. This is labelled in `claims.md`.
+
+**Uncertainty.** The HPPC residuals were bootstrapped 500 times with a fixed seed (moving blocks of 50 samples, so that autocorrelated misfit is kept together; R0 also gets noise drawn from the voltage scatter during the preceding rest). Each resample re-fits the blocks in the 30 to 70 % window and takes the median. The OCV slope at 50 % SOC is bootstrapped from the dense C/20 data between 45 and 55 % SOC. The 500 resampled parameter sets were pushed through the baseline simulation as one batch of 500 packs per technique:
+
+| Quantity | Median | 95 % interval |
+| --- | --- | --- |
+| R0 (mΩ) | 11.78 | 11.37 to 12.20 |
+| R1, both branches (mΩ) | 36.6 | 34.9 to 38.6 |
+| C1, equivalent (F) | 937 | 864 to 997 |
+| OCV slope at 50 % SOC (mV per %) | 9.28 | 9.17 to 9.38 |
+
+| Baseline | Balancing time (h) | Energy dissipated (J) |
+| --- | --- | --- |
+| Passive shunt | 4.186 (4.186 to 4.186) | 7175.8 (7175.4 to 7176.0) |
+| Inductor buck-boost | 1.068 (1.068 to 1.069) | 200.3 (199.9 to 200.7) |
+| Flying capacitor | 1.195 (1.174 to 1.217) | 30.0 (29.6 to 30.3) |
+
+These intervals are narrow because they contain only the scatter of the HPPC fit and of the OCV slope. They do not include the 6.7 % capacity question above, instrument accuracy (0.1 % of full scale), temperature or cell-to-cell spread. They are not a measure of how well the model predicts a different cell.
+
+**Baseline with assumed and fitted parameters.** `results/baseline_assumed_vs_fitted.csv` and the figure below hold the numbers.
+
+![Assumed vs fitted baseline](results/baseline_assumed_vs_fitted.png)
+
+| | Passive | Buck-boost | Flying capacitor |
+| --- | --- | --- | --- |
+| Time, assumed to fitted | 16400 s to 15068 s (0.92x) | 4203 s to 3845 s (0.91x) | 9140 s to 4251 s (0.47x) |
+| Energy dissipated, assumed to fitted | 7680 J to 7176 J (0.93x) | 220.8 J to 199.9 J (0.91x) | 20.5 J to 29.9 J (1.46x) |
+
+Why each number moved:
+
+- **Capacity (3.0 to 2.78 Ah)** shrinks every SOC difference per ampere-hour moved, so each technique is about 7 % faster. It explains most of the passive change: bleed current is set by the absolute cell voltage and R_b, not by R0 or the OCV slope, so passive time follows capacity and the slightly lower mid-SOC voltage (3.74 V is the measured value at 50 % SOC against the assumed 3.71 V, so bleed current is a little higher).
+- **Buck-boost** also tracks capacity. Its source current depends on the source cell's own voltage and the inductor, not on the voltage difference between cells. Lower R0 (11.6 against 30 mΩ) makes the source terminal voltage a little higher, which adds to the speedup.
+- **Flying capacitor** is the only technique whose current depends on the voltage difference between neighbouring cells. Two things raise its current: the OCV slope at 50 % SOC is 1.58 times steeper (9.35 against 5.93 mV per %), so the same SOC gap gives a bigger voltage gap, and the loop resistance falls from 0.118 Ω to about 0.081 Ω because the two cell resistances drop by 37 mΩ together. Together these raise the link current about 2.3x, and the smaller capacity adds 1.08x to the rate of SOC change; the deadband and the slow tail reduce the net effect to the observed 2.15x speedup.
+- **Flying-capacitor energy** rises by 1.46x. The energy lost moving charge dq across a voltage difference ΔE is the integral of ΔE dq. The charge moved scales with capacity (0.93x) and ΔE with the slope (1.58x), and 0.93 x 1.58 = 1.46. A steeper OCV curve makes the same charge transfer cost more energy; lower resistance does not offset it, because the loss depends only weakly on resistance.
+- **Buck-boost energy** falls by 0.91x, in line with the smaller capacity (less charge to move) and the lower cell-resistance loss.
+
+The machine learning surrogate is retrained on the new simulations. Its R² for balancing time rose from 0.973 to 0.989, and for energy stayed at 0.995 (MAE 250 s and 67 J).
+
+**Re-run checks under the fitted set.** The ledger discrepancy against the energy removed is {ledger['passive']:.4f} % (passive), {ledger['buck_boost']:.2f} % (buck-boost) and {ledger['flying_capacitor']:.2f} % (flying capacitor), all within 1 %. The passive closed form is within {closed:.3f} % over 200 packs, charge conservation holds to {charge:.1e}, and the midsem regression under `ASSUMED` is unchanged. One diagnostic that passed in Phase 0 now fails: the per-link ledger of the flying capacitor differs from the reported dissipation by {per_link['flying_capacitor']:.3f} % against a 0.1 % limit. That residual is first order in the time step and grows with the faster dynamics of the fitted set; it is reported in `claims.md` and was not tuned away.

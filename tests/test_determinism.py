@@ -3,7 +3,7 @@ from pathlib import Path
 
 from run_all import run
 from src.config import CONFIG
-from src.params import CheckSpec, DatasetSpec, MLSpec, SweepSpec
+from src.params import CheckSpec, DatasetSpec, IdentificationSpec, MLSpec, SweepSpec
 
 SMALL_CONFIG = replace(
     CONFIG,
@@ -11,6 +11,7 @@ SMALL_CONFIG = replace(
     dataset=DatasetSpec(runs_per_technique=30),
     ml=MLSpec(max_iter=20, permutation_repeats=2, timing_repeats=1),
     checks=CheckSpec(packs_per_technique=6, dt_scaling_packs=2, dt_scaling_steps_s=(1.0, 0.5)),
+    identification=IdentificationSpec(bootstrap_resamples=8),
 )
 WALL_CLOCK_FIELDS = ("time_per_pack", "run_all_s", "physics_checks_s")
 COMPARED_FILES = ("metrics.json", "baseline_table.csv", "dataset.csv")

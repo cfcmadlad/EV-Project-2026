@@ -11,6 +11,9 @@ class PackBatch:
     capacity_ah: FloatArray
     r0_ohm: FloatArray
     soc0: FloatArray
+    r1_ohm: FloatArray | None = None
+    c1_farad: FloatArray | None = None
+    ocv_tilt_v_per_soc: FloatArray | None = None
 
     @property
     def n_packs(self) -> int:

@@ -5,13 +5,14 @@ from pathlib import Path
 import numpy as np
 from numpy.typing import NDArray
 
+from src.fitted import FITTED_HG2_25C
 from src.params import (
-    ASSUMED,
     BuckBoostSpec,
     CellParams,
     CheckSpec,
     DatasetSpec,
     FlyingCapSpec,
+    IdentificationSpec,
     MLSpec,
     PackSpec,
     ParameterSet,
@@ -83,13 +84,14 @@ class PlotConfig:
 @dataclass(frozen=True, slots=True)
 class ProjectConfig:
     seed: int = 2026
-    params: ParameterSet = ASSUMED
+    params: ParameterSet = FITTED_HG2_25C
     sim: SimSpec = SimSpec()
     sweep: SweepSpec = SweepSpec()
     dataset: DatasetSpec = DatasetSpec()
     ml: MLSpec = MLSpec()
     sanity: SanitySpec = SanitySpec()
     checks: CheckSpec = CheckSpec()
+    identification: IdentificationSpec = IdentificationSpec()
     plot: PlotConfig = PlotConfig()
 
     @property

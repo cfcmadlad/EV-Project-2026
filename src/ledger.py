@@ -52,11 +52,11 @@ def flying_capacitor_element_loss_w(
 @dataclass(frozen=True, slots=True)
 class RCSquareWeights:
     target: float
-    cross: float
-    offset: float
+    cross: float | FloatArray
+    offset: float | FloatArray
 
 
-def rc_square_weights(dt_s: float, tau_s: float) -> RCSquareWeights:
+def rc_square_weights(dt_s: float, tau_s: float | FloatArray) -> RCSquareWeights:
     decay = np.exp(-dt_s / tau_s)
     return RCSquareWeights(
         target=dt_s,

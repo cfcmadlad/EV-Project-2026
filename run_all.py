@@ -1,11 +1,13 @@
 import csv
 import json
+from dataclasses import replace
 from pathlib import Path
 from time import perf_counter
 
 import numpy as np
 
 from src.balancing import BalanceResult, simulate, tail_slowdown_ratio
+from src.cell_plots import plot_baseline_comparison
 from src.checks import physics_checks
 from src.config import (
     CONFIG,
@@ -19,8 +21,9 @@ from src.config import (
 )
 from src.dataset import TARGET_NAMES, Dataset, generate_dataset
 from src.experiments import baseline_pack, random_streams, run_baseline
+from src.identification import table_slope_mv_per_percent
 from src.pack import PackBatch, tile_pack
-from src.params import SECONDS_PER_HOUR
+from src.params import ASSUMED, SECONDS_PER_HOUR
 from src.plots import (
     plot_importance,
     plot_parity,
@@ -29,6 +32,13 @@ from src.plots import (
     plot_sweep,
 )
 from src.predictor import PredictorReport, train_and_evaluate
+from src.uncertainty import (
+    BOOTSTRAP_PATH,
+    IDENTIFICATION_PATH,
+    NOT_RUN,
+    load_cached,
+    propagate_baseline,
+)
 
 TARGET_AXES = (
     ("Balancing time", "h", 1.0 / SECONDS_PER_HOUR),
@@ -210,6 +220,75 @@ def sweep_summary(
     }
 
 
+def baseline_comparison(
+    fitted: dict[Technique, BalanceResult], config: ProjectConfig
+) -> list[dict[str, float | str]]:
+    assumed_config = replace(config, params=ASSUMED)
+    assumed = run_baseline(baseline_pack(assumed_config), assumed_config, trace=False)
+    rows: list[dict[str, float | str]] = []
+    for technique in Technique:
+        old, new = assumed[technique], fitted[technique]
+        old_time, new_time = float(old.balancing_time_s[0]), float(new.balancing_time_s[0])
+        old_energy = float(old.energy_dissipated_j[0])
+        new_energy = float(new.energy_dissipated_j[0])
+        rows.append(
+            {
+                "technique": technique.key,
+                "time_s_assumed": old_time,
+                "time_s_fitted": new_time,
+                "time_ratio": new_time / old_time,
+                "time_h_assumed": old_time / SECONDS_PER_HOUR,
+                "time_h_fitted": new_time / SECONDS_PER_HOUR,
+                "energy_j_assumed": old_energy,
+                "energy_j_fitted": new_energy,
+                "energy_ratio": new_energy / old_energy,
+                "efficiency_pct_assumed": float(old.efficiency[0] * PERCENT),
+                "efficiency_pct_fitted": float(new.efficiency[0] * PERCENT),
+            }
+        )
+    return rows
+
+
+def cell_stages(
+    config: ProjectConfig, pack: PackBatch, baseline: dict[Technique, BalanceResult]
+) -> tuple[dict[str, object], dict[str, object], dict[str, object], list[dict[str, float | str]]]:
+    identification = load_cached(IDENTIFICATION_PATH)
+    bootstrap = load_cached(BOOTSTRAP_PATH)
+    comparison = baseline_comparison(baseline, config)
+    slopes = {
+        "assumed_mv_per_percent": table_slope_mv_per_percent(ASSUMED.cell),
+        "active_mv_per_percent": table_slope_mv_per_percent(config.cell),
+    }
+    if identification is None:
+        ident_block: dict[str, object] = dict(NOT_RUN)
+        valid_block: dict[str, object] = dict(NOT_RUN)
+    else:
+        ident_block = {
+            "status": "ok",
+            **{k: identification[k] for k in ("capacity", "ocv", "hppc", "intervals")},
+        }
+        valid_block = {
+            "status": identification["selection"]["status"],
+            **{k: identification[k] for k in ("selection", "usable_drive_cycles", "validation")},
+        }
+    if bootstrap is None or config.params.name != "fitted_hg2_25c":
+        uncertainty: dict[str, object] = dict(NOT_RUN)
+    else:
+        uncertainty = {"status": "ok", **propagate_baseline(pack, bootstrap, config)}
+    return (
+        ident_block,
+        valid_block,
+        {
+            "status": "ok",
+            "rows": comparison,
+            "ocv_slope_at_50_percent": slopes,
+            "parameter_set_active": config.params.name,
+            "uncertainty": uncertainty,
+        },
+        comparison,
+    )
+
+
 def summary_lines(
     table: list[Row],
     sanity: dict[str, bool | dict[str, float]],
@@ -260,6 +339,9 @@ def run(config: ProjectConfig, results_dir: Path) -> list[str]:
     checks = physics_checks(config, streams["checks"])
     checks_time = perf_counter() - checks_start
 
+    ident_block, valid_block, comparison_block, comparison = cell_stages(config, pack, baseline)
+    write_baseline_csv(comparison, results_dir / "baseline_assumed_vs_fitted.csv")
+    plot_baseline_comparison(comparison, results_dir / "baseline_assumed_vs_fitted", config.plot)
     write_baseline_csv(table, results_dir / "baseline_table.csv")
     write_dataset_csv(dataset, results_dir / "dataset.csv")
     save_figures(baseline, sweeps, dataset, report, config, results_dir)
@@ -276,6 +358,9 @@ def run(config: ProjectConfig, results_dir: Path) -> list[str]:
         "ml": report.metrics,
         "speedup": {"status": "moved", "location": "timing.json"},
         "physics_checks": checks,
+        "cell_identification": ident_block,
+        "cell_validation": valid_block,
+        "baseline_assumed_vs_fitted": comparison_block,
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start

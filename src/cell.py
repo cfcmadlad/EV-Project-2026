@@ -28,3 +28,7 @@ def rc_step_gain(dt_s: float, cell: CellParams) -> float:
 
 def soc_per_amp_step(dt_s: float, capacity_ah: FloatArray) -> FloatArray:
     return dt_s / (SECONDS_PER_HOUR * capacity_ah)
+
+
+def rc_step_gain_per_pack(dt_s: float, tau_s: FloatArray) -> FloatArray:
+    return -np.expm1(-dt_s / tau_s)
