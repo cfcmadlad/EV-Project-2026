@@ -1,0 +1,9 @@
+{
+  "speedup": {
+    "simulation_time_per_pack_s": 0.004893101200000577,
+    "prediction_time_per_pack_s": 3.5922500004138176e-05,
+    "speedup": 136.21271346473395
+  },
+  "physics_checks_s": 47.47080119999009,
+  "run_all_s": 105.34329689999868
+}

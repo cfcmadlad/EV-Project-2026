@@ -8,13 +8,14 @@ from sklearn.inspection import permutation_importance
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 
-from src.config import FloatArray, IntArray, ModelConfig, Technique
+from src.config import FloatArray, IntArray, Technique
 from src.dataset import TARGET_NAMES, Dataset
+from src.params import MLSpec
 
 Scores = dict[str, float]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PredictorReport:
     metrics: dict[str, dict[str, Scores]]
     y_test: FloatArray
@@ -25,9 +26,7 @@ class PredictorReport:
     prediction_time_per_pack_s: float
 
 
-def train_and_evaluate(
-    dataset: Dataset, config: ModelConfig, seed: int
-) -> PredictorReport:
+def train_and_evaluate(dataset: Dataset, config: MLSpec, seed: int) -> PredictorReport:
     if dataset.targets.shape[1] != len(TARGET_NAMES):
         raise ValueError(f"dataset must provide targets {TARGET_NAMES}")
     if np.any(dataset.targets <= 0.0):
@@ -48,8 +47,7 @@ def train_and_evaluate(
 
     y_pred = np.column_stack([model.predict(x_test) for model in models])
     prediction_time = (
-        min(_prediction_time(models, x_test) for _ in range(config.timing_repeats))
-        / test.size
+        min(_prediction_time(models, x_test) for _ in range(config.timing_repeats)) / test.size
     )
 
     importances = [
@@ -76,16 +74,14 @@ def train_and_evaluate(
     )
 
 
-def _prediction_time(
-    models: list[TransformedTargetRegressor], features: FloatArray
-) -> float:
+def _prediction_time(models: list[TransformedTargetRegressor], features: FloatArray) -> float:
     start = perf_counter()
     for model in models:
         model.predict(features)
     return perf_counter() - start
 
 
-def _build_model(config: ModelConfig, seed: int) -> TransformedTargetRegressor:
+def _build_model(config: MLSpec, seed: int) -> TransformedTargetRegressor:
     return TransformedTargetRegressor(
         regressor=HistGradientBoostingRegressor(
             learning_rate=config.learning_rate,

@@ -2,10 +2,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from src.config import CellParams, FloatArray, PackConfig
+from src.config import FloatArray
+from src.params import CellParams, PackSpec
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PackBatch:
     capacity_ah: FloatArray
     r0_ohm: FloatArray
@@ -20,7 +21,7 @@ def sample_packs(
     n_packs: int,
     rng: np.random.Generator,
     cell: CellParams,
-    pack: PackConfig,
+    pack: PackSpec,
     soc_spread: FloatArray | None = None,
 ) -> PackBatch:
     if n_packs < 1:
@@ -31,16 +32,13 @@ def sample_packs(
         (soc_spread <= 0.0) | (soc_spread > pack.soc_spread_max)
     ):
         raise ValueError(
-            f"soc_spread must have shape ({n_packs},) with values in "
-            f"(0, {pack.soc_spread_max}]"
+            f"soc_spread must have shape ({n_packs},) with values in (0, {pack.soc_spread_max}]"
         )
     shape = (n_packs, pack.n_cells)
     capacity = cell.capacity_ah * rng.uniform(
         1.0 - pack.capacity_tolerance, 1.0 + pack.capacity_tolerance, shape
     )
-    r0 = cell.r0_ohm * rng.uniform(
-        1.0 - pack.r0_tolerance, 1.0 + pack.r0_tolerance, shape
-    )
+    r0 = cell.r0_ohm * rng.uniform(1.0 - pack.r0_tolerance, 1.0 + pack.r0_tolerance, shape)
     raw = rng.uniform(size=shape)
     low = raw.min(axis=1, keepdims=True)
     unit = (raw - low) / (raw.max(axis=1, keepdims=True) - low)

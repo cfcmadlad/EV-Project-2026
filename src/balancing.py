@@ -12,21 +12,43 @@ from src.cell import (
 )
 from src.config import (
     BoolArray,
-    BuckBoostConfig,
     FloatArray,
-    FlyingCapacitorConfig,
     ProjectConfig,
     Technique,
 )
+from src.flow import StepFlow
+from src.ledger import (
+    ElementLossModel,
+    buck_boost_element_loss_w,
+    flying_capacitor_element_loss_w,
+    passive_element_loss_w,
+    per_link_r0_loss_w,
+    rc_branch_square_integral,
+    rc_square_weights,
+)
 from src.pack import PackBatch
+from src.params import BuckBoostSpec, FlyingCapSpec
 
-PowerFlow = tuple[FloatArray, FloatArray, FloatArray]
-CurrentModel = Callable[
-    [FloatArray, FloatArray, FloatArray, FloatArray, FloatArray], PowerFlow
-]
+CurrentModel = Callable[[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray], StepFlow]
+
+LIVE_KEYS = (
+    "index",
+    "soc",
+    "v1",
+    "r0",
+    "soc_step",
+    "parameter",
+    "removed",
+    "transferred",
+    "element_loss",
+    "r0_loss",
+    "r1_loss",
+    "r0_per_link_loss",
+)
+LEDGER_KEYS = ("element_loss", "r0_loss", "r1_loss", "r0_per_link_loss")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BalanceResult:
     balancing_time_s: FloatArray
     energy_removed_j: FloatArray
@@ -34,10 +56,24 @@ class BalanceResult:
     balanced: BoolArray
     trace_time_s: FloatArray
     trace_soc: FloatArray
+    final_soc: FloatArray
+    element_loss_j: FloatArray
+    r0_loss_j: FloatArray
+    r1_loss_j: FloatArray
+    c1_stored_j: FloatArray
+    r0_per_link_loss_j: FloatArray
 
     @property
     def energy_dissipated_j(self) -> FloatArray:
         return self.energy_removed_j - self.energy_transferred_j
+
+    @property
+    def ledger_j(self) -> FloatArray:
+        return self.element_loss_j + self.r0_loss_j + self.r1_loss_j + self.c1_stored_j
+
+    @property
+    def per_link_ledger_j(self) -> FloatArray:
+        return self.element_loss_j + self.r0_per_link_loss_j + self.r1_loss_j + self.c1_stored_j
 
     @property
     def efficiency(self) -> FloatArray:
@@ -55,11 +91,19 @@ def passive_currents(
     emf: FloatArray,
     r0: FloatArray,
     r_bleed: FloatArray,
-) -> PowerFlow:
+) -> StepFlow:
     bleeding = soc > soc.mean(axis=1, keepdims=True)
     current = np.where(bleeding, emf / (r_bleed[:, None] + r0), 0.0)
     removed = np.einsum("ij,ij->i", ocv, current)
-    return current, removed, np.zeros_like(removed)
+    no_links = np.zeros((soc.shape[0], 0))
+    return StepFlow(
+        cell_current_a=current,
+        removed_w=removed,
+        delivered_w=np.zeros_like(removed),
+        link_source_a=no_links,
+        link_sink_a=no_links,
+        link_forward=no_links.astype(bool),
+    )
 
 
 def buck_boost_currents(
@@ -68,9 +112,9 @@ def buck_boost_currents(
     emf: FloatArray,
     r0: FloatArray,
     inverse_lf: FloatArray,
-    hardware: BuckBoostConfig,
+    hardware: BuckBoostSpec,
     deadband: float,
-) -> PowerFlow:
+) -> StepFlow:
     active, forward = _link_state(soc, deadband)
     emf_source, emf_sink = _source_sink(emf, forward)
     r_source, r_sink = _source_sink(r0, forward)
@@ -88,10 +132,13 @@ def buck_boost_currents(
     )
     p_out = v_source * i_source - conduction_loss
     i_sink = 2.0 * p_out / (emf_sink + np.sqrt(emf_sink**2 + 4.0 * r_sink * p_out))
-    return (
-        _scatter_links(i_source, i_sink, forward),
-        np.einsum("ij,ij->i", ocv_source, i_source),
-        np.einsum("ij,ij->i", ocv_sink, i_sink),
+    return StepFlow(
+        cell_current_a=_scatter_links(i_source, i_sink, forward),
+        removed_w=np.einsum("ij,ij->i", ocv_source, i_source),
+        delivered_w=np.einsum("ij,ij->i", ocv_sink, i_sink),
+        link_source_a=i_source,
+        link_sink_a=i_sink,
+        link_forward=forward,
     )
 
 
@@ -101,25 +148,24 @@ def flying_capacitor_currents(
     emf: FloatArray,
     r0: FloatArray,
     inverse_fc: FloatArray,
-    hardware: FlyingCapacitorConfig,
+    hardware: FlyingCapSpec,
     deadband: float,
-) -> PowerFlow:
+) -> StepFlow:
     active, _ = _link_state(soc, deadband)
     r_link = (
-        inverse_fc[:, None]
-        + 2.0 * hardware.r_ds_on_ohm
-        + hardware.esr_ohm
-        + r0[:, :-1]
-        + r0[:, 1:]
+        inverse_fc[:, None] + 2.0 * hardware.r_ds_on_ohm + hardware.esr_ohm + r0[:, :-1] + r0[:, 1:]
     )
     i_link = np.where(active, (emf[:, :-1] - emf[:, 1:]) / r_link, 0.0)
     forward = i_link > 0.0
     magnitude = np.abs(i_link)
     ocv_source, ocv_sink = _source_sink(ocv, forward)
-    return (
-        _scatter_links(magnitude, magnitude, forward),
-        np.einsum("ij,ij->i", ocv_source, magnitude),
-        np.einsum("ij,ij->i", ocv_sink, magnitude),
+    return StepFlow(
+        cell_current_a=_scatter_links(magnitude, magnitude, forward),
+        removed_w=np.einsum("ij,ij->i", ocv_source, magnitude),
+        delivered_w=np.einsum("ij,ij->i", ocv_sink, magnitude),
+        link_source_a=magnitude,
+        link_sink_a=magnitude,
+        link_forward=forward,
     )
 
 
@@ -134,88 +180,109 @@ def simulate(
     _validate_inputs(technique, packs, component, frequency_hz)
     sim, cell = config.sim, config.cell
     model = _current_model(technique, config)
+    element_loss = _element_loss_model(technique, config)
     curve = build_ocv_curve(cell)
     gain = rc_step_gain(sim.dt_s, cell)
+    rc_weights = rc_square_weights(sim.dt_s, cell.tau_s)
     n_steps = round(sim.t_max_s / sim.dt_s)
     trace_every = max(1, round(sim.trace_interval_s / sim.dt_s))
 
     n = packs.n_packs
     balancing_time = np.full(n, sim.t_max_s)
     balanced = np.zeros(n, dtype=bool)
-    energy_removed = np.zeros(n)
-    energy_transferred = np.zeros(n)
+    totals = {key: np.zeros(n) for key in ("removed", "transferred", *LEDGER_KEYS)}
+    v1_full = np.zeros_like(packs.soc0)
     soc_full = packs.soc0.copy()
     trace_time: list[float] = []
     trace_soc: list[FloatArray] = []
 
-    index = np.arange(n)
-    soc = packs.soc0.copy()
-    v1 = np.zeros_like(soc)
-    r0 = packs.r0_ohm
-    soc_step = soc_per_amp_step(sim.dt_s, packs.capacity_ah)
-    parameter = _technique_parameter(technique, component, frequency_hz)
-    removed = np.zeros(n)
-    transferred = np.zeros(n)
+    live: dict[str, FloatArray] = {
+        "index": np.arange(n),
+        "soc": packs.soc0.copy(),
+        "v1": np.zeros_like(packs.soc0),
+        "r0": packs.r0_ohm,
+        "soc_step": soc_per_amp_step(sim.dt_s, packs.capacity_ah),
+        "parameter": _technique_parameter(technique, component, frequency_hz),
+        "removed": np.zeros(n),
+        "transferred": np.zeros(n),
+        "element_loss": np.zeros(n),
+        "r0_loss": np.zeros(n),
+        "r1_loss": np.zeros(n),
+        "r0_per_link_loss": np.zeros(n),
+    }
 
     for step in range(n_steps + 1):
+        soc = live["soc"]
         done = soc.max(axis=1) - soc.min(axis=1) < sim.soc_tolerance
         if done.any():
-            finished = index[done]
+            finished = live["index"][done]
             balancing_time[finished] = step * sim.dt_s
             balanced[finished] = True
-            energy_removed[finished] = removed[done]
-            energy_transferred[finished] = transferred[done]
-            soc_full[finished] = soc[done]
+            _store(totals, v1_full, soc_full, live, finished, done)
             keep = ~done
-            index, soc, v1, r0, soc_step, parameter, removed, transferred = (
-                array[keep]
-                for array in (
-                    index,
-                    soc,
-                    v1,
-                    r0,
-                    soc_step,
-                    parameter,
-                    removed,
-                    transferred,
-                )
-            )
+            live = {key: live[key][keep] for key in LIVE_KEYS}
         if trace and step % trace_every == 0:
-            soc_full[index] = soc
+            soc_full[live["index"]] = live["soc"]
             trace_time.append(step * sim.dt_s)
             trace_soc.append(soc_full.copy())
-        if index.size == 0 or step == n_steps:
+        if live["index"].size == 0 or step == n_steps:
             break
+        soc, v1, r0 = live["soc"], live["v1"], live["r0"]
         ocv = open_circuit_voltage(soc, curve)
-        current, p_removed, p_transferred = model(soc, ocv, ocv - v1, r0, parameter)
-        removed += p_removed * sim.dt_s
-        transferred += p_transferred * sim.dt_s
-        soc -= current * soc_step
-        v1 += gain * (current * cell.r1_ohm - v1)
+        emf = ocv - v1
+        flow = model(soc, ocv, emf, r0, live["parameter"])
+        current = flow.cell_current_a
+        live["removed"] += flow.removed_w * sim.dt_s
+        live["transferred"] += flow.delivered_w * sim.dt_s
+        live["element_loss"] += element_loss(flow, emf, r0, live["parameter"]) * sim.dt_s
+        live["r0_loss"] += np.einsum("ij,ij->i", current**2, r0) * sim.dt_s
+        live["r0_per_link_loss"] += per_link_r0_loss_w(flow, r0) * sim.dt_s
+        v1_target = current * cell.r1_ohm
+        live["r1_loss"] += (
+            rc_branch_square_integral(v1, v1_target, rc_weights).sum(axis=1) / cell.r1_ohm
+        )
+        soc -= current * live["soc_step"]
+        v1 += gain * (v1_target - v1)
 
-    energy_removed[index] = removed
-    energy_transferred[index] = transferred
-    soc_full[index] = soc
+    _store(totals, v1_full, soc_full, live, live["index"], np.ones(live["index"].size, bool))
     if trace and step % trace_every != 0:
         trace_time.append(step * sim.dt_s)
         trace_soc.append(soc_full.copy())
     return BalanceResult(
         balancing_time_s=balancing_time,
-        energy_removed_j=energy_removed,
-        energy_transferred_j=energy_transferred,
+        energy_removed_j=totals["removed"],
+        energy_transferred_j=totals["transferred"],
         balanced=balanced,
         trace_time_s=np.array(trace_time),
         trace_soc=np.array(trace_soc).reshape(len(trace_soc), *soc_full.shape),
+        final_soc=soc_full,
+        element_loss_j=totals["element_loss"],
+        r0_loss_j=totals["r0_loss"],
+        r1_loss_j=totals["r1_loss"],
+        c1_stored_j=0.5 * cell.c1_farad * (v1_full**2).sum(axis=1),
+        r0_per_link_loss_j=totals["r0_per_link_loss"],
     )
 
 
-def tail_slowdown_ratio(
-    result: BalanceResult, tolerance: float, window: float
-) -> float:
+def tail_slowdown_ratio(result: BalanceResult, tolerance: float, window: float) -> float:
     spread = np.ptp(result.trace_soc[:, 0, :], axis=1)
     head = _first_crossing(result.trace_time_s, spread, spread[0] - window)
     tail_start = _first_crossing(result.trace_time_s, spread, tolerance + window)
     return float((result.balancing_time_s[0] - tail_start) / head)
+
+
+def _store(
+    totals: dict[str, FloatArray],
+    v1_full: FloatArray,
+    soc_full: FloatArray,
+    live: dict[str, FloatArray],
+    finished: FloatArray,
+    mask: BoolArray,
+) -> None:
+    for key in totals:
+        totals[key][finished] = live[key][mask]
+    v1_full[finished] = live["v1"][mask]
+    soc_full[finished] = live["soc"][mask]
 
 
 def _first_crossing(time_s: FloatArray, spread: FloatArray, level: float) -> float:
@@ -227,16 +294,12 @@ def _link_state(soc: FloatArray, deadband: float) -> tuple[BoolArray, BoolArray]
     return np.abs(difference) > deadband, difference > 0.0
 
 
-def _source_sink(
-    values: FloatArray, forward: BoolArray
-) -> tuple[FloatArray, FloatArray]:
+def _source_sink(values: FloatArray, forward: BoolArray) -> tuple[FloatArray, FloatArray]:
     left, right = values[:, :-1], values[:, 1:]
     return np.where(forward, left, right), np.where(forward, right, left)
 
 
-def _scatter_links(
-    i_source: FloatArray, i_sink: FloatArray, forward: BoolArray
-) -> FloatArray:
+def _scatter_links(i_source: FloatArray, i_sink: FloatArray, forward: BoolArray) -> FloatArray:
     current = np.zeros((forward.shape[0], forward.shape[1] + 1))
     current[:, :-1] = np.where(forward, i_source, -i_sink)
     current[:, 1:] += np.where(forward, -i_sink, i_source)
@@ -249,15 +312,23 @@ def _current_model(technique: Technique, config: ProjectConfig) -> CurrentModel:
         case Technique.PASSIVE:
             return passive_currents
         case Technique.BUCK_BOOST:
-            return partial(
-                buck_boost_currents, hardware=config.buck_boost, deadband=deadband
-            )
+            return partial(buck_boost_currents, hardware=config.buck_boost, deadband=deadband)
         case Technique.FLYING_CAPACITOR:
             return partial(
                 flying_capacitor_currents,
                 hardware=config.flying_capacitor,
                 deadband=deadband,
             )
+
+
+def _element_loss_model(technique: Technique, config: ProjectConfig) -> ElementLossModel:
+    match technique:
+        case Technique.PASSIVE:
+            return passive_element_loss_w
+        case Technique.BUCK_BOOST:
+            return partial(buck_boost_element_loss_w, hardware=config.buck_boost)
+        case Technique.FLYING_CAPACITOR:
+            return partial(flying_capacitor_element_loss_w, hardware=config.flying_capacitor)
 
 
 def _technique_parameter(

@@ -1,0 +1,169 @@
+{
+  "seed": 2026,
+  "baseline": [
+    {
+      "technique": "passive",
+      "balancing_time_s": 16400.0,
+      "balancing_time_h": 4.555555555555555,
+      "energy_dissipated_j": 7679.870161638161,
+      "efficiency_pct": 0.0
+    },
+    {
+      "technique": "buck_boost",
+      "balancing_time_s": 4203.0,
+      "balancing_time_h": 1.1675,
+      "energy_dissipated_j": 220.84864387671496,
+      "efficiency_pct": 96.42509286514112
+    },
+    {
+      "technique": "flying_capacitor",
+      "balancing_time_s": 9140.0,
+      "balancing_time_h": 2.5388888888888888,
+      "energy_dissipated_j": 20.49609370298367,
+      "efficiency_pct": 99.64135850584262
+    }
+  ],
+  "sanity_checks": {
+    "times_minutes_to_hours": true,
+    "passive_dissipates_most": true,
+    "capacitor_slows_near_end": true,
+    "tail_to_head_time_ratio": {
+      "passive": 1.0082644628099173,
+      "buck_boost": 2.6955555555555555,
+      "flying_capacitor": 8.25925925925926
+    }
+  },
+  "sweeps": {
+    "passive_r_bleed_ohm": {
+      "values": [
+        20.0,
+        25.0,
+        30.0,
+        35.0,
+        40.0,
+        45.0,
+        50.0,
+        55.0,
+        60.0,
+        65.0,
+        70.0,
+        75.0,
+        80.0,
+        85.0,
+        90.0,
+        95.0,
+        100.0
+      ],
+      "balancing_time_s": [
+        5475.0,
+        6841.0,
+        8206.0,
+        9572.0,
+        10937.0,
+        12303.0,
+        13669.0,
+        15034.0,
+        16400.0,
+        17765.0,
+        19131.0,
+        20496.0,
+        21862.0,
+        23227.0,
+        24593.0,
+        25958.0,
+        27324.0
+      ],
+      "min_time_s": 5475.0,
+      "max_time_s": 27324.0
+    },
+    "flying_capacitor_frequency_hz": {
+      "values": [
+        1000.0,
+        1562.5,
+        2125.0,
+        2687.5,
+        3250.0,
+        3812.5,
+        4375.0,
+        4937.5,
+        5500.0,
+        6062.5,
+        6625.0,
+        7187.5,
+        7750.0,
+        8312.5,
+        8875.0,
+        9437.5,
+        10000.0
+      ],
+      "balancing_time_s": [
+        19569.0,
+        14980.0,
+        12820.0,
+        11565.0,
+        10744.0,
+        10165.0,
+        9736.0,
+        9404.0,
+        9140.0,
+        8925.0,
+        8746.0,
+        8595.0,
+        8467.0,
+        8356.0,
+        8258.0,
+        8173.0,
+        8097.0
+      ],
+      "min_time_s": 8097.0,
+      "max_time_s": 19569.0
+    }
+  },
+  "dataset": {
+    "runs": 6000,
+    "unbalanced_runs": 0
+  },
+  "ml": {
+    "balancing_time_s": {
+      "overall": {
+        "r2": 0.972559802781448,
+        "mae": 414.63554036244557
+      },
+      "passive": {
+        "r2": 0.9942592652374089,
+        "mae": 292.0189208954978
+      },
+      "buck_boost": {
+        "r2": 0.9585841315906689,
+        "mae": 180.92694043705208
+      },
+      "flying_capacitor": {
+        "r2": 0.8881363284944681,
+        "mae": 770.9607597547869
+      }
+    },
+    "energy_dissipated_j": {
+      "overall": {
+        "r2": 0.994608541618122,
+        "mae": 72.85999977541957
+      },
+      "passive": {
+        "r2": 0.9835624120964968,
+        "mae": 201.01420683371657
+      },
+      "buck_boost": {
+        "r2": 0.9543667768520847,
+        "mae": 17.428527567194774
+      },
+      "flying_capacitor": {
+        "r2": 0.9962486590223274,
+        "mae": 0.13726492534735243
+      }
+    }
+  },
+  "speedup": {
+    "simulation_time_per_pack_s": 0.003567690383333077,
+    "prediction_time_per_pack_s": 3.839925000041452e-05,
+    "speedup": 92.91041838823843
+  }
+}

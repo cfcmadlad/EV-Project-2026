@@ -11,12 +11,12 @@ from matplotlib.ticker import LogLocator, NullFormatter, ScalarFormatter
 from src.balancing import BalanceResult
 from src.config import (
     PERCENT,
-    SECONDS_PER_HOUR,
     FloatArray,
     IntArray,
     PlotConfig,
     Technique,
 )
+from src.params import SECONDS_PER_HOUR
 
 PNG_METADATA = {"Software": None}
 SVG_METADATA = {"Creator": None, "Date": None, "Format": None, "Type": None}
@@ -69,9 +69,7 @@ def _figure(
             metadata=PNG_METADATA,
         )
         if vector:
-            figure.savefig(
-                stem.with_suffix(".svg"), bbox_inches="tight", metadata=SVG_METADATA
-            )
+            figure.savefig(stem.with_suffix(".svg"), bbox_inches="tight", metadata=SVG_METADATA)
 
 
 def _outside_legend(ax: Axes, config: PlotConfig) -> None:

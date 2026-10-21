@@ -6,7 +6,7 @@ A battery pack is only as good as its weakest cell. When cells in a series strin
 
 - **Speed:** from a 10 % charge imbalance, the inductor buck-boost balances in **1.17 h**, the flying capacitor in **2.54 h** and the passive shunt in **4.56 h**.
 - **Energy:** passive balancing burns **7680 J** as heat. The buck-boost loses **221 J** (96.4 % efficient) and the flying capacitor only **20.5 J** (99.6 % efficient).
-- **Prediction:** the machine learning model, trained on 6000 simulated runs, predicts balancing time with **R² = 0.973** and wasted energy with **R² = 0.995** on unseen packs, about **93x** faster than simulating them: about 38 µs per prediction vs 3.6 ms per simulated pack (the exact factor depends on the machine).
+- **Prediction:** the machine learning model, trained on 6000 simulated runs, predicts balancing time with **R² = 0.973** and wasted energy with **R² = 0.995** on unseen packs, about **93x** faster than simulating them: about 38 µs per prediction vs 3.6 ms per simulated pack at the midsem (the exact factor depends on the machine). Timings now live in `results/timing.json` and the speedup is not yet a supported claim; see `results/claims.md`.
 
 ## b. Motivation
 
@@ -451,6 +451,7 @@ Whether the technique is passive dominates energy, because in the dataset passiv
   - Cell parameters do not change with SOC or age.
   - Only adjacent-cell topologies are compared.
   - The pack has only four cells.
+- **Shared cell resistance in the active links (found in endsem Phase 0).** The averaged buck-boost and flying-capacitor link equations each use the cell's R0 as if that link were the only current through the cell. A middle cell that feeds both neighbours, or passes charge through, really carries the net current, so the R0 loss the model books (R0 times the sum of the squared link currents) differs from the physical loss (R0 times the squared net current). The reported dissipated energy is therefore only as good as this approximation: at baseline it is 220.8 J vs 212.3 J from a net-current ledger for the buck-boost (3.9 %), and 20.5 J vs 15.3 J for the flying capacitor (25 %). See section n.
 
 ## k. Future work
 
@@ -471,7 +472,25 @@ pip install -r requirements.txt
 python run_all.py
 ```
 
-The run reproduces every result from scratch and takes about one minute on a typical laptop CPU. Most of that time is the vectorized simulation of 6000 packs. It prints a short summary and writes everything into `results/`, creating the folder if needed. The seed is fixed, so repeated runs give identical data, tables and figures. Only the measured timing and speedup numbers vary slightly.
+To run the tests, the linter and the claims report, install the development requirements:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+```bash
+python -m pytest
+```
+
+```bash
+ruff check . && ruff format --check .
+```
+
+```bash
+python scripts/report_claims.py
+```
+
+The run reproduces every result from scratch and takes about 1.5 to 2 minutes on a typical laptop CPU: about half of that is the vectorized simulation of 6000 packs and about 50 s is the physics checks of section n. It prints a short summary and writes everything into `results/`, creating the folder if needed. The seed is fixed, so two consecutive runs give a byte-identical `metrics.json`, identical CSV files and identical figures. All wall-clock measurements go to `timing.json`, which is the only output that changes between runs.
 
 | Output file | Content |
 | --- | --- |
@@ -485,7 +504,10 @@ The run reproduces every result from scratch and takes about one minute on a typ
 | `ml_importance_energy_dissipated_j.png` | Permutation feature importance for energy dissipated |
 | `baseline_table.csv` | Balancing time, energy dissipated and efficiency per technique |
 | `dataset.csv` | 6000 simulated runs: features, targets, technique code, efficiency and a balanced flag |
-| `metrics.json` | Baseline table, sanity checks, sweep data, ML metrics per technique and speedup |
+| `metrics.json` | Baseline table, sanity checks, sweep data, ML metrics per technique and physics checks (deterministic; no timings) |
+| `timing.json` | Simulation and prediction time per pack, speedup, physics-check and total runtime (machine dependent) |
+| `claims.md` | Each claim with its evidence key in `metrics.json`, value, threshold and PASS/FAIL/NOT RUN/NOT SUPPORTED (written by `scripts/report_claims.py`) |
+| `midsem_reference/` | Read-only copy of the midsem outputs for before/after comparison |
 
 All PNG figures are 300 dpi, and all figures are saved with empty metadata.
 
@@ -496,22 +518,90 @@ All PNG figures are 300 dpi, and all figures are saved with empty metadata.
 ├── .gitattributes               Line ending normalisation for text files
 ├── .gitignore                   Excludes Python caches and virtual environments
 ├── README.md                    This document
+├── pyproject.toml               ruff and pytest configuration
 ├── requirements.txt             Pinned versions of the four libraries used
+├── requirements-dev.txt         Adds pinned pytest and ruff
 ├── run_all.py                   Runs the full pipeline and writes every output
 ├── src/
 │   ├── __init__.py              Marks src as a Python package
-│   ├── config.py                Single source of truth for constants, ranges, seed and plot style
+│   ├── params.py                Frozen parameter dataclasses and the ASSUMED parameter set
+│   ├── config.py                Project config (seed, parameter set, specs), constants and plot style
 │   ├── cell.py                  1RC Thevenin cell model: OCV curve, RC update, coulomb counting
 │   ├── pack.py                  Random 4-cell series pack generation
 │   ├── balancing.py             Averaged balancing models and the batched simulator
+│   ├── flow.py                  Per-step currents and powers returned by each balancing model
+│   ├── ledger.py                Independent element-by-element loss ledger
+│   ├── baselines.py             Closed-form physics baselines (passive balancing time)
+│   ├── checks.py                Physics checks written to metrics.json
+│   ├── experiments.py           Seeded random streams, baseline pack and baseline runs
 │   ├── dataset.py               Randomized dataset generation with features and targets
 │   ├── predictor.py             Gradient boosting training, metrics, importance and timing
 │   └── plots.py                 Shared figure style and every chart
+├── scripts/
+│   └── report_claims.py         Writes results/claims.md from results/metrics.json
+├── tests/                       pytest suite (ledger, closed form, charge, regression, determinism)
 └── results/
     ├── baseline_table.csv       Baseline comparison table
     ├── dataset.csv              Simulated training data
-    ├── metrics.json             All numeric results
+    ├── metrics.json             All deterministic numeric results
+    ├── timing.json              Wall-clock timings (not deterministic)
+    ├── claims.md                Generated claims table
+    ├── midsem_reference/        Read-only midsem outputs
     ├── soc_*.png                Baseline SOC traces and spread comparison
     ├── sweep_*.png / .svg       Sensitivity sweeps
     └── ml_*.png / .svg          Model parity and feature importance charts
 ```
+
+## n. Verification checks (endsem Phase 0)
+
+Phase 0 freezes the midsem behaviour and adds automated physics checks before any physics is changed. No model equation was changed: under the `ASSUMED` parameter set every baseline time, energy and efficiency, every sweep point and every ML metric equals the midsem values exactly (`results/midsem_reference/`, test `test_midsem_regression`).
+
+**Parameters.** All physical and numerical parameters now live in frozen dataclasses in `src/params.py` (`CellParams`, `OCVTable`, `PackSpec`, `PassiveSpec`, `BuckBoostSpec`, `FlyingCapSpec`, `SimSpec`, `MLSpec`, `CheckSpec`), grouped into a named `ParameterSet`. `ASSUMED` holds the midsem values and is the current default.
+
+**Control rules as implemented.**
+
+- Passive: at every step each cell whose SOC is strictly above the pack mean bleeds through R_b, with I = (OCV - V1) / (R_b + R0), which is the terminal voltage over R_b. The lowest cell is never above the mean, so it never bleeds, and the highest cell always bleeds. Cells that start below the mean join in once the falling mean passes them. In effect every cell drains to within 1 % of the lowest cell.
+- Buck-boost and flying capacitor: each adjacent link is on when its two cells differ by more than 0.2 % SOC (the deadband applies to both active schemes) and moves charge from the higher-SOC cell to the lower one.
+- Stop: when max SOC minus min SOC is below 1 %, checked at the start of each 1 s step, or at the 48 h cap.
+
+**Independent loss ledger.** Alongside the existing E_dissipated = E_removed - E_delivered, the simulator now integrates I²R over every resistive element the model contains: the bleed resistor, the inductor resistance and switch on-resistance over the on and demagnetising intervals, the switch on-resistance, ESR and 1/(fC) term of the flying capacitor, each cell's R0 on its net current, and the R1 branch as V1²/R1 (integrated exactly over each step for the zero-order-hold current). It adds the energy left in each C1 (½·C1·V1²) at the end.
+
+| Baseline (J) | Removed - delivered | Net-current ledger | Converter or bleed elements | Cell R0, net current | Cell R0, booked per link | R1 branch | C1 stored |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Passive | 7679.87 | 7679.87 | 7674.09 | 4.06 | 4.06 | 1.72 | 0.001 |
+| Buck-boost | 220.85 | 212.30 | 199.46 | 9.75 | 18.33 | 3.08 | 0.007 |
+| Flying capacitor | 20.50 | 15.35 | 8.82 | 4.45 | 9.60 | 2.08 | 0.000 |
+
+Over 200 seeded random packs per technique (random component values and frequencies in range):
+
+| Technique | max discrepancy / E_removed (threshold 1 %) | max discrepancy / E_dissipated | median / E_dissipated | per-link ledger, max / E_dissipated |
+| --- | --- | --- | --- | --- |
+| Passive | 0.0002 % (PASS) | 0.0002 % | 0.00005 % | 0.0002 % |
+| Buck-boost | 0.70 % (PASS) | 5.4 % | 2.2 % | 0.038 % |
+| Flying capacitor | 0.19 % (PASS) | 34 % | 8.4 % | 0.030 % |
+
+The specified check (relative to E_removed) passes for all three techniques. Measured relative to the much smaller dissipated energy, the active schemes do not close. The cause is identified exactly: when R0 is booked per link, as the averaged link equations do, the ledger matches removed minus delivered to 0.04 % or better. The gap is therefore not numerical. Each link equation treats the cell's R0 as carrying only that link's current, while a middle cell carries the net current of both links. The flying capacitor is hit hardest because the two cell R0 values are more than half of its link resistance. A coupled solution of the link currents through the shared R0 would remove the inconsistency; it is a physics change and is left for the converter work in Phase 2.
+
+Time-step dependence (20 packs per technique; max discrepancy relative to E_removed):
+
+| Technique | Ledger | dt = 1 s | dt = 0.5 s | dt = 0.25 s |
+| --- | --- | --- | --- | --- |
+| Passive | net = per link | 2.1e-6 | 1.1e-6 | 5.3e-7 |
+| Buck-boost | per link | 9.5e-5 | 4.7e-5 | 2.4e-5 |
+| Buck-boost | net | 6.2e-3 | 6.2e-3 | 6.3e-3 |
+| Flying capacitor | per link | 1.3e-6 | 6.3e-7 | 3.1e-7 |
+| Flying capacitor | net | 1.4e-3 | 1.4e-3 | 1.4e-3 |
+
+The numerical part halves each time dt halves (first order, from evaluating OCV and V1 at the start of each step), while the shared-R0 part does not depend on dt.
+
+**Passive closed form.** The highest cell bleeds without interruption, and a cell that starts below the mean has less to drain. So the balancing time is set by the slowest cell draining continuously from SOC_i to SOC_min + 1 %. With dSOC/dt = -OCV(SOC) / (3600·Q_i·(R_b + R0_i + R1)) once the RC branch has settled (τ = 30 s):
+
+t = max over cells of 3600·Q_i·(R_b + R0_i + R1) · ∫ dSOC / OCV(SOC), from SOC_min + 0.01 to SOC_i
+
+evaluated with the simulator's own OCV curve (`src/baselines.py`). Baseline: 16399.1 s vs 16400 s simulated (0.005 %). Over 200 random packs and random R_b the maximum error is 0.088 % and the median 0.005 % (threshold 3 %). The largest errors are underestimates, which fits cells that start below the mean pausing before they begin to bleed.
+
+**Charge conservation.** For the flying capacitor, charge leaving source cells equals charge entering sink cells, computed from each cell's Q_i·ΔSOC_i, to 5.0e-13 relative over 200 random packs (threshold 1e-9).
+
+**Determinism.** `metrics.json` no longer contains wall-clock values. The midsem `speedup` block holds a pointer to `timing.json`; the key itself is kept so existing keys are never removed. Two consecutive runs give byte-identical `metrics.json`, CSV files and figures (`test_determinism` checks this on a reduced configuration).
+
+**Effect on runtime.** The ledger adds work to every simulation step. Mean simulation time per pack in the dataset rose from about 3.6 ms to about 4.9 ms on the same laptop, so the midsem speedup figure is not comparable with the current timing file and is listed as not supported in `results/claims.md`.

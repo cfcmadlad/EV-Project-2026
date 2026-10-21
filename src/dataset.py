@@ -9,7 +9,7 @@ from src.pack import sample_packs
 TARGET_NAMES = ("balancing_time_s", "energy_dissipated_j")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Dataset:
     feature_names: tuple[str, ...]
     feature_labels: tuple[str, ...]

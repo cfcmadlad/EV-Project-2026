@@ -6,19 +6,21 @@ from time import perf_counter
 import numpy as np
 
 from src.balancing import BalanceResult, simulate, tail_slowdown_ratio
+from src.checks import physics_checks
 from src.config import (
     CONFIG,
     HZ_PER_KHZ,
     MF_PER_FARAD,
     PERCENT,
     RESULTS_DIR,
-    SECONDS_PER_HOUR,
     FloatArray,
     ProjectConfig,
     Technique,
 )
 from src.dataset import TARGET_NAMES, Dataset, generate_dataset
-from src.pack import PackBatch, sample_packs, tile_pack
+from src.experiments import baseline_pack, random_streams, run_baseline
+from src.pack import PackBatch, tile_pack
+from src.params import SECONDS_PER_HOUR
 from src.plots import (
     plot_importance,
     plot_parity,
@@ -35,22 +37,6 @@ TARGET_AXES = (
 Row = dict[str, str | float]
 
 
-def run_baseline(
-    pack: PackBatch, config: ProjectConfig
-) -> dict[Technique, BalanceResult]:
-    return {
-        technique: simulate(
-            technique,
-            pack,
-            np.array([config.technique(technique).component.mid]),
-            np.array([config.technique(technique).frequency_hz.mid]),
-            config,
-            trace=True,
-        )
-        for technique in Technique
-    }
-
-
 def baseline_table(results: dict[Technique, BalanceResult]) -> list[Row]:
     return [
         {
@@ -64,17 +50,13 @@ def baseline_table(results: dict[Technique, BalanceResult]) -> list[Row]:
     ]
 
 
-def run_sweeps(
-    pack: PackBatch, config: ProjectConfig
-) -> dict[str, tuple[FloatArray, FloatArray]]:
+def run_sweeps(pack: PackBatch, config: ProjectConfig) -> dict[str, tuple[FloatArray, FloatArray]]:
     n = config.sweep.n_points
     bleed = config.passive.component
     capacitor = config.flying_capacitor
     r_bleed = np.linspace(bleed.low, bleed.high, n)
     frequency = np.linspace(capacitor.frequency_hz.low, capacitor.frequency_hz.high, n)
-    passive = simulate(
-        Technique.PASSIVE, tile_pack(pack, n), r_bleed, np.zeros(n), config
-    )
+    passive = simulate(Technique.PASSIVE, tile_pack(pack, n), r_bleed, np.zeros(n), config)
     flying = simulate(
         Technique.FLYING_CAPACITOR,
         tile_pack(pack, n),
@@ -106,8 +88,7 @@ def sanity_checks(
             and np.all(times >= config.sanity.min_balancing_time_s)
         ),
         "passive_dissipates_most": bool(np.argmax(energy) == Technique.PASSIVE),
-        "capacitor_slows_near_end": capacitor_slowdown
-        >= config.sanity.min_capacitor_slowdown
+        "capacitor_slows_near_end": capacitor_slowdown >= config.sanity.min_capacitor_slowdown
         and capacitor_slowdown > slowdown[Technique.PASSIVE.key],
         "tail_to_head_time_ratio": slowdown,
     }
@@ -119,6 +100,7 @@ def save_figures(
     dataset: Dataset,
     report: PredictorReport,
     config: ProjectConfig,
+    results_dir: Path,
 ) -> None:
     style = config.plot
     spread = f"{config.pack.soc_spread_max * PERCENT:.0f}% initial SOC spread"
@@ -127,13 +109,13 @@ def save_figures(
             result,
             technique,
             config.sim.soc_tolerance,
-            RESULTS_DIR / f"soc_{technique.key}",
+            results_dir / f"soc_{technique.key}",
             style,
         )
     plot_spread_comparison(
         baseline,
         config.sim.soc_tolerance,
-        RESULTS_DIR / "soc_spread_comparison",
+        results_dir / "soc_spread_comparison",
         style,
     )
     r_bleed, passive_time = sweeps["passive_r_bleed_ohm"]
@@ -143,7 +125,7 @@ def save_figures(
         "Bleed resistance R_b (Ω)",
         f"Passive shunt: balancing time vs bleed resistance\n({spread})",
         style.technique_colors[Technique.PASSIVE],
-        RESULTS_DIR / "sweep_passive_r_bleed",
+        results_dir / "sweep_passive_r_bleed",
         style,
     )
     frequency, capacitor_time = sweeps["flying_capacitor_frequency_hz"]
@@ -155,7 +137,7 @@ def save_figures(
         f"(C = {config.flying_capacitor.component.mid * MF_PER_FARAD:.1f} mF, "
         f"{spread})",
         style.technique_colors[Technique.FLYING_CAPACITOR],
-        RESULTS_DIR / "sweep_flying_capacitor_frequency",
+        results_dir / "sweep_flying_capacitor_frequency",
         style,
     )
     for j, (name, (quantity, unit, scale)) in enumerate(
@@ -169,7 +151,7 @@ def save_figures(
             unit,
             scale,
             report.metrics[name]["overall"]["r2"],
-            RESULTS_DIR / f"ml_parity_{name}",
+            results_dir / f"ml_parity_{name}",
             style,
         )
         plot_importance(
@@ -177,7 +159,7 @@ def save_figures(
             report.importance_mean[j],
             report.importance_std[j],
             quantity,
-            RESULTS_DIR / f"ml_importance_{name}",
+            results_dir / f"ml_importance_{name}",
             style,
         )
 
@@ -244,13 +226,11 @@ def summary_lines(
         for row in table
     ]
     lines.append(
-        "Sanity: "
-        + ", ".join(f"{k}={v}" for k, v in sanity.items() if isinstance(v, bool))
+        "Sanity: " + ", ".join(f"{k}={v}" for k, v in sanity.items() if isinstance(v, bool))
     )
     lines.append(f"ML on {n_runs} simulated runs (test R2 / MAE)")
     lines += [
-        f"  {name:<20} R2 {scores['overall']['r2']:.4f}  "
-        f"MAE {scores['overall']['mae']:.2f}"
+        f"  {name:<20} R2 {scores['overall']['r2']:.4f}  MAE {scores['overall']['mae']:.2f}"
         for name, scores in report.metrics.items()
     ]
     lines.append(f"Speedup per pack: {speedup:,.0f}x")
@@ -258,36 +238,34 @@ def summary_lines(
     return lines
 
 
-def main() -> None:
+def run(config: ProjectConfig, results_dir: Path) -> list[str]:
     start = perf_counter()
-    config = CONFIG
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    baseline_rng, dataset_rng = np.random.default_rng(config.seed).spawn(2)
+    results_dir.mkdir(parents=True, exist_ok=True)
+    streams = random_streams(config.seed)
 
-    pack = sample_packs(
-        1,
-        baseline_rng,
-        config.cell,
-        config.pack,
-        np.array([config.pack.soc_spread_max]),
-    )
+    pack = baseline_pack(config)
     baseline = run_baseline(pack, config)
     table = baseline_table(baseline)
     sanity = sanity_checks(baseline, config)
     sweeps = run_sweeps(pack, config)
 
     generation_start = perf_counter()
-    dataset = generate_dataset(config, dataset_rng)
+    dataset = generate_dataset(config, streams["dataset"])
     n_runs = dataset.features.shape[0]
     simulation_time = (perf_counter() - generation_start) / n_runs
-    report = train_and_evaluate(dataset, config.model, config.seed)
+    report = train_and_evaluate(dataset, config.ml, config.seed)
     speedup = simulation_time / report.prediction_time_per_pack_s
 
-    write_baseline_csv(table, RESULTS_DIR / "baseline_table.csv")
-    write_dataset_csv(dataset, RESULTS_DIR / "dataset.csv")
-    save_figures(baseline, sweeps, dataset, report, config)
+    checks_start = perf_counter()
+    checks = physics_checks(config, streams["checks"])
+    checks_time = perf_counter() - checks_start
+
+    write_baseline_csv(table, results_dir / "baseline_table.csv")
+    write_dataset_csv(dataset, results_dir / "dataset.csv")
+    save_figures(baseline, sweeps, dataset, report, config, results_dir)
     metrics = {
         "seed": config.seed,
+        "parameter_set": config.params.name,
         "baseline": table,
         "sanity_checks": sanity,
         "sweeps": sweep_summary(sweeps),
@@ -296,16 +274,31 @@ def main() -> None:
             "unbalanced_runs": int(n_runs - dataset.balanced.sum()),
         },
         "ml": report.metrics,
+        "speedup": {"status": "moved", "location": "timing.json"},
+        "physics_checks": checks,
+    }
+    write_json(metrics, results_dir / "metrics.json")
+    runtime = perf_counter() - start
+    timing = {
         "speedup": {
             "simulation_time_per_pack_s": simulation_time,
             "prediction_time_per_pack_s": report.prediction_time_per_pack_s,
             "speedup": speedup,
         },
+        "physics_checks_s": checks_time,
+        "run_all_s": runtime,
     }
-    with (RESULTS_DIR / "metrics.json").open("w") as handle:
-        json.dump(metrics, handle, indent=2)
-    runtime = perf_counter() - start
-    print("\n".join(summary_lines(table, sanity, report, speedup, n_runs, runtime)))
+    write_json(timing, results_dir / "timing.json")
+    return summary_lines(table, sanity, report, speedup, n_runs, runtime)
+
+
+def write_json(payload: dict[str, object], path: Path) -> None:
+    with path.open("w") as handle:
+        json.dump(payload, handle, indent=2)
+
+
+def main() -> None:
+    print("\n".join(run(CONFIG, RESULTS_DIR)))
 
 
 if __name__ == "__main__":

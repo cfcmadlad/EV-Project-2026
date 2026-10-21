@@ -1,18 +1,33 @@
 from dataclasses import dataclass
 from enum import IntEnum
 from pathlib import Path
-from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
 
-FloatArray: TypeAlias = NDArray[np.float64]
-IntArray: TypeAlias = NDArray[np.int64]
-BoolArray: TypeAlias = NDArray[np.bool_]
+from src.params import (
+    ASSUMED,
+    BuckBoostSpec,
+    CellParams,
+    CheckSpec,
+    DatasetSpec,
+    FlyingCapSpec,
+    MLSpec,
+    PackSpec,
+    ParameterSet,
+    PassiveSpec,
+    SanitySpec,
+    SimSpec,
+    SweepSpec,
+    TechniqueSpec,
+)
+
+type FloatArray = NDArray[np.float64]
+type IntArray = NDArray[np.int64]
+type BoolArray = NDArray[np.bool_]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_DIR = PROJECT_ROOT / "results"
-SECONDS_PER_HOUR = 3600.0
 PERCENT = 100.0
 HZ_PER_KHZ = 1e3
 MF_PER_FARAD = 1e3
@@ -35,106 +50,7 @@ class Technique(IntEnum):
         return TECHNIQUE_LABELS[self]
 
 
-@dataclass(frozen=True)
-class ComponentRange:
-    low: float
-    high: float
-
-    @property
-    def mid(self) -> float:
-        return 0.5 * (self.low + self.high)
-
-
-@dataclass(frozen=True)
-class CellParams:
-    capacity_ah: float = 3.0
-    r0_ohm: float = 0.030
-    r1_ohm: float = 0.015
-    c1_farad: float = 2000.0
-    ocv_soc: tuple[float, ...] = (
-        0.00, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50,
-        0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.00,
-    )  # fmt: skip
-    ocv_volt: tuple[float, ...] = (
-        3.00, 3.35, 3.45, 3.51, 3.55, 3.58, 3.61, 3.63, 3.65, 3.68, 3.71,
-        3.74, 3.78, 3.82, 3.87, 3.92, 3.97, 4.02, 4.07, 4.13, 4.20,
-    )  # fmt: skip
-    ocv_grid_points: int = 2001
-
-
-@dataclass(frozen=True)
-class PackConfig:
-    n_cells: int = 4
-    capacity_tolerance: float = 0.05
-    r0_tolerance: float = 0.10
-    soc_center: float = 0.50
-    soc_spread_min: float = 0.02
-    soc_spread_max: float = 0.10
-
-
-@dataclass(frozen=True)
-class SimConfig:
-    dt_s: float = 1.0
-    t_max_s: float = 48.0 * SECONDS_PER_HOUR
-    soc_tolerance: float = 0.01
-    link_soc_deadband: float = 0.002
-    trace_interval_s: float = 10.0
-
-
-@dataclass(frozen=True)
-class PassiveConfig:
-    component: ComponentRange = ComponentRange(20.0, 100.0)
-    frequency_hz: ComponentRange = ComponentRange(0.0, 0.0)
-
-
-@dataclass(frozen=True)
-class BuckBoostConfig:
-    component: ComponentRange = ComponentRange(10e-6, 100e-6)
-    frequency_hz: ComponentRange = ComponentRange(10e3, 50e3)
-    duty: float = 0.4
-    r_inductor_ohm: float = 0.08
-    r_ds_on_ohm: float = 0.02
-
-
-@dataclass(frozen=True)
-class FlyingCapacitorConfig:
-    component: ComponentRange = ComponentRange(1e-3, 10e-3)
-    frequency_hz: ComponentRange = ComponentRange(1e3, 10e3)
-    r_ds_on_ohm: float = 0.01
-    esr_ohm: float = 0.005
-
-
-TechniqueConfig: TypeAlias = PassiveConfig | BuckBoostConfig | FlyingCapacitorConfig
-
-
-@dataclass(frozen=True)
-class SweepConfig:
-    n_points: int = 17
-
-
-@dataclass(frozen=True)
-class DatasetConfig:
-    runs_per_technique: int = 2000
-
-
-@dataclass(frozen=True)
-class ModelConfig:
-    test_fraction: float = 0.2
-    max_iter: int = 500
-    learning_rate: float = 0.05
-    max_leaf_nodes: int = 31
-    permutation_repeats: int = 10
-    timing_repeats: int = 20
-
-
-@dataclass(frozen=True)
-class SanityConfig:
-    min_balancing_time_s: float = 60.0
-    slowdown_window: float = 0.02
-    min_capacitor_slowdown: float = 3.0
-
-
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PlotConfig:
     dpi: int = 300
     figsize: tuple[float, float] = (8.0, 5.0)
@@ -164,22 +80,39 @@ class PlotConfig:
     cell_colors: tuple[str, ...] = ("#1f3a5f", "#8e44ad", "#e67e22", "#b7950b")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ProjectConfig:
     seed: int = 2026
-    cell: CellParams = CellParams()
-    pack: PackConfig = PackConfig()
-    sim: SimConfig = SimConfig()
-    passive: PassiveConfig = PassiveConfig()
-    buck_boost: BuckBoostConfig = BuckBoostConfig()
-    flying_capacitor: FlyingCapacitorConfig = FlyingCapacitorConfig()
-    sweep: SweepConfig = SweepConfig()
-    dataset: DatasetConfig = DatasetConfig()
-    model: ModelConfig = ModelConfig()
-    sanity: SanityConfig = SanityConfig()
+    params: ParameterSet = ASSUMED
+    sim: SimSpec = SimSpec()
+    sweep: SweepSpec = SweepSpec()
+    dataset: DatasetSpec = DatasetSpec()
+    ml: MLSpec = MLSpec()
+    sanity: SanitySpec = SanitySpec()
+    checks: CheckSpec = CheckSpec()
     plot: PlotConfig = PlotConfig()
 
-    def technique(self, technique: Technique) -> TechniqueConfig:
+    @property
+    def cell(self) -> CellParams:
+        return self.params.cell
+
+    @property
+    def pack(self) -> PackSpec:
+        return self.params.pack
+
+    @property
+    def passive(self) -> PassiveSpec:
+        return self.params.passive
+
+    @property
+    def buck_boost(self) -> BuckBoostSpec:
+        return self.params.buck_boost
+
+    @property
+    def flying_capacitor(self) -> FlyingCapSpec:
+        return self.params.flying_capacitor
+
+    def technique(self, technique: Technique) -> TechniqueSpec:
         return (self.passive, self.buck_boost, self.flying_capacitor)[technique]
 
 
