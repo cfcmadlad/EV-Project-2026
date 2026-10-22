@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import least_squares
 
-from src.config import FloatArray, IntArray
+from src.config import MV_PER_V, FloatArray, IntArray
 from src.hg2 import Recording, charge_throughput_ah, segments
 from src.params import IdentificationSpec
 
@@ -16,8 +16,6 @@ TWO_RC_STARTS = (
     (0.01, 3.0, 0.01, 200.0),
     (0.01, 0.5, 0.01, 30.0),
 )
-MV_PER_V = 1e3
-PERCENT = 100.0
 
 
 @dataclass(frozen=True, slots=True)

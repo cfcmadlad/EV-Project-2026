@@ -9,7 +9,6 @@ from src.plots import figure_grid
 from src.spice import RawTrace, SpiceCase, measure_start_s
 
 WINDOW_PERIODS = 3
-MILLIAMP_PER_AMP = 1e3
 WAVEFORM_WIDTH_IN = 11.0
 WAVEFORM_ROW_HEIGHT_IN = 2.6
 PARITY_FIGSIZE = (7.5, 6.5)

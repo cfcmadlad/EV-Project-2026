@@ -6,11 +6,11 @@ from pathlib import Path
 import numpy as np
 
 from src.config import FloatArray, IntArray
+from src.params import SECONDS_PER_HOUR
 
 HEADER_START = "Time Stamp,"
 COLUMN_COUNT = 14
 SECONDS_PER_MINUTE = 60.0
-SECONDS_PER_HOUR = 3600.0
 DESCRIPTOR_PATTERN = re.compile(r"^(?P<test>\d+)_(?P<kind>[A-Za-z0-9]+(?:_[A-Za-z0-9]+)?)\.csv$")
 
 

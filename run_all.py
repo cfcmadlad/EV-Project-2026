@@ -65,13 +65,18 @@ def baseline_table(results: dict[Technique, BalanceResult]) -> list[Row]:
     ]
 
 
-def run_sweeps(pack: PackBatch, config: ProjectConfig) -> dict[str, tuple[FloatArray, FloatArray]]:
+def passive_sweep(pack: PackBatch, config: ProjectConfig) -> tuple[FloatArray, FloatArray]:
     n = config.sweep.n_points
     bleed = config.passive.component
-    capacitor = config.flying_capacitor
     r_bleed = np.linspace(bleed.low, bleed.high, n)
-    frequency = np.linspace(capacitor.frequency_hz.low, capacitor.frequency_hz.high, n)
     passive = simulate(Technique.PASSIVE, tile_pack(pack, n), r_bleed, np.zeros(n), config)
+    return r_bleed, passive.balancing_time_s
+
+
+def flying_sweep(pack: PackBatch, config: ProjectConfig) -> tuple[FloatArray, FloatArray]:
+    n = config.sweep.n_points
+    capacitor = config.flying_capacitor
+    frequency = np.linspace(capacitor.frequency_hz.low, capacitor.frequency_hz.high, n)
     flying = simulate(
         Technique.FLYING_CAPACITOR,
         tile_pack(pack, n),
@@ -79,9 +84,13 @@ def run_sweeps(pack: PackBatch, config: ProjectConfig) -> dict[str, tuple[FloatA
         frequency,
         config,
     )
+    return frequency, flying.balancing_time_s
+
+
+def run_sweeps(pack: PackBatch, config: ProjectConfig) -> dict[str, tuple[FloatArray, FloatArray]]:
     return {
-        "passive_r_bleed_ohm": (r_bleed, passive.balancing_time_s),
-        "flying_capacitor_frequency_hz": (frequency, flying.balancing_time_s),
+        "passive_r_bleed_ohm": passive_sweep(pack, config),
+        "flying_capacitor_frequency_hz": flying_sweep(pack, config),
     }
 
 
@@ -299,18 +308,33 @@ def with_flying_model(config: ProjectConfig, model: FlyingCapModel) -> ProjectCo
     return replace(config, params=replace(config.params, flying_capacitor=spec))
 
 
-def flying_model_comparison(pack: PackBatch, config: ProjectConfig) -> dict[str, object]:
+def flying_model_comparison(
+    pack: PackBatch,
+    config: ProjectConfig,
+    active_result: BalanceResult,
+    active_sweep: tuple[FloatArray, FloatArray],
+) -> dict[str, object]:
     baseline: dict[str, dict[str, float]] = {}
     sweep: dict[str, list[float]] = {}
     for model in FlyingCapModel:
-        variant = with_flying_model(config, model)
-        result = run_baseline(pack, variant, trace=False)[Technique.FLYING_CAPACITOR]
+        if model is config.flying_capacitor.model:
+            result, (values, times) = active_result, active_sweep
+        else:
+            variant = with_flying_model(config, model)
+            hardware = variant.flying_capacitor
+            result = simulate(
+                Technique.FLYING_CAPACITOR,
+                pack,
+                np.array([hardware.component.mid]),
+                np.array([hardware.frequency_hz.mid]),
+                variant,
+            )
+            values, times = flying_sweep(pack, variant)
         baseline[model.value] = {
             "balancing_time_s": float(result.balancing_time_s[0]),
             "energy_dissipated_j": float(result.energy_dissipated_j[0]),
             "efficiency_pct": float(result.efficiency[0] * PERCENT),
         }
-        values, times = run_sweeps(pack, variant)["flying_capacitor_frequency_hz"]
         sweep["frequency_hz"] = values.tolist()
         sweep[f"balancing_time_s_{model.value}"] = times.tolist()
     old, new = baseline[FlyingCapModel.MIDSEM.value], baseline[FlyingCapModel.TWO_PHASE.value]
@@ -412,10 +436,9 @@ def _run_stages(
     sanity = sanity_checks(baseline, config)
     sweeps = run_sweeps(pack, config)
 
-    generation_start = perf_counter()
     dataset = generate_dataset(config, streams["dataset"])
     n_runs = dataset.features.shape[0]
-    simulation_time = (perf_counter() - generation_start) / n_runs
+    simulation_time = dataset.simulation_s / n_runs
     report = train_and_evaluate(dataset, config.ml, config.seed)
     speedup = simulation_time / report.prediction_time_per_pack_s
 
@@ -450,7 +473,12 @@ def _run_stages(
         "cell_validation": valid_block,
         "baseline_assumed_vs_fitted": comparison_block,
         "converter_check": converter_block,
-        "flying_capacitor_model_comparison": flying_model_comparison(pack, config),
+        "flying_capacitor_model_comparison": flying_model_comparison(
+            pack,
+            config,
+            baseline[Technique.FLYING_CAPACITOR],
+            sweeps["flying_capacitor_frequency_hz"],
+        ),
         "ml_eval": ml_eval_block,
     }
     write_json(metrics, results_dir / "metrics.json")

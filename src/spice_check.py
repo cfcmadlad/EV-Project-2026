@@ -6,7 +6,7 @@ import numpy as np
 
 from src.balancing import buck_boost_currents, flying_capacitor_currents
 from src.cell import build_ocv_curve, open_circuit_voltage
-from src.config import FloatArray, ProjectConfig
+from src.config import PERCENT, FloatArray, ProjectConfig
 from src.flow import StepFlow
 from src.ledger import (
     buck_boost_element_loss_w,
@@ -15,7 +15,7 @@ from src.ledger import (
 )
 from src.params import ConverterCheckSpec, FlyingCapModel
 from src.spice import LinkCells, RawTrace, SpiceCase
-from src.switched_cap import two_phase_resistance_ohm
+from src.switched_cap import link_resistances_ohm, two_phase_resistance_ohm
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
 CACHE_PATH = PROCESSED_DIR / "spice_measurements.json"
@@ -23,8 +23,6 @@ DATASHEET_PATH = PROCESSED_DIR / "datasheet_values.json"
 NOT_RUN = {"status": "not_run"}
 STALE = {"status": "stale_cache"}
 PRESENT_FRACTION_FLOOR = 1e-3
-MA_PER_A = 1e3
-PERCENT = 100.0
 DIRECTION_SOC = (1.0, 0.0)
 BASELINE_FLYING_CASE = "flying_capacitor_s0_p1"
 POINT_KEYS = (
@@ -167,8 +165,9 @@ def averaged_link(
         sink_duty = _buck_boost_sink_duty(flow, ocv, r0, config)
     else:
         hardware = replace(config.flying_capacitor, model=model)
-        flow = flying_capacitor_currents(soc, ocv, ocv, r0, parameter, hardware, deadband)
-        element = flying_capacitor_element_loss_w(flow, ocv, r0, parameter, hardware)
+        resistance = link_resistances_ohm(parameter, r0, hardware)
+        flow = flying_capacitor_currents(soc, ocv, ocv, r0, resistance, deadband)
+        element = flying_capacitor_element_loss_w(flow, ocv, r0, resistance)
         sink_duty = 0.5
     return _link_summary(flow, element, r0, sink_duty)
 

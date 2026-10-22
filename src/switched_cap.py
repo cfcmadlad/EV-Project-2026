@@ -28,8 +28,21 @@ def link_resistance_ohm(
 
 
 def element_resistance_ohm(
-    inverse_fc: FloatArray, r0: FloatArray, hardware: FlyingCapSpec
+    inverse_fc: FloatArray,
+    r0: FloatArray,
+    hardware: FlyingCapSpec,
+    total: FloatArray | None = None,
 ) -> FloatArray:
     if hardware.model is FlyingCapModel.MIDSEM:
         return inverse_fc[:, None] + 2.0 * hardware.r_ds_on_ohm + hardware.esr_ohm
-    return link_resistance_ohm(inverse_fc, r0, hardware) - r0[:, :-1] - r0[:, 1:]
+    if total is None:
+        total = link_resistance_ohm(inverse_fc, r0, hardware)
+    return total - r0[:, :-1] - r0[:, 1:]
+
+
+def link_resistances_ohm(
+    inverse_fc: FloatArray, r0: FloatArray, hardware: FlyingCapSpec
+) -> FloatArray:
+    total = link_resistance_ohm(inverse_fc, r0, hardware)
+    element = np.broadcast_to(element_resistance_ohm(inverse_fc, r0, hardware, total), total.shape)
+    return np.stack((total, element), axis=1)

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from src.cell import OcvCurve, build_ocv_curve
-from src.config import FloatArray
+from src.config import MV_PER_V, FloatArray
 from src.hg2 import DRIVE_CYCLES, Recording, TestKind, discharge_sign
 from src.identify import (
     CapacityReport,
@@ -32,7 +32,6 @@ from src.identify import (
 from src.params import ASSUMED, CellParams, IdentificationSpec, OCVTable
 from src.validate import Branch, Replay, ReplayMetrics, replay_cell, replay_cycle, replay_metrics
 
-MV_PER_V = 1e3
 MODEL_1RC = "1rc"
 MODEL_2RC = "2rc"
 SLOPE_HALF_WIDTH = 0.01

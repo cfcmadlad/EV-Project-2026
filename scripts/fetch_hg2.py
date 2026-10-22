@@ -42,7 +42,6 @@ TIMEOUT_S = 120
 ATTEMPTS = 4
 RETRY_DELAY_S = 5.0
 USER_AGENT = "curl/8.0"
-CHUNK_BYTES = 1 << 20
 
 
 @dataclass(frozen=True, slots=True)

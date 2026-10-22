@@ -2,17 +2,21 @@ from dataclasses import dataclass
 from time import perf_counter
 
 import numpy as np
+from joblib import parallel_config
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
+from threadpoolctl import threadpool_limits
 
 from src.config import FloatArray, IntArray, Technique
 from src.dataset import TARGET_NAMES, Dataset
 from src.params import MLSpec
 
 Scores = dict[str, float]
+FIT_THREADS = 4
+IMPORTANCE_THREADS = 8
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,26 +44,29 @@ def train_and_evaluate(dataset: Dataset, config: MLSpec, seed: int) -> Predictor
     x_train, x_test = dataset.features[train], dataset.features[test]
     y_test = dataset.targets[test]
     technique_test = dataset.technique[test]
-    models = [
-        _build_model(config, seed).fit(x_train, dataset.targets[train, j])
-        for j in range(len(TARGET_NAMES))
-    ]
+    with threadpool_limits(limits=FIT_THREADS):
+        models = [
+            _build_model(config, seed).fit(x_train, dataset.targets[train, j])
+            for j in range(len(TARGET_NAMES))
+        ]
 
     y_pred = np.column_stack([model.predict(x_test) for model in models])
     prediction_time = (
         min(_prediction_time(models, x_test) for _ in range(config.timing_repeats)) / test.size
     )
 
-    importances = [
-        permutation_importance(
-            model,
-            x_test,
-            y_test[:, j],
-            n_repeats=config.permutation_repeats,
-            random_state=seed,
-        )
-        for j, model in enumerate(models)
-    ]
+    with parallel_config(backend="threading", n_jobs=IMPORTANCE_THREADS):
+        importances = [
+            permutation_importance(
+                model,
+                x_test,
+                y_test[:, j],
+                n_repeats=config.permutation_repeats,
+                random_state=seed,
+                n_jobs=IMPORTANCE_THREADS,
+            )
+            for j, model in enumerate(models)
+        ]
     return PredictorReport(
         metrics={
             name: _target_metrics(y_test[:, j], y_pred[:, j], technique_test)

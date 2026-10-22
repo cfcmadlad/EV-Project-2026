@@ -1,8 +1,9 @@
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from pathlib import Path
 
 from run_all import run
-from src.config import CONFIG
+from src.config import CONFIG, PlotConfig
 from src.params import (
     CheckSpec,
     DatasetSpec,
@@ -19,6 +20,7 @@ SMALL_CONFIG = replace(
     ml=MLSpec(max_iter=20, permutation_repeats=2, timing_repeats=1),
     checks=CheckSpec(packs_per_technique=6, dt_scaling_packs=2, dt_scaling_steps_s=(1.0, 0.5)),
     identification=IdentificationSpec(bootstrap_resamples=8),
+    plot=PlotConfig(dpi=40),
     ml_eval=MLEvalSpec(
         n_folds=3,
         conformal_repeats=2,
@@ -34,8 +36,9 @@ COMPARED_FILES = ("metrics.json", "baseline_table.csv", "dataset.csv")
 
 def test_two_runs_give_identical_metrics(tmp_path: Path) -> None:
     first, second = tmp_path / "first", tmp_path / "second"
-    run(SMALL_CONFIG, first)
-    run(SMALL_CONFIG, second)
+    with ProcessPoolExecutor(max_workers=2) as pool:
+        for future in [pool.submit(run, SMALL_CONFIG, folder) for folder in (first, second)]:
+            future.result()
     for name in COMPARED_FILES:
         assert (first / name).read_bytes() == (second / name).read_bytes()
     metrics = (first / "metrics.json").read_text()

@@ -1,6 +1,7 @@
 from dataclasses import replace
 
 import numpy as np
+from joblib import Parallel, delayed
 
 from src.balancing import BalanceResult, simulate
 from src.baselines import passive_balancing_time_s
@@ -82,30 +83,27 @@ def dt_scaling(
     return scaling
 
 
-def energy_ledger_check(
-    config: ProjectConfig, rng: np.random.Generator
-) -> dict[str, dict[str, object]]:
+def technique_ledger(
+    technique: Technique,
+    case: tuple[PackBatch, FloatArray, FloatArray],
+    config: ProjectConfig,
+) -> dict[str, object]:
     checks = config.checks
-    summary: dict[str, dict[str, object]] = {}
-    for technique in Technique:
-        packs, component, frequency = random_case(
-            technique, checks.packs_per_technique, config, rng
-        )
-        gaps = ledger_discrepancy(simulate(technique, packs, component, frequency, config))
-        worst = float(gaps["net_vs_removed"].max())
-        summary[technique.key] = {
-            "n_packs": checks.packs_per_technique,
-            "max_net_vs_removed": worst,
-            "median_net_vs_removed": float(np.median(gaps["net_vs_removed"])),
-            "max_net_vs_dissipated": float(gaps["net_vs_dissipated"].max()),
-            "median_net_vs_dissipated": float(np.median(gaps["net_vs_dissipated"])),
-            "max_per_link_vs_removed": float(gaps["per_link_vs_removed"].max()),
-            "max_per_link_vs_dissipated": float(gaps["per_link_vs_dissipated"].max()),
-            "threshold_vs_removed": checks.ledger_tolerance,
-            "pass": worst <= checks.ledger_tolerance,
-            "dt_scaling": dt_scaling(technique, packs, component, frequency, config),
-        }
-    return summary
+    packs, component, frequency = case
+    gaps = ledger_discrepancy(simulate(technique, packs, component, frequency, config))
+    worst = float(gaps["net_vs_removed"].max())
+    return {
+        "n_packs": checks.packs_per_technique,
+        "max_net_vs_removed": worst,
+        "median_net_vs_removed": float(np.median(gaps["net_vs_removed"])),
+        "max_net_vs_dissipated": float(gaps["net_vs_dissipated"].max()),
+        "median_net_vs_dissipated": float(np.median(gaps["net_vs_dissipated"])),
+        "max_per_link_vs_removed": float(gaps["per_link_vs_removed"].max()),
+        "max_per_link_vs_dissipated": float(gaps["per_link_vs_dissipated"].max()),
+        "threshold_vs_removed": checks.ledger_tolerance,
+        "pass": worst <= checks.ledger_tolerance,
+        "dt_scaling": dt_scaling(technique, packs, component, frequency, config),
+    }
 
 
 def baseline_ledger(results: dict[Technique, BalanceResult]) -> dict[str, ScalarMap]:
@@ -122,6 +120,10 @@ def baseline_ledger(results: dict[Technique, BalanceResult]) -> dict[str, Scalar
         }
         for technique, result in results.items()
     }
+
+
+def baseline_ledger_check(pack: PackBatch, config: ProjectConfig) -> dict[str, ScalarMap]:
+    return baseline_ledger(run_baseline(pack, config, trace=False))
 
 
 def passive_closed_form_check(
@@ -200,10 +202,30 @@ def midsem_regression_check(config: ProjectConfig) -> dict[str, object]:
 def physics_checks(config: ProjectConfig, rng: np.random.Generator) -> dict[str, object]:
     ledger_rng, closed_form_rng, charge_rng = rng.spawn(3)
     pack = baseline_pack(config)
+    cases = [
+        random_case(technique, config.checks.packs_per_technique, config, ledger_rng)
+        for technique in Technique
+    ]
+    results = Parallel(n_jobs=len(Technique) + 4)(
+        [
+            *(
+                delayed(technique_ledger)(t, case, config)
+                for t, case in zip(Technique, cases, strict=True)
+            ),
+            delayed(baseline_ledger_check)(pack, config),
+            delayed(passive_closed_form_check)(config, closed_form_rng, pack),
+            delayed(flying_capacitor_charge_check)(config, charge_rng),
+            delayed(midsem_regression_check)(config),
+        ]
+    )
+    ledgers, baseline, closed_form, charge, regression = (
+        results[: len(Technique)],
+        *results[len(Technique) :],
+    )
     return {
-        "energy_ledger": energy_ledger_check(config, ledger_rng),
-        "baseline_ledger": baseline_ledger(run_baseline(pack, config, trace=False)),
-        "passive_closed_form": passive_closed_form_check(config, closed_form_rng, pack),
-        "flying_capacitor_charge": flying_capacitor_charge_check(config, charge_rng),
-        "midsem_regression": midsem_regression_check(config),
+        "energy_ledger": {t.key: ledger for t, ledger in zip(Technique, ledgers, strict=True)},
+        "baseline_ledger": baseline,
+        "passive_closed_form": closed_form,
+        "flying_capacitor_charge": charge,
+        "midsem_regression": regression,
     }

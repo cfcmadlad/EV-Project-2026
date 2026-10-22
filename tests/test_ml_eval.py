@@ -13,7 +13,9 @@ from src.ml_eval import (
     build_eval_data,
     column_indices,
     conformal,
+    conformal_split,
     cross_validate,
+    fit_for_split,
     linear_predict,
     mean_std,
     score,
@@ -86,7 +88,9 @@ def test_cross_validation_structure_and_folds_are_stratified(data) -> None:
 def test_conformal_intervals_cover_near_the_nominal_level(data) -> None:
     columns = column_indices(data.feature_names, drop_soc=False)
     best = {"balancing_time_s": "physics", "energy_dissipated_j": "linear"}
-    block, fitted = conformal(data, SMALL, SMALL.seed, columns, best)
+    split = conformal_split(data, SMALL, SMALL.seed)
+    fitted = fit_for_split(data, split.fit_rows, SMALL.ml, SMALL.seed, columns)
+    block = conformal(data, SMALL, split, fitted, best)
     assert block["balancing_time_s"]["model"] == "physics"
     for name in best:
         for technique in Technique:

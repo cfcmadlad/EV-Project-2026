@@ -1,5 +1,7 @@
 import math
+import os
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from time import perf_counter
 
@@ -13,7 +15,7 @@ from threadpoolctl import threadpool_limits
 
 from src.balancing import simulate
 from src.baselines import physics_prediction
-from src.config import FloatArray, IntArray, ProjectConfig, Technique
+from src.config import PERCENT, FloatArray, IntArray, ProjectConfig, Technique
 from src.dataset import TARGET_NAMES, Dataset
 from src.experiments import baseline_pack
 from src.pack import PackBatch
@@ -24,10 +26,10 @@ MODELS = ("physics", "linear", "hgb", "hybrid")
 LEARNED = ("hgb", "hybrid")
 GROUPS = ("overall", *(t.key for t in Technique))
 METRICS = ("r2", "mae", "mdape")
-FIT_THREADS = 2
-N_JOBS = 8
+FIT_THREADS = 1
+N_JOBS = max(1, os.cpu_count() or 1)
+THREAD_STAGES = 5
 FLOOR = 1e-9
-PERCENT = 100.0
 COMPARISONS = (
     ("hgb", "physics"),
     ("hybrid", "hgb"),
@@ -381,25 +383,45 @@ def plateau_statistics(
     return out
 
 
-def conformal(
-    data: EvalData,
-    config: ProjectConfig,
-    seed: int,
-    columns: tuple[int, ...],
-    best: dict[str, str],
-) -> tuple[dict[str, object], dict[tuple[str, int], FittedModel]]:
+@dataclass(frozen=True, slots=True)
+class ConformalSplit:
+    fit_rows: IntArray
+    calibration: IntArray
+    test: IntArray
+
+
+def conformal_split(data: EvalData, config: ProjectConfig, state: int) -> ConformalSplit:
     spec = config.ml_eval
-    everything = np.arange(data.n_rows)
     train, test = train_test_split(
-        everything, test_size=config.ml.test_fraction, random_state=seed, stratify=data.technique
+        np.arange(data.n_rows),
+        test_size=config.ml.test_fraction,
+        random_state=state,
+        stratify=data.technique,
     )
     fit_rows, calibration = train_test_split(
         train,
         train_size=spec.conformal_fit_fraction,
-        random_state=seed,
+        random_state=state,
         stratify=data.technique[train],
     )
-    fitted = fit_for_split(data, fit_rows, config.ml, seed, columns)
+    return ConformalSplit(fit_rows, calibration, test)
+
+
+def calibration_quantile(residual: FloatArray, level: float) -> float:
+    n = residual.size
+    rank = min(math.ceil((n + 1) * level), n)
+    return float(np.sort(residual)[rank - 1])
+
+
+def conformal(
+    data: EvalData,
+    config: ProjectConfig,
+    split: ConformalSplit,
+    fitted: dict[tuple[str, int], FittedModel],
+    best: dict[str, str],
+) -> dict[str, object]:
+    spec = config.ml_eval
+    fit_rows, calibration, test = split.fit_rows, split.calibration, split.test
     result: dict[str, object] = {
         "nominal": spec.conformal_level,
         "n_fit": int(fit_rows.size),
@@ -415,9 +437,7 @@ def conformal(
         for technique in Technique:
             in_cal = data.technique[calibration] == technique
             in_test = data.technique[test] == technique
-            n_cal = int(in_cal.sum())
-            rank = min(math.ceil((n_cal + 1) * spec.conformal_level), n_cal)
-            quantile = float(np.sort(residual[in_cal])[rank - 1])
+            quantile = calibration_quantile(residual[in_cal], spec.conformal_level)
             true = data.targets[test[in_test], target]
             lower, upper = (
                 pred_test[in_test] * math.exp(-quantile),
@@ -425,7 +445,7 @@ def conformal(
             )
             coverage = float(np.mean((true >= lower) & (true <= upper)))
             block["techniques"][technique.key] = {
-                "n_calibration": n_cal,
+                "n_calibration": int(in_cal.sum()),
                 "n_test": int(in_test.sum()),
                 "log_quantile": quantile,
                 "half_width_factor": math.exp(quantile),
@@ -435,52 +455,37 @@ def conformal(
             }
         block["pass"] = all(item["pass"] for item in block["techniques"].values())
         result[name] = block
-    return result, fitted
+    return result
 
 
 def conformal_repeats(
     data: EvalData, config: ProjectConfig, seed: int, columns: tuple[int, ...], best: dict[str, str]
 ) -> dict[str, object]:
     spec = config.ml_eval
-    plans = []
-    for repeat in range(spec.conformal_repeats):
-        state = seed + 1 + repeat
-        train, test = train_test_split(
-            np.arange(data.n_rows),
-            test_size=config.ml.test_fraction,
-            random_state=state,
-            stratify=data.technique,
-        )
-        fit_rows, calibration = train_test_split(
-            train,
-            train_size=spec.conformal_fit_fraction,
-            random_state=state,
-            stratify=data.technique[train],
-        )
-        plans.append((fit_rows, calibration, test))
+    plans = [
+        conformal_split(data, config, seed + 1 + repeat) for repeat in range(spec.conformal_repeats)
+    ]
     jobs = [
-        (best[name], target, fit_rows)
-        for fit_rows, _, _ in plans
+        (best[name], target, plan.fit_rows)
+        for plan in plans
         for target, name in enumerate(TARGET_NAMES)
         if best[name] in LEARNED
     ]
     models = iter(fit_many(jobs, data, config.ml, seed, columns))
     coverage = {name: {t.key: [] for t in Technique} for name in TARGET_NAMES}
-    for fit_rows, calibration, test in plans:
+    for plan in plans:
         for target, name in enumerate(TARGET_NAMES):
             kind = best[name]
             lookup = {(kind, target): next(models)} if kind in LEARNED else {}
-            pred_cal = predictions_for(kind, lookup, data, fit_rows, calibration, target)
-            pred_test = predictions_for(kind, lookup, data, fit_rows, test, target)
-            residual = np.abs(np.log(pred_cal) - np.log(data.targets[calibration, target]))
+            pred_cal = predictions_for(kind, lookup, data, plan.fit_rows, plan.calibration, target)
+            pred_test = predictions_for(kind, lookup, data, plan.fit_rows, plan.test, target)
+            residual = np.abs(np.log(pred_cal) - np.log(data.targets[plan.calibration, target]))
             for technique in Technique:
-                in_cal = data.technique[calibration] == technique
-                in_test = data.technique[test] == technique
-                n_cal = int(in_cal.sum())
-                rank = min(math.ceil((n_cal + 1) * spec.conformal_level), n_cal)
-                quantile = float(np.sort(residual[in_cal])[rank - 1])
+                in_cal = data.technique[plan.calibration] == technique
+                in_test = data.technique[plan.test] == technique
+                quantile = calibration_quantile(residual[in_cal], spec.conformal_level)
                 log_error = np.abs(
-                    np.log(pred_test[in_test]) - np.log(data.targets[test[in_test], target])
+                    np.log(pred_test[in_test]) - np.log(data.targets[plan.test[in_test], target])
                 )
                 coverage[name][technique.key].append(float(np.mean(log_error <= quantile)))
     result: dict[str, object] = {"n_repeats": spec.conformal_repeats}
@@ -498,46 +503,54 @@ def conformal_repeats(
     return result
 
 
-def feature_ablation(
-    data: EvalData,
-    config: ProjectConfig,
-    seed: int,
-    cv_summary: dict[str, object],
-    full_columns: tuple[int, ...],
+def ablation_fits(
+    data: EvalData, config: ProjectConfig, seed: int, full_columns: tuple[int, ...]
 ) -> dict[str, object]:
     reduced = column_indices(data.feature_names, drop_soc=True)
-    raw = cross_validate(data, config, seed, reduced, models=("hgb",))["per_fold"]["hgb"]
+    per_fold = cross_validate(data, config, seed, reduced, models=("hgb",))["per_fold"]["hgb"]
     train, test = train_test_split(
         np.arange(data.n_rows),
         test_size=config.ml.test_fraction,
         random_state=seed,
         stratify=data.technique,
     )
-    fitted_full = fit_many(
-        [("hgb", t, train) for t in range(len(TARGET_NAMES))], data, config.ml, seed, full_columns
-    )
-    fitted_reduced = fit_many(
-        [("hgb", t, train) for t in range(len(TARGET_NAMES))], data, config.ml, seed, reduced
-    )
+    jobs = [("hgb", t, train) for t in range(len(TARGET_NAMES))]
+    fitted = {
+        "full": fit_many(jobs, data, config.ml, seed, full_columns),
+        "reduced": fit_many(jobs, data, config.ml, seed, reduced),
+    }
+    holdout = {
+        name: {
+            label: score(
+                data.targets[test, target],
+                models[target].predict(data, test, target),
+                data.technique[test],
+            )
+            for label, models in fitted.items()
+        }
+        for target, name in enumerate(TARGET_NAMES)
+    }
+    return {"reduced_columns": reduced, "per_fold": per_fold, "holdout": holdout}
+
+
+def ablation_report(
+    fits: dict[str, object],
+    cv_summary: dict[str, object],
+    data: EvalData,
+    full_columns: tuple[int, ...],
+) -> dict[str, object]:
     result: dict[str, object] = {
         "dropped_features": [n for n in data.feature_names if n.startswith(SOC_FEATURE_PREFIX)],
         "n_features_full": len(full_columns),
-        "n_features_reduced": len(reduced),
+        "n_features_reduced": len(fits["reduced_columns"]),
     }
-    for target, name in enumerate(TARGET_NAMES):
+    for name in TARGET_NAMES:
         cv_full = cv_summary["scores"][name]["hgb"]
+        raw = fits["per_fold"][name]
         cv_reduced = {
-            group: {metric: mean_std(raw[name][group][metric]) for metric in METRICS}
-            for group in GROUPS
+            group: {metric: mean_std(raw[group][metric]) for metric in METRICS} for group in GROUPS
         }
-        hold = {
-            label: score(
-                data.targets[test, target],
-                model[target].predict(data, test, target),
-                data.technique[test],
-            )
-            for label, model in (("full", fitted_full), ("reduced", fitted_reduced))
-        }
+        hold = fits["holdout"][name]
         result[name] = {
             "cross_validation": {
                 "full": cv_full,
@@ -695,12 +708,22 @@ def evaluate(
 ) -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
     data = build_eval_data(dataset, config)
     columns = column_indices(data.feature_names, drop_soc=False)
-    cv = summarise_cv(cross_validate(data, config, seed, columns))
-    best = best_models(cv)
-    intervals, fitted = conformal(data, config, seed, columns, best)
-    intervals["repeated_splits"] = conformal_repeats(data, config, seed, columns, best)
-    ranged = out_of_range(data, config, seed, columns)
-    ablation = feature_ablation(data, config, seed, cv, columns)
+    split = conformal_split(data, config, seed)
+    with ThreadPoolExecutor(max_workers=THREAD_STAGES) as pool:
+        cv_job = pool.submit(cross_validate, data, config, seed, columns)
+        fit_job = pool.submit(fit_for_split, data, split.fit_rows, config.ml, seed, columns)
+        range_job = pool.submit(out_of_range, data, config, seed, columns)
+        ablation_job = pool.submit(ablation_fits, data, config, seed, columns)
+        baseline_job = pool.submit(physics_baseline_check, config)
+        cv = summarise_cv(cv_job.result())
+        best = best_models(cv)
+        repeat_job = pool.submit(conformal_repeats, data, config, seed, columns, best)
+        fitted = fit_job.result()
+        intervals = conformal(data, config, split, fitted, best)
+        ranged = range_job.result()
+        ablation = ablation_report(ablation_job.result(), cv, data, columns)
+        intervals["repeated_splits"] = repeat_job.result()
+        baseline_check = baseline_job.result()
     arrays = {
         scenario: {name: ranged[scenario].pop(f"{name}_arrays") for name in TARGET_NAMES}
         for scenario in SCENARIOS
@@ -709,7 +732,7 @@ def evaluate(
         "status": "ok",
         "models": list(MODELS),
         "n_rows": data.n_rows,
-        "physics_baseline_check": physics_baseline_check(config),
+        "physics_baseline_check": baseline_check,
         "physics_baseline_dataset_errors": dataset_baseline_errors(data),
         "cross_validation": cv,
         "best_model": best,

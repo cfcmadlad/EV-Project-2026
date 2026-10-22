@@ -3,6 +3,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
+from joblib import Parallel, delayed
 
 from src.balancing import simulate
 from src.config import FloatArray, ProjectConfig, Technique
@@ -49,15 +50,17 @@ def propagate_baseline(pack: PackBatch, cached: dict, config: ProjectConfig) -> 
     n = packs.n_packs
     percent = config.identification.ci_percent
     table: dict[str, object] = {"n_resamples": n, "interval_percent": percent}
-    for technique in Technique:
-        spec = config.technique(technique)
-        result = simulate(
+    results = Parallel(n_jobs=len(Technique))(
+        delayed(simulate)(
             technique,
             packs,
-            np.full(n, spec.component.mid),
-            np.full(n, spec.frequency_hz.mid),
+            np.full(n, config.technique(technique).component.mid),
+            np.full(n, config.technique(technique).frequency_hz.mid),
             config,
         )
+        for technique in Technique
+    )
+    for technique, result in zip(Technique, results, strict=True):
         table[technique.key] = {
             "balancing_time_s": summarise(result.balancing_time_s, percent),
             "energy_dissipated_j": summarise(result.energy_dissipated_j, percent),

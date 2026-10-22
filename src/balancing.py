@@ -29,8 +29,8 @@ from src.ledger import (
     rc_square_weights,
 )
 from src.pack import PackBatch
-from src.params import BuckBoostSpec, FlyingCapSpec
-from src.switched_cap import link_resistance_ohm
+from src.params import BuckBoostSpec
+from src.switched_cap import link_resistances_ohm
 
 CurrentModel = Callable[[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray], StepFlow]
 
@@ -137,12 +137,11 @@ def flying_capacitor_currents(
     ocv: FloatArray,
     emf: FloatArray,
     r0: FloatArray,
-    inverse_fc: FloatArray,
-    hardware: FlyingCapSpec,
+    resistance: FloatArray,
     deadband: float,
 ) -> StepFlow:
     active, _ = _link_state(soc, deadband)
-    r_link = link_resistance_ohm(inverse_fc, r0, hardware)
+    r_link = resistance[:, 0]
     i_link = np.where(active, (emf[:, :-1] - emf[:, 1:]) / r_link, 0.0)
     forward = i_link > 0.0
     magnitude = np.abs(i_link)
@@ -193,7 +192,7 @@ def simulate(
         "cross": cross[:, None],
         "offset": offset[:, None],
         "soc_step": soc_per_amp_step(sim.dt_s, packs.capacity_ah),
-        "parameter": _technique_parameter(technique, component, frequency_hz),
+        "parameter": _technique_parameter(technique, component, frequency_hz, packs.r0_ohm, config),
         "removed": np.zeros(n),
         "transferred": np.zeros(n),
         "element_loss": np.zeros(n),
@@ -336,11 +335,7 @@ def _current_model(technique: Technique, config: ProjectConfig) -> CurrentModel:
         case Technique.BUCK_BOOST:
             return partial(buck_boost_currents, hardware=config.buck_boost, deadband=deadband)
         case Technique.FLYING_CAPACITOR:
-            return partial(
-                flying_capacitor_currents,
-                hardware=config.flying_capacitor,
-                deadband=deadband,
-            )
+            return partial(flying_capacitor_currents, deadband=deadband)
 
 
 def _element_loss_model(technique: Technique, config: ProjectConfig) -> ElementLossModel:
@@ -350,15 +345,22 @@ def _element_loss_model(technique: Technique, config: ProjectConfig) -> ElementL
         case Technique.BUCK_BOOST:
             return partial(buck_boost_element_loss_w, hardware=config.buck_boost)
         case Technique.FLYING_CAPACITOR:
-            return partial(flying_capacitor_element_loss_w, hardware=config.flying_capacitor)
+            return flying_capacitor_element_loss_w
 
 
 def _technique_parameter(
-    technique: Technique, component: FloatArray, frequency_hz: FloatArray
+    technique: Technique,
+    component: FloatArray,
+    frequency_hz: FloatArray,
+    r0_ohm: FloatArray,
+    config: ProjectConfig,
 ) -> FloatArray:
     if technique is Technique.PASSIVE:
         return component
-    return 1.0 / (component * frequency_hz)
+    inverse = 1.0 / (component * frequency_hz)
+    if technique is Technique.FLYING_CAPACITOR:
+        return link_resistances_ohm(inverse, r0_ohm, config.flying_capacitor)
+    return inverse
 
 
 def _validate_inputs(

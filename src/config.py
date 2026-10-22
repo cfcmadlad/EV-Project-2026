@@ -33,6 +33,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_DIR = PROJECT_ROOT / "results"
 PERCENT = 100.0
 HZ_PER_KHZ = 1e3
+MV_PER_V = 1e3
+MOHM_PER_OHM = 1e3
 MF_PER_FARAD = 1e3
 
 TECHNIQUE_KEYS = ("passive", "buck_boost", "flying_capacitor")

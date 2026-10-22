@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from matplotlib.patches import Patch
 
-from src.config import PlotConfig, Technique
+from src.config import PERCENT, PlotConfig, Technique
 from src.dataset import TARGET_NAMES
 from src.ml_eval import GROUPS, MODELS, SCENARIOS, EvalData
 from src.plots import figure_grid
@@ -24,7 +24,6 @@ COVERAGE_FIGSIZE = (11.0, 4.8)
 BAR_WIDTH = 0.2
 MARKER_AREA = 5.0
 SCATTER_ALPHA = 0.4
-PERCENT = 100.0
 
 
 def plot_cv_comparison(cv: Mapping[str, object], config: PlotConfig, stem: Path) -> None:

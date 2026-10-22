@@ -12,7 +12,7 @@ from src.cell_plots import (
     plot_hppc_params,
     plot_validation_summary,
 )
-from src.config import CONFIG, PROJECT_ROOT, RESULTS_DIR
+from src.config import CONFIG, MV_PER_V, PROJECT_ROOT, RESULTS_DIR
 from src.experiments import random_streams
 from src.hg2 import DRIVE_CYCLES, TestKind, load_all
 from src.identification import (
@@ -42,7 +42,6 @@ DATASET_TITLE = "LG 18650HG2 Li-ion Battery Data"
 DATASET_DOI = "10.17632/b5mj79w5w9.2"
 DATASET_LICENCE = "CC BY 4.0"
 DATASET_INSTITUTION = "McMaster University"
-MV_PER_V = 1e3
 ASSUMED_PARAMETERS = [
     "cell-to-cell capacity spread of +/-5 %",
     "cell-to-cell R0 spread of +/-10 %",

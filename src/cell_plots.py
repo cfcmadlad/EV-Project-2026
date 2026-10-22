@@ -4,15 +4,20 @@ from pathlib import Path
 import numpy as np
 from matplotlib.axes import Axes
 
-from src.config import PERCENT, FloatArray, PlotConfig, Technique
+from src.config import (
+    MOHM_PER_OHM,
+    MV_PER_V,
+    PERCENT,
+    FloatArray,
+    PlotConfig,
+    Technique,
+)
 from src.hg2 import DRIVE_CYCLES, Recording, TestKind
 from src.identify import RcFit, TwoRcFit
 from src.params import SECONDS_PER_HOUR
 from src.plots import figure_grid
 from src.validate import Replay, ReplayMetrics
 
-MV_PER_V = 1e3
-MOHM_PER_OHM = 1e3
 OVERVIEW_ORDER = (
     TestKind.HPPC,
     TestKind.C20,
