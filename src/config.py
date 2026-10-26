@@ -23,6 +23,7 @@ from src.params import (
     SanitySpec,
     SimSpec,
     SocErrorSpec,
+    SocEstimationSpec,
     SweepSpec,
     TechniqueSpec,
 )
@@ -102,6 +103,7 @@ class ProjectConfig:
     converter_check: ConverterCheckSpec = ConverterCheckSpec()
     drive_cycle: DriveCycleSpec = DriveCycleSpec()
     soc_error: SocErrorSpec = SocErrorSpec()
+    soc_estimation: SocEstimationSpec = SocEstimationSpec()
     plot: PlotConfig = PlotConfig()
 
     @property

@@ -1,0 +1,458 @@
+{
+ "definition": {
+  "reference_soc": "1 at the start of each drive file (preceded by a full charge to 4.2 V with 50 mA cut-off) minus integrated tester current over the C/20 discharge capacity at that temperature",
+  "capacity_ah_by_temperature": {
+   "0": 2.59862,
+   "10": 2.64881,
+   "25": 2.78074,
+   "40": 2.68992
+  },
+  "step_s": 1.0,
+  "rows_used": "status TABLE (drive part)",
+  "label_accuracy_note": "tester current accuracy is 0.1 % of a 75 A full scale (dataset readme), so the integrated label can drift by up to 75 mA times the cycle time"
+ },
+ "splits": {
+  "train": [
+   {
+    "file": "589_Mixed1.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "Mixed1",
+    "sha256": "2795c7d9f393822debea6cbe213dc4a179d892d5a326d1cc5da2558594fc2f60",
+    "duration_s": 6130.899999999994,
+    "discharge_ah": 2.349842923979113
+   },
+   {
+    "file": "589_Mixed2.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "Mixed2",
+    "sha256": "9fcd9e1200098dc87f3567f43794fa07063ec91b2939c2184a845579cfb92601",
+    "duration_s": 6630.034999999989,
+    "discharge_ah": 2.348490586870627
+   },
+   {
+    "file": "590_Mixed4.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "Mixed4",
+    "sha256": "fcc3f2515cd189d0ff86edb34a007b8245820b13b4c14f1eb626d9b6baa84e3a",
+    "duration_s": 6202.475,
+    "discharge_ah": 2.328972546579123
+   },
+   {
+    "file": "590_Mixed5.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "Mixed5",
+    "sha256": "c37c6302180dc99f76bc56a4dc55c419c32b707b07bfba3b600e4dfb61747c4a",
+    "duration_s": 5899.235000000001,
+    "discharge_ah": 2.3266718998097127
+   },
+   {
+    "file": "590_Mixed6.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "Mixed6",
+    "sha256": "277fcf564f2b76f4b3d4dbb77596cde6c44e3b4a61d71a9e10b4627380e919f3",
+    "duration_s": 5648.077000000005,
+    "discharge_ah": 2.3295136746124387
+   },
+   {
+    "file": "551_Mixed1.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "Mixed1",
+    "sha256": "59bf0ca287d0e43de95164254b28bad0be5c346eefb08010f1153b5b60b0b88c",
+    "duration_s": 7122.468999999997,
+    "discharge_ah": 2.592498714645918
+   },
+   {
+    "file": "551_Mixed2.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "Mixed2",
+    "sha256": "89355b5e6e34aa1df531cb56b3de6c2166a2f08a9345a5161f48b4831e46ab94",
+    "duration_s": 7316.918000000005,
+    "discharge_ah": 2.5893382986098703
+   },
+   {
+    "file": "552_Mixed3.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "Mixed3",
+    "sha256": "9e0796fd62922781d7686da8befebd9ce643f81d4c9bcb650687a459e125b327",
+    "duration_s": 6782.446,
+    "discharge_ah": 2.563010083497175
+   },
+   {
+    "file": "552_Mixed4.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "Mixed4",
+    "sha256": "98abdaeedf309773578885636e74f9d5dfbc4fe410a55872e7824622f2ee57ba",
+    "duration_s": 7484.790999999997,
+    "discharge_ah": 2.558870744512479
+   },
+   {
+    "file": "552_Mixed5.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "Mixed5",
+    "sha256": "17bd7e6d1c72b72f61de10fe82f81d0577c314a57e6a922d2da253e4244236ac",
+    "duration_s": 6618.108999999997,
+    "discharge_ah": 2.557847497884756
+   },
+   {
+    "file": "552_Mixed6.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "Mixed6",
+    "sha256": "e978384a54b01418697041698ef080a2ed8a654a144b8329116bf9ccb12b596b",
+    "duration_s": 7210.392000000007,
+    "discharge_ah": 2.558685202170796
+   },
+   {
+    "file": "556_Mixed1.csv",
+    "folder": "40degC",
+    "temperature_c": 40,
+    "cycle": "Mixed1",
+    "sha256": "6c13c23414846e6b70e387bff5172dafd296b2c126128749325f38db1e14d105",
+    "duration_s": 6933.850999999995,
+    "discharge_ah": 2.53093625453879
+   },
+   {
+    "file": "556_Mixed2.csv",
+    "folder": "40degC",
+    "temperature_c": 40,
+    "cycle": "Mixed2",
+    "sha256": "1bb9b7253fb8d811167d86ce2ad91fdf7615f60c551ad4ac596f3e2cd4d41ed5",
+    "duration_s": 7295.333999999988,
+    "discharge_ah": 2.5277562288057385
+   },
+   {
+    "file": "557_Mixed3.csv",
+    "folder": "40degC",
+    "temperature_c": 40,
+    "cycle": "Mixed3",
+    "sha256": "b2716b46b376c67cd8f6b489d7cee1c8f8de109fbcd78cebceeaaff4af880c7b",
+    "duration_s": 6162.226000000001,
+    "discharge_ah": 2.374730805208348
+   }
+  ],
+  "validation": [
+   {
+    "file": "590_Mixed7.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "Mixed7",
+    "sha256": "4076f71204690b256bf2781bf656952db0b7f6642d5138396422015d991218b0",
+    "duration_s": 5553.796000000002,
+    "discharge_ah": 2.328026425850074
+   },
+   {
+    "file": "552_Mixed7.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "Mixed7",
+    "sha256": "ea676e6d1f5eacdcf84836de6de950a4fd38bf4b19a71b7140c54fb5b2daf2d4",
+    "duration_s": 6723.285999999993,
+    "discharge_ah": 2.5589999553250213
+   }
+  ],
+  "test_a": [
+   {
+    "file": "589_LA92.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "LA92",
+    "sha256": "309250cb85704e8f528957d899eeedb3ba4b8e0a85d76a524bb975925cee9af1",
+    "duration_s": 7566.792999999991,
+    "discharge_ah": 2.351543556719486
+   },
+   {
+    "file": "589_UDDS.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "UDDS",
+    "sha256": "7dfe6f7116ed8c553b1b5063019ff7e6febbbf1ce565ec8fa044f49cac2cbf5c",
+    "duration_s": 13443.198000000004,
+    "discharge_ah": 2.3508296611916557
+   },
+   {
+    "file": "589_HWFET.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "HWFET",
+    "sha256": "20ff8c6ac9474724bc913afb53e1e20897758e7bf5cb25d37f0fab3f758f8659",
+    "duration_s": 4367.565000000002,
+    "discharge_ah": 2.3500222501569294
+   },
+   {
+    "file": "589_US06.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "US06",
+    "sha256": "d3b52e7c538fdee4451158526e5b83eab92c9698b22f6d88f551d009207b08a9",
+    "duration_s": 2780.347999999998,
+    "discharge_ah": 2.357975016113755
+   },
+   {
+    "file": "590_Mixed8.csv",
+    "folder": "0degC",
+    "temperature_c": 0,
+    "cycle": "Mixed8",
+    "sha256": "b8c43a61c52c996c3e60343d539af7096fbe85f071fd46a7bd3b13f72890152e",
+    "duration_s": 6983.585000000006,
+    "discharge_ah": 2.328879156752959
+   },
+   {
+    "file": "551_UDDS.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "UDDS",
+    "sha256": "1d6433fa388be9d411f8554bcfd3410e64ea605a2545ccf94ce362809b4b688c",
+    "duration_s": 15365.590000000004,
+    "discharge_ah": 2.592067856294465
+   },
+   {
+    "file": "551_LA92.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "LA92",
+    "sha256": "baa7c87f649bdc247614b4b22ee590107e407e2bd45aedebb7ec3dd1022420e2",
+    "duration_s": 9483.574,
+    "discharge_ah": 2.592572921204111
+   },
+   {
+    "file": "551_US06.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "US06",
+    "sha256": "4e43498d29ee21da6d6dcd7ef47bbedcd2cd3ed92100a0e8094976dbd0fa2d96",
+    "duration_s": 3415.2709999999934,
+    "discharge_ah": 2.5913529718720643
+   },
+   {
+    "file": "552_Mixed8.csv",
+    "folder": "25degC",
+    "temperature_c": 25,
+    "cycle": "Mixed8",
+    "sha256": "495af3150051def440ceadd425dbb145fabda32c096e4b8fc2edbc063e7b89cc",
+    "duration_s": 7991.2439999999915,
+    "discharge_ah": 2.5624817307025234
+   },
+   {
+    "file": "556_LA92.csv",
+    "folder": "40degC",
+    "temperature_c": 40,
+    "cycle": "LA92",
+    "sha256": "2131a823e1db0af1fba0a8c4b67979ce9cbe76ba473a29fd00e434be20783ec4",
+    "duration_s": 9274.394,
+    "discharge_ah": 2.5293187127392316
+   },
+   {
+    "file": "556_UDDS.csv",
+    "folder": "40degC",
+    "temperature_c": 40,
+    "cycle": "UDDS",
+    "sha256": "1193904f7a4e1197667449c5c3a50ef02c1768d9ae27284b2f2f947427d43c84",
+    "duration_s": 15296.959000000003,
+    "discharge_ah": 2.53087953980693
+   },
+   {
+    "file": "556_HWFET.csv",
+    "folder": "40degC",
+    "temperature_c": 40,
+    "cycle": "HWFET",
+    "sha256": "86c45744ba133fed513b653359f3fdd9295255af2454965f9cb651e9a4fc01e0",
+    "duration_s": 4990.7850000000035,
+    "discharge_ah": 2.5255459665374778
+   },
+   {
+    "file": "556_US06.csv",
+    "folder": "40degC",
+    "temperature_c": 40,
+    "cycle": "US06",
+    "sha256": "c80068d34aacec1e79888aa0b1196914e4de032322156bcc26d69cfb2ea881ac",
+    "duration_s": 3395.892000000007,
+    "discharge_ah": 2.5260265904403725
+   }
+  ],
+  "test_b": [
+   {
+    "file": "576_UDDS.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "UDDS",
+    "sha256": "56fc99c76b1891bd01d946ff635ef3254dc50384819567c4a25a49fa6599f4dc",
+    "duration_s": 14291.294999999998,
+    "discharge_ah": 2.4192424527208525
+   },
+   {
+    "file": "567_Mixed1.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "Mixed1",
+    "sha256": "89eb0f6c7f7cf4b5896c63136fe78a2652a51f9435a396eaa5b59987c760806d",
+    "duration_s": 6632.630999999994,
+    "discharge_ah": 2.478634560488861
+   },
+   {
+    "file": "567_Mixed2.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "Mixed2",
+    "sha256": "0ead5c7bb97aafb932f4ad4f3ee67eb004297dc6df9fd09e69836865cc7add3d",
+    "duration_s": 7174.90800000001,
+    "discharge_ah": 2.479524414441644
+   },
+   {
+    "file": "567_US06.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "US06",
+    "sha256": "5f7000176770e529d1dce909b74b83a8be32c86ae5c79fe95f00c3a2aebec940",
+    "duration_s": 3271.5639999999985,
+    "discharge_ah": 2.4852482521259294
+   },
+   {
+    "file": "571_Mixed4.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "Mixed4",
+    "sha256": "f9e596681dced183cc5663d1aebfb17d8971f3ab4024754fbf0900f5c7a1e3d4",
+    "duration_s": 6792.695,
+    "discharge_ah": 2.361602020156961
+   },
+   {
+    "file": "571_Mixed5.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "Mixed5",
+    "sha256": "56274c4f088d81c2a1bfd1f4531aee2b8a94dd6b405adbb8fa0da1a24d1af02b",
+    "duration_s": 6117.192999999999,
+    "discharge_ah": 2.3618760397444305
+   },
+   {
+    "file": "571_Mixed6.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "Mixed6",
+    "sha256": "586cd6d3f147daf53b307318ba429590aff4dd4cde90ffdf8eee61a4dfaadd56",
+    "duration_s": 6791.639000000003,
+    "discharge_ah": 2.362455416648621
+   },
+   {
+    "file": "571_Mixed7.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "Mixed7",
+    "sha256": "e4f086dc43bd04aaecae76f5041d20a0b07f0810efe5fd0ab746c0094c7d6221",
+    "duration_s": 6332.280000000013,
+    "discharge_ah": 2.3648558248068983
+   },
+   {
+    "file": "571_Mixed8.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "Mixed8",
+    "sha256": "848511c2b47735410aa7c5e198cf5c64141e7e2ba29a547a70a95558033072c9",
+    "duration_s": 7541.990000000005,
+    "discharge_ah": 2.3621814290765517
+   },
+   {
+    "file": "576_HWFET.csv",
+    "folder": "10degC",
+    "temperature_c": 10,
+    "cycle": "HWFET",
+    "sha256": "2f445c8f315e22fb0f8b5cffe5e01263eaae402b20a476e2732cba6fc73275d3",
+    "duration_s": 4687.593999999997,
+    "discharge_ah": 2.419186718000011
+   }
+  ]
+ },
+ "rejected_files": [
+  {
+   "file": "582_LA92.csv",
+   "folder": "10degC",
+   "temperature_c": 10,
+   "cycle": "LA92",
+   "sha256": "2c9a0a6ebe14f4e9c6ad167c59c9f0119d25a3945927bac2ea3db20c676743f1",
+   "duration_s": 0.0,
+   "discharge_ah": 0.0,
+   "reason": "582_LA92.csv: program time is not monotonic"
+  },
+  {
+   "file": "551_HWFET.csv",
+   "folder": "25degC",
+   "temperature_c": 25,
+   "cycle": "HWFET",
+   "sha256": "5b774a7673d4e624758f59adc6d94efa981390ee728125cccca68846efd77eae",
+   "duration_s": 0.0,
+   "discharge_ah": 0.0,
+   "reason": "no current recorded in the drive part of the file"
+  },
+  {
+   "file": "562_Mixed4.csv",
+   "folder": "40degC",
+   "temperature_c": 40,
+   "cycle": "Mixed4",
+   "sha256": "91f1d9e5048cd754c47b6c5669a861c2765e9272f14251ef9c148d0bfe3f96e8",
+   "duration_s": 532.4210000000021,
+   "discharge_ah": 0.18957318972639023,
+   "reason": "incomplete run: 0.190 Ah discharged, 80% of 2.690 Ah required"
+  },
+  {
+   "file": "562_Mixed5.csv",
+   "folder": "40degC",
+   "temperature_c": 40,
+   "cycle": "Mixed5",
+   "sha256": "044415453619f7a0dad17c5f64605548acc72ad6eb6ef8fb2c5cf61460f46f8a",
+   "duration_s": 708.4259999999995,
+   "discharge_ah": 0.18969220160833344,
+   "reason": "incomplete run: 0.190 Ah discharged, 80% of 2.690 Ah required"
+  },
+  {
+   "file": "562_Mixed6.csv",
+   "folder": "40degC",
+   "temperature_c": 40,
+   "cycle": "Mixed6",
+   "sha256": "0a137c6d4434af5234ee4f191325ca872e64f9f9d6fad05936414b2f70477e66",
+   "duration_s": 575.8130000000019,
+   "discharge_ah": 0.18964182645972635,
+   "reason": "incomplete run: 0.190 Ah discharged, 80% of 2.690 Ah required"
+  },
+  {
+   "file": "562_Mixed7.csv",
+   "folder": "40degC",
+   "temperature_c": 40,
+   "cycle": "Mixed7",
+   "sha256": "5300a5ec9bace9c4a19c0f7b216c5ad685c3849a0c299aed503159485f03dfca",
+   "duration_s": 184.50400000000081,
+   "discharge_ah": 0.18973562184027523,
+   "reason": "incomplete run: 0.190 Ah discharged, 80% of 2.690 Ah required"
+  },
+  {
+   "file": "562_Mixed8.csv",
+   "folder": "40degC",
+   "temperature_c": 40,
+   "cycle": "Mixed8",
+   "sha256": "0c13819a71e5802621dd86fe00dadcf8d7d2ae94389bf8d0735bcffabce5f142",
+   "duration_s": 838.2279999999955,
+   "discharge_ah": 0.18927783862360506,
+   "reason": "incomplete run: 0.189 Ah discharged, 80% of 2.690 Ah required"
+  }
+ ],
+ "absent_or_unusable": [
+  "HWFET at 25 C",
+  "LA92 at 10 C",
+  "Mixed3 at 0 C",
+  "Mixed3 at 10 C",
+  "Mixed4 at 40 C",
+  "Mixed5 at 40 C",
+  "Mixed6 at 40 C",
+  "Mixed7 at 40 C",
+  "Mixed8 at 40 C"
+ ]
+}

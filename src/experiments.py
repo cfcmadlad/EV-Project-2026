@@ -4,7 +4,7 @@ from src.balancing import BalanceResult, simulate
 from src.config import ProjectConfig, Technique
 from src.pack import PackBatch, sample_packs
 
-STREAM_NAMES = ("baseline", "dataset", "checks", "identification", "soc_error")
+STREAM_NAMES = ("baseline", "dataset", "checks", "identification", "soc_error", "soc_feedthrough")
 
 
 def random_streams(seed: int) -> dict[str, np.random.Generator]:

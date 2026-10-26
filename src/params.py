@@ -289,3 +289,33 @@ ASSUMED = ParameterSet(
     buck_boost=BuckBoostSpec(),
     flying_capacitor=FlyingCapSpec(model=FlyingCapModel.MIDSEM),
 )
+
+
+@dataclass(frozen=True, slots=True)
+class SocEstimationSpec:
+    train_temperatures_c: tuple[int, ...] = (0, 25, 40)
+    test_b_temperature_c: int = 10
+    train_mixed: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
+    validation_mixed: tuple[int, ...] = (7,)
+    test_a_cycles: tuple[str, ...] = ("Mixed8", "UDDS", "HWFET", "LA92", "US06")
+    step_s: float = 1.0
+    min_discharged_fraction: float = 0.8
+    wrong_start_soc: float = 0.20
+    wrong_start_check_s: float = 300.0
+    tester_full_scale_a: float = 75.0
+    tester_accuracy_fraction: float = 0.001
+    injected_offset_fraction: float = 0.005
+    voltage_noise_v: float = 0.005
+    windows_s: tuple[int, ...] = (100, 300)
+    hidden_size: int = 32
+    seeds: tuple[int, ...] = (0, 1, 2)
+    epochs: int = 12
+    batch_size: int = 256
+    train_stride_s: int = 3
+    learning_rate: float = 3e-3
+    ekf_process_std_grid: tuple[float, ...] = (1e-5, 3e-5, 1e-4, 3e-4)
+    ekf_measurement_std_v_grid: tuple[float, ...] = (0.005, 0.01, 0.02, 0.04)
+    ekf_initial_std: float = 0.2
+    pool_window: tuple[float, float] = (0.3, 0.7)
+    pool_min_time_s: float = 300.0
+    feedthrough_packs: int = 200
