@@ -30,14 +30,17 @@ def test_provenance_contains_no_email_address() -> None:
 def test_classify_recognises_descriptors() -> None:
     assert classify("551_UDDS.csv") == (551, TestKind.UDDS)
     assert classify("549_Dis_0p5C.csv") == (549, TestKind.DISCHARGE_HALF_C)
+    assert classify("551_Mixed1.csv") == (551, TestKind.MIXED)
     with pytest.raises(ValueError):
-        classify("551_Mixed1.csv")
+        classify("551_Foo.csv")
 
 
 @needs_raw
 def test_raw_files_match_recorded_hashes() -> None:
     for record in PROVENANCE["files"]:
-        data = (RAW_DIR / record["name"]).read_bytes()
+        flat = record["folder"] in ("root", "25degC")
+        path = RAW_DIR / record["name"] if flat else RAW_DIR / record["folder"] / record["name"]
+        data = path.read_bytes()
         assert hashlib.sha256(data).hexdigest() == record["sha256"]
 
 

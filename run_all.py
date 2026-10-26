@@ -21,6 +21,8 @@ from src.config import (
     Technique,
 )
 from src.dataset import TARGET_NAMES, Dataset, generate_dataset
+from src.drive_cycle import drive_cycle_stage
+from src.drive_plots import plot_drive_capacity, plot_drive_spread
 from src.experiments import baseline_pack, random_streams, run_baseline
 from src.identification import table_slope_mv_per_percent
 from src.ml_eval import evaluate
@@ -453,6 +455,12 @@ def _run_stages(
     if converter_rows:
         write_comparison_csv(converter_rows, results_dir / "spice_vs_averaged.csv")
         plot_current_parity(converter_rows, config, results_dir / "spice_vs_averaged")
+    drive_block, drive_traces = drive_cycle_stage(config, pack, baseline)
+    if drive_traces is not None:
+        plot_drive_spread(
+            drive_traces, config.sim.soc_tolerance, results_dir / "drive_cycle_spread", config.plot
+        )
+        plot_drive_capacity(drive_block, results_dir / "drive_cycle_usable_capacity", config.plot)
     write_baseline_csv(table, results_dir / "baseline_table.csv")
     write_dataset_csv(dataset, results_dir / "dataset.csv")
     save_figures(baseline, sweeps, dataset, report, config, results_dir)
@@ -480,6 +488,7 @@ def _run_stages(
             sweeps["flying_capacitor_frequency_hz"],
         ),
         "ml_eval": ml_eval_block,
+        "drive_cycle": drive_block,
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start

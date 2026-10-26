@@ -12,6 +12,7 @@ from src.params import (
     CheckSpec,
     ConverterCheckSpec,
     DatasetSpec,
+    DriveCycleSpec,
     FlyingCapSpec,
     IdentificationSpec,
     MLEvalSpec,
@@ -98,6 +99,7 @@ class ProjectConfig:
     checks: CheckSpec = CheckSpec()
     identification: IdentificationSpec = IdentificationSpec()
     converter_check: ConverterCheckSpec = ConverterCheckSpec()
+    drive_cycle: DriveCycleSpec = DriveCycleSpec()
     plot: PlotConfig = PlotConfig()
 
     @property

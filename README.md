@@ -972,3 +972,36 @@ The error rises for both targets and for every technique (the holdout split of s
 ### What this does and does not show
 
 All of it is about the simulator: the models predict the output of the averaged-equation simulation, so "physics formula" means a closed form of the same equations, not of a real pack. The conclusions are that (1) the midsem HGB should not be presented as better than physics, (2) a hybrid is the right way to use the ML, and (3) the intervals are calibrated for this simulated distribution. They say nothing about real packs, other cells or longer strings.
+
+## r. Balancing under measured drive-cycle current (final phase, block A)
+
+**Method.** The rest simulator of section f is now the special case of a reusable vectorised function `step(state, pack_current_a, control)` in `src/stepper.py` with an explicit frozen `PackState`. With zero (or no) pack current it reproduces the earlier results bit for bit; a test checks this and `metrics.json` was byte-identical before and after the refactor on the same machine. Under load the converter sees each cell's open-circuit voltage minus the load drop across R0, so the same averaged link equations apply. The measured 25 °C "Mixed" cycles of the LG HG2 dataset (CC BY 4.0, DOI 10.17632/b5mj79w5w9.2, fetched and checksummed by `scripts/fetch_hg2.py --group mixed25`) are averaged to 1 s with a charge-preserving time-weighted mean (`scripts/prepare_drive_profiles.py`, cached in `data/processed/drive_profiles_25c.json`) and applied as the series current of the baseline 4-cell pack (10 % SOC spread, fitted parameters, mid-range components). Balancing switches off while the spread is below 1 %.
+
+Scenarios, per technique and without balancing: (a) rest balancing until the spread is below 1 %, then drive without balancing; (b) driving, Mixed 1 repeated until the first cell reaches its lower voltage limit; (c) constant-current charging at 0.5C (1.39 A) until the first cell reaches 4.2 V. Usable Ah is the net pack charge passed until the first cell hits a limit.
+
+**Limits.** The datasheet in the dataset (technical PDF, page 2, printed page 1) gives 4.2 V charge and a 2.0 V end voltage; the dataset readme and the CSV headers give a 4.2 V maximum voltage. The tester stopped every discharge at 2.8 V (minimum voltage in the C/20 and 1C files), and this project uses 2.8 V as the lower limit, which is inside the datasheet window.
+
+**Key numbers** (this pack, Mixed 1; full table in `results/metrics.json` under `drive_cycle`):
+
+| Scenario | None | Passive | Buck-boost | Flying capacitor |
+| --- | --- | --- | --- | --- |
+| Driving: usable Ah | 1.232 | 1.232 | 1.324 | 1.380 |
+| Driving: final spread (%) | 12.4 | 10.3 | 3.8 | 1.0 |
+| Driving: energy dissipated (J) | 0 | 1514 | 162 | 60 |
+| Charging: usable Ah | 1.217 | 1.287 | 1.281 | 1.262 |
+| Charging: final spread (%) | 7.7 | 5.4 | 0.86 | 2.7 |
+| Rest then drive: usable Ah | 1.232 (no rest) | 1.185 | 1.315 | 1.319 |
+
+The 1 % criterion is met only by the buck-boost during charging. Passive balancing cannot raise the usable Ah while driving because it only drains fuller cells; the limiting cell is untouched. Resting first costs the passive pack 0.047 Ah (it burns 7176 J). The "ideal-transfer reference" in the figure equalises the stored charge of all cells before the run (1.395 Ah driving, 1.289 Ah charging); it is a reference, not a strict bound, because cell resistances differ. Results for all eight Mixed cycles are in `cycle_sensitivity_driving_usable_ah`; the ordering none = passive < buck-boost < flying capacitor holds on every one of them (equal for the last two on Mixed 8).
+
+**Checked.** With balancing off each cell's SOC change equals -integral(I dt)/(3600 Q_i) to 1.7e-13 relative (threshold 1e-9, PASS). The balancing energy ledger (net chemical energy removed against converter loss, R0 cross term and RC terms) closes to 0.09 % of the removed energy under load (threshold 1 %, PASS); relative to the dissipated energy the flying capacitor gap is 8 %, because its dissipation is small.
+
+**Assumptions.**
+- Only status `TABLE` rows (the drive) are used; the 600 s pauses are excluded, and the cycle repeats from its start.
+- Lower limit 2.8 V (tester cut-off), not the 2.0 V datasheet end voltage, which the model's open-circuit table (2.88 V at 0 %) could never reach before SOC 0.
+- The limit is checked on the modelled terminal voltage after each 1 s step, so detection can overshoot by one step.
+- Scenario (a) is rest balancing followed by an unbalanced drive; this is how usable Ah is defined for a rest scenario.
+- Charging is constant current only (no constant-voltage phase); 0.5C uses the fitted capacity.
+- One pack and one cycle support the headline numbers: the claims are limited to this pack and these measured cycles.
+
+Figures: `results/drive_cycle_spread.png`, `results/drive_cycle_usable_capacity.png`.

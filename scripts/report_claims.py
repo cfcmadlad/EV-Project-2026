@@ -250,6 +250,53 @@ def ml_eval_claims() -> list[CheckedClaim]:
     return claims
 
 
+def drive_cycle_claims() -> list[CheckedClaim]:
+    scope = "this 4-cell pack under measured Mixed 1 current, one pack, one cycle"
+    claims = [
+        CheckedClaim(
+            "With balancing off, every cell's SOC change equals -integral(I dt)/(3600 Q_i) "
+            "under measured drive and charge current",
+            "drive_cycle.soc_conservation.max_relative_error",
+            "<= 1e-9",
+            at_most(1e-9),
+            scientific,
+        ),
+        CheckedClaim(
+            "Balancing energy ledger closes under load (net chemical energy removed vs element, "
+            "R0 cross-term and RC terms)",
+            "drive_cycle.energy_ledger_under_load.max_vs_removed",
+            "<= 1 % of E_removed",
+            at_most(0.01),
+            percent,
+        ),
+    ]
+    for key, label in (
+        ("buck_boost", "inductor buck-boost"),
+        ("flying_capacitor", "flying capacitor"),
+    ):
+        claims.append(
+            CheckedClaim(
+                f"Driving: {label} increases usable pack Ah before the first cell hits a limit "
+                f"({scope})",
+                f"drive_cycle.scenarios.driving.{key}.gain_vs_none_ah",
+                "> 0 Ah",
+                positive,
+                lambda v: f"{float(v):+.3f} Ah",
+            )
+        )
+    claims.append(
+        CheckedClaim(
+            f"Driving: passive shunt leaves usable pack Ah unchanged ({scope})",
+            "drive_cycle.scenarios.driving.passive.gain_vs_none_ah",
+            "|gain| <= 1e-6 Ah",
+            abs_at_most(1e-6),
+            lambda v: f"{float(v):+.3g} Ah",
+            "passive only drains fuller cells; the limiting cell is untouched",
+        )
+    )
+    return claims
+
+
 def checked_claims() -> list[CheckedClaim]:
     claims = [
         CheckedClaim(
@@ -319,10 +366,14 @@ def checked_claims() -> list[CheckedClaim]:
                 "residual is first order in dt (halves when dt halves)",
             )
         )
-    return claims
+    return claims + drive_cycle_claims()
 
 
 UNSUPPORTED = (
+    UnsupportedClaim(
+        "Drive-cycle balancing gains hold for other packs, spreads, cycles or temperatures",
+        "one baseline pack and measured Mixed cycles of one cell at 25 C; no statistics over packs",
+    ),
     UnsupportedClaim(
         "The fitted parameters describe other HG2 cells, cell lots or aged cells",
         "one new cell measured at 25 C; no repeat cells or ageing data",

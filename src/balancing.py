@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
 
@@ -6,7 +5,6 @@ import numpy as np
 
 from src.cell import (
     build_ocv_curve,
-    open_circuit_voltage,
     rc_step_gain,
     rc_step_gain_per_pack,
     soc_per_amp_step,
@@ -20,22 +18,32 @@ from src.config import (
 from src.flow import StepFlow
 from src.ledger import (
     ElementLossModel,
-    RCSquareWeights,
     buck_boost_element_loss_w,
     flying_capacitor_element_loss_w,
     passive_element_loss_w,
-    per_link_r0_loss_w,
-    rc_branch_square_integral,
     rc_square_weights,
 )
 from src.pack import PackBatch
 from src.params import BuckBoostSpec
+from src.stepper import (
+    CurrentModel,
+    PackDynamics,
+    PackState,
+    StepControl,
+    no_balancing_flow,
+    no_element_loss_w,
+    step,
+)
 from src.switched_cap import link_resistances_ohm
 
-CurrentModel = Callable[[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray], StepFlow]
-
-LEDGER_KEYS = ("element_loss", "r0_loss", "r1_loss", "r0_per_link_loss")
-TILT_PIVOT_SOC = 0.5
+LEDGER_KEYS = (
+    "removed_j",
+    "transferred_j",
+    "element_loss_j",
+    "r0_loss_j",
+    "r1_loss_j",
+    "r0_per_link_loss_j",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,6 +164,46 @@ def flying_capacitor_currents(
     )
 
 
+def build_control(
+    technique: Technique | None,
+    packs: PackBatch,
+    component: FloatArray,
+    frequency_hz: FloatArray,
+    config: ProjectConfig,
+    track_load: bool = False,
+    gate_balancing: bool = False,
+) -> StepControl:
+    sim = config.sim
+    r1_ohm, _, gain, cross, offset = _rc_branch(packs, config)
+    if technique is None:
+        currents, element_loss = no_balancing_flow, no_element_loss_w
+        parameter = np.zeros(packs.n_packs)
+    else:
+        _validate_inputs(technique, packs, component, frequency_hz)
+        currents = _current_model(technique, config)
+        element_loss = _element_loss_model(technique, config)
+        parameter = _technique_parameter(technique, component, frequency_hz, packs.r0_ohm, config)
+    tilt = packs.ocv_tilt_v_per_soc
+    return StepControl(
+        dynamics=PackDynamics(
+            r0_ohm=packs.r0_ohm,
+            r1_ohm=r1_ohm[:, None],
+            rc_gain=gain[:, None],
+            rc_cross=cross[:, None],
+            rc_offset=offset[:, None],
+            soc_per_amp_step=soc_per_amp_step(sim.dt_s, packs.capacity_ah),
+            technique_parameter=parameter,
+            ocv_tilt_v_per_soc=None if tilt is None else tilt[:, None],
+        ),
+        currents=currents,
+        element_loss=element_loss,
+        curve=build_ocv_curve(config.cell),
+        dt_s=sim.dt_s,
+        balance_threshold=sim.soc_tolerance if gate_balancing else None,
+        track_load=track_load,
+    )
+
+
 def simulate(
     technique: Technique,
     packs: PackBatch,
@@ -164,98 +212,58 @@ def simulate(
     config: ProjectConfig,
     trace: bool = False,
 ) -> BalanceResult:
-    _validate_inputs(technique, packs, component, frequency_hz)
-    sim, cell = config.sim, config.cell
-    model = _current_model(technique, config)
-    element_loss = _element_loss_model(technique, config)
-    curve = build_ocv_curve(cell)
+    control = build_control(technique, packs, component, frequency_hz, config)
+    sim = config.sim
     n_steps = round(sim.t_max_s / sim.dt_s)
     trace_every = max(1, round(sim.trace_interval_s / sim.dt_s))
 
     n = packs.n_packs
-    r1_ohm, c1_farad, gain, cross, offset = _rc_branch(packs, config)
+    c1_farad = _rc_branch(packs, config)[1]
     balancing_time = np.full(n, sim.t_max_s)
     balanced = np.zeros(n, dtype=bool)
-    totals = {key: np.zeros(n) for key in ("removed", "transferred", *LEDGER_KEYS)}
+    totals = {key: np.zeros(n) for key in LEDGER_KEYS}
     v1_full = np.zeros_like(packs.soc0)
     soc_full = packs.soc0.copy()
     trace_time: list[float] = []
     trace_soc: list[FloatArray] = []
+    index = np.arange(n)
+    state = PackState.initial(packs.soc0)
 
-    live: dict[str, FloatArray] = {
-        "index": np.arange(n),
-        "soc": packs.soc0.copy(),
-        "v1": np.zeros_like(packs.soc0),
-        "r0": packs.r0_ohm,
-        "r1": r1_ohm[:, None],
-        "gain": gain[:, None],
-        "cross": cross[:, None],
-        "offset": offset[:, None],
-        "soc_step": soc_per_amp_step(sim.dt_s, packs.capacity_ah),
-        "parameter": _technique_parameter(technique, component, frequency_hz, packs.r0_ohm, config),
-        "removed": np.zeros(n),
-        "transferred": np.zeros(n),
-        "element_loss": np.zeros(n),
-        "r0_loss": np.zeros(n),
-        "r1_loss": np.zeros(n),
-        "r0_per_link_loss": np.zeros(n),
-    }
-    if packs.ocv_tilt_v_per_soc is not None:
-        live["tilt"] = packs.ocv_tilt_v_per_soc[:, None]
-
-    for step in range(n_steps + 1):
-        soc = live["soc"]
-        done = soc.max(axis=1) - soc.min(axis=1) < sim.soc_tolerance
+    for step_number in range(n_steps + 1):
+        done = state.spread < sim.soc_tolerance
         if done.any():
-            finished = live["index"][done]
-            balancing_time[finished] = step * sim.dt_s
+            finished = index[done]
+            balancing_time[finished] = step_number * sim.dt_s
             balanced[finished] = True
-            _store(totals, v1_full, soc_full, live, finished, done)
+            _store(totals, v1_full, soc_full, state, finished, done)
             keep = ~done
-            live = {key: live[key][keep] for key in live}
-        if trace and step % trace_every == 0:
-            soc_full[live["index"]] = live["soc"]
-            trace_time.append(step * sim.dt_s)
+            state, index = state.select(keep), index[keep]
+            control = control.with_dynamics(control.dynamics.select(keep))
+        if trace and step_number % trace_every == 0:
+            soc_full[index] = state.soc
+            trace_time.append(step_number * sim.dt_s)
             trace_soc.append(soc_full.copy())
-        if live["index"].size == 0 or step == n_steps:
+        if index.size == 0 or step_number == n_steps:
             break
-        soc, v1, r0 = live["soc"], live["v1"], live["r0"]
-        ocv = open_circuit_voltage(soc, curve)
-        if "tilt" in live:
-            ocv = ocv + live["tilt"] * (soc - TILT_PIVOT_SOC)
-        emf = ocv - v1
-        flow = model(soc, ocv, emf, r0, live["parameter"])
-        current = flow.cell_current_a
-        live["removed"] += flow.removed_w * sim.dt_s
-        live["transferred"] += flow.delivered_w * sim.dt_s
-        live["element_loss"] += element_loss(flow, emf, r0, live["parameter"]) * sim.dt_s
-        live["r0_loss"] += np.einsum("ij,ij->i", current**2, r0) * sim.dt_s
-        live["r0_per_link_loss"] += per_link_r0_loss_w(flow, r0) * sim.dt_s
-        v1_target = current * live["r1"]
-        weights = RCSquareWeights(sim.dt_s, live["cross"], live["offset"])
-        live["r1_loss"] += (
-            rc_branch_square_integral(v1, v1_target, weights).sum(axis=1) / live["r1"][:, 0]
-        )
-        soc -= current * live["soc_step"]
-        v1 += live["gain"] * (v1_target - v1)
+        state = step(state, None, control)
 
-    _store(totals, v1_full, soc_full, live, live["index"], np.ones(live["index"].size, bool))
-    if trace and step % trace_every != 0:
-        trace_time.append(step * sim.dt_s)
+    _store(totals, v1_full, soc_full, state, index, np.ones(index.size, bool))
+    if trace and step_number % trace_every != 0:
+        trace_time.append(step_number * sim.dt_s)
         trace_soc.append(soc_full.copy())
     return BalanceResult(
         balancing_time_s=balancing_time,
-        energy_removed_j=totals["removed"],
-        energy_transferred_j=totals["transferred"],
+        energy_removed_j=totals["removed_j"],
+        energy_transferred_j=totals["transferred_j"],
         balanced=balanced,
         trace_time_s=np.array(trace_time),
         trace_soc=np.array(trace_soc).reshape(len(trace_soc), *soc_full.shape),
         final_soc=soc_full,
-        element_loss_j=totals["element_loss"],
-        r0_loss_j=totals["r0_loss"],
-        r1_loss_j=totals["r1_loss"],
+        element_loss_j=totals["element_loss_j"],
+        r0_loss_j=totals["r0_loss_j"],
+        r1_loss_j=totals["r1_loss_j"],
         c1_stored_j=0.5 * c1_farad * (v1_full**2).sum(axis=1),
-        r0_per_link_loss_j=totals["r0_per_link_loss"],
+        r0_per_link_loss_j=totals["r0_per_link_loss_j"],
     )
 
 
@@ -296,14 +304,14 @@ def _store(
     totals: dict[str, FloatArray],
     v1_full: FloatArray,
     soc_full: FloatArray,
-    live: dict[str, FloatArray],
+    state: PackState,
     finished: FloatArray,
     mask: BoolArray,
 ) -> None:
     for key in totals:
-        totals[key][finished] = live[key][mask]
-    v1_full[finished] = live["v1"][mask]
-    soc_full[finished] = live["soc"][mask]
+        totals[key][finished] = getattr(state, key)[mask]
+    v1_full[finished] = state.v1_volt[mask]
+    soc_full[finished] = state.soc[mask]
 
 
 def _first_crossing(time_s: FloatArray, spread: FloatArray, level: float) -> float:

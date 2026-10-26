@@ -146,6 +146,20 @@ class IdentificationSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class DriveCycleSpec:
+    lower_voltage_v: float = 2.8
+    upper_voltage_v: float = 4.2
+    charge_c_rate: float = 0.5
+    max_cycle_repeats: int = 20
+    charge_horizon_s: int = 10800
+    primary_cycle: str = "Mixed1"
+    profile_step_s: float = 1.0
+    trace_interval_s: float = 10.0
+    soc_conservation_tolerance: float = 1e-9
+    ledger_tolerance: float = 0.01
+
+
+@dataclass(frozen=True, slots=True)
 class ConverterCheckSpec:
     soc_pairs: tuple[tuple[float, float], ...] = ((0.55, 0.50), (0.51, 0.50))
     buck_boost_points: tuple[tuple[float, float], ...] = (

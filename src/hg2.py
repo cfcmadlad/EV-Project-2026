@@ -27,9 +27,11 @@ class TestKind(StrEnum):
     HWFET = "HWFET"
     LA92 = "LA92"
     US06 = "US06"
+    MIXED = "Mixed"
 
 
 DRIVE_CYCLES = (TestKind.UDDS, TestKind.HWFET, TestKind.LA92, TestKind.US06)
+MIXED_PATTERN = re.compile(r"^Mixed(?P<index>\d)$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,6 +61,8 @@ def classify(file_name: str) -> tuple[int, TestKind]:
         raise ValueError(f"unrecognised file name {file_name}")
     kinds = {kind.value: kind for kind in TestKind}
     descriptor = match["kind"]
+    if MIXED_PATTERN.match(descriptor):
+        return int(match["test"]), TestKind.MIXED
     if descriptor not in kinds:
         raise ValueError(f"unrecognised test descriptor {descriptor}")
     return int(match["test"]), kinds[descriptor]
@@ -119,9 +123,11 @@ def charge_throughput_ah(time_s: FloatArray, discharge_a: FloatArray) -> FloatAr
     return np.concatenate(([0.0], np.cumsum(increments)))
 
 
-def load_all(directory: Path) -> dict[TestKind, list[Recording]]:
+def load_all(directory: Path, include_mixed: bool = False) -> dict[TestKind, list[Recording]]:
     recordings: dict[TestKind, list[Recording]] = {}
     for path in sorted(directory.glob("*.csv")):
+        if not include_mixed and classify(path.name)[1] is TestKind.MIXED:
+            continue
         recording = load_recording(path)
         recordings.setdefault(recording.kind, []).append(recording)
     return recordings
