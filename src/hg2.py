@@ -123,11 +123,19 @@ def charge_throughput_ah(time_s: FloatArray, discharge_a: FloatArray) -> FloatAr
     return np.concatenate(([0.0], np.cumsum(increments)))
 
 
-def load_all(directory: Path, include_mixed: bool = False) -> dict[TestKind, list[Recording]]:
+def load_all(
+    directory: Path, include_mixed: bool = False, rejected: dict[str, str] | None = None
+) -> dict[TestKind, list[Recording]]:
     recordings: dict[TestKind, list[Recording]] = {}
     for path in sorted(directory.glob("*.csv")):
         if not include_mixed and classify(path.name)[1] is TestKind.MIXED:
             continue
-        recording = load_recording(path)
+        try:
+            recording = load_recording(path)
+        except ValueError as error:
+            if rejected is None:
+                raise
+            rejected[path.name] = str(error)
+            continue
         recordings.setdefault(recording.kind, []).append(recording)
     return recordings

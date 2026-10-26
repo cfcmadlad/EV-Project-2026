@@ -45,7 +45,7 @@ GROUPS: dict[str, tuple[tuple[str, ...], re.Pattern[str]]] = {
     "mixed25": (("25degC",), re.compile(r"^\d+_Mixed\d\.csv$")),
     "temperature_fits": (
         ("0degC", "10degC", "40degC"),
-        re.compile(r"^\d+_(C20DisCh|HPPC|UDDS|LA92)\.csv$"),
+        re.compile(r"^\d+_(C20DisCh|HPPC|Cap_1C|UDDS|LA92)\.csv$"),
     ),
     "soc_cycles": (
         TEMPERATURE_FOLDERS,

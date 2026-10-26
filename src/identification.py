@@ -185,6 +185,7 @@ def usable_drive_cycles(recordings: dict[TestKind, list[Recording]]) -> dict[Tes
     return {
         kind: float(np.abs(recordings[kind][0].current_a).max()) > ZERO_CURRENT_A
         for kind in DRIVE_CYCLES
+        if kind in recordings
     }
 
 
@@ -199,7 +200,7 @@ def replay_all(
     metrics: dict[str, dict[str, ReplayMetrics]] = {}
     replays: dict[str, dict[str, Replay]] = {}
     for kind in DRIVE_CYCLES:
-        if not usable[kind]:
+        if not usable.get(kind, False):
             continue
         recording = recordings[kind][0]
         runs = {
@@ -230,7 +231,7 @@ def passes(metrics: ReplayMetrics, spec: IdentificationSpec) -> bool:
 def check_models(
     metrics: dict[str, dict[str, ReplayMetrics]], spec: IdentificationSpec
 ) -> dict[str, object]:
-    gated = (TestKind.UDDS.value, TestKind.LA92.value)
+    gated = tuple(cycle for cycle in (TestKind.UDDS.value, TestKind.LA92.value) if cycle in metrics)
     verdict = {
         name: all(passes(metrics[cycle][name], spec) for cycle in gated)
         for name in (MODEL_1RC, MODEL_2RC, "lumped", "assumed")

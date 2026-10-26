@@ -1005,3 +1005,43 @@ The 1 % criterion is met only by the buck-boost during charging. Passive balanci
 - One pack and one cycle support the headline numbers: the claims are limited to this pack and these measured cycles.
 
 Figures: `results/drive_cycle_spread.png`, `results/drive_cycle_usable_capacity.png`.
+
+## s. Temperature fits and SOC-error sensitivity (final phase, block B)
+
+### Temperature fits
+
+**Method.** The Phase 1 pipeline (C/20 OCV, HPPC pulse fits, 1RC then 2RC, same selection rule and thresholds: UDDS and LA92 at most 30 mV over the whole cycle and 20 mV in the 20 to 80 % SOC window) was run on the 0, 10, 25 and 40 °C folders of the dataset (`scripts/fetch_hg2.py --group temperature_fits`, `python -m scripts.identify_temperature`). Nothing is fitted on the cycles used for validation. The cached tables are in `data/processed/hg2_temperature.json`; the simulator itself stays at 25 °C.
+
+| Temperature | Capacity C/20 (Ah) | OCV at 50 % (V) | R0 (mΩ) | R1, single branch (mΩ) | Kept model | UDDS whole / window RMSE (mV) | Result |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 °C | 2.599 | 3.768 | 30.2 | 59.4 | 2RC | 38.5 / 33.2 | FAIL |
+| 10 °C | 2.649 | 3.767 | 18.0 | 48.3 | 2RC | 38.4 / 28.1 | FAIL |
+| 25 °C | 2.781 | 3.740 | 11.6 | 35.2 | 2RC | 28.5 / 16.6 | PASS |
+| 40 °C | 2.690 | 3.759 | 10.1 | 28.8 | 2RC | 27.3 / 12.8 | PASS |
+
+The 1RC model fails at every temperature, so the 2RC model is kept as in Phase 1. The low-temperature failures (also LA92 at 0 °C: 45.2 mV) are a result: a SOC-independent two-branch model does not capture the stronger SOC dependence of the resistance in the cold. R0 over temperature is fitted with an Arrhenius form by least squares on ln R0 against 1/T: Ea = 0.201 eV, bootstrap 95 % interval 0.194 to 0.206 eV (500 resamples of the HPPC pulse fits). The Arrhenius form describes the data poorly: the largest deviation of the fit from a measured R0 is 13.5 % (FAIL against a 10 % limit), since R0 flattens above 25 °C. The interval therefore only reflects measurement noise, not this misfit. The OCV at 50 % SOC is 27 mV (0 °C), 27 mV (10 °C) and 19 mV (40 °C) higher than at 25 °C; it does not vary monotonically with temperature (linear slope -0.38 mV/K), and each OCV is normalised by that temperature's own C/20 capacity.
+
+**Data issue.** `582_LA92.csv` (10 °C) is spliced: the first rows run out of time order with blanks, so the file fails the monotonic-time check and is rejected, not repaired. 10 °C is therefore validated on UDDS only.
+
+### SOC-error sensitivity
+
+**Method.** The controller acts on SOC_est = SOC_true + b with b fixed per cell per run, b ~ N(0, σ²), σ in {0, 1, 3} % SOC, on 200 random packs (random 2 to 10 % spreads, same packs and same unit draws for every σ and technique), baseline component values, and stops when the estimated spread is below 1 %. The cap is 12 h (`SocErrorSpec.max_balancing_h`) instead of 48 h to keep `run_all.py` fast.
+
+| Technique | σ (% SOC) | True final spread median / 95th pct (%) | Packs above 1 % | Extra energy, median (J) | Time ratio, median |
+| --- | --- | --- | --- | --- | --- |
+| Passive | 1 | 1.87 / 3.75 | 86 % | +322 | 1.09 |
+| Passive | 3 | 5.54 / 10.2 | 99 % | +1889 | 1.52 |
+| Buck-boost | 1 | 1.91 / 3.62 | 87 % | +8.7 | 1.10 |
+| Buck-boost | 3 | 5.68 / 10.3 | 100 % | +50 | 1.50 |
+| Flying capacitor | 1 | 0.73 / 2.91 | 40 % | +0.10 | 10.5 (censored) |
+| Flying capacitor | 3 | 0.00 / 3.54 | 23 % | +0.27 | 13.9 (censored) |
+
+A 10 mV cell voltage error is 1.07 % SOC at 50 % SOC (fitted OCV slope 9.35 mV per % SOC), so ordinary voltage-sensing error already acts like the σ = 1 % row. In this model the flying-capacitor link current follows the true voltage difference while the controller waits for the estimated spread, so 78 % (σ = 1 %) to 98 % (σ = 3 %) of packs never reach the estimated criterion before the cap; their true spread ends near zero (the cell voltages are equalised) and their times are censored. That is a property of the model, not a result to trust for hardware. With σ = 0 the study reproduces the deterministic simulation exactly (bitwise, 20 packs per technique, checked by a test and by `soc_error.sigma_zero_reproduces_deterministic`).
+
+**Assumptions.**
+- Nominal chamber temperatures (0, 10, 25, 40 °C) are used in the Arrhenius fit; per-temperature OCV is built from that temperature's own C/20 data.
+- The bootstrap for Ea resamples each temperature's pulse fits (same procedure as Phase 1) and refits the line per resample.
+- One bias per cell per run, no drift and no dependence on current or SOC.
+- 48 h cap reduced to 12 h for this study only; packs that reach the cap are reported through `estimated_criterion_reached_fraction`.
+
+Figures: `results/params_vs_temperature.png`, `results/soc_error_true_spread.png`.

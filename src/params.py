@@ -160,6 +160,16 @@ class DriveCycleSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class SocErrorSpec:
+    sigma_percent: tuple[float, ...] = (0.0, 1.0, 3.0)
+    packs: int = 200
+    voltage_error_mv: float = 10.0
+    spread_tail_percent: float = 95.0
+    max_balancing_h: float = 12.0
+    deterministic_check_packs: int = 20
+
+
+@dataclass(frozen=True, slots=True)
 class ConverterCheckSpec:
     soc_pairs: tuple[tuple[float, float], ...] = ((0.55, 0.50), (0.51, 0.50))
     buck_boost_points: tuple[tuple[float, float], ...] = (

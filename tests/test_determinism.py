@@ -7,9 +7,11 @@ from src.config import CONFIG, PlotConfig
 from src.params import (
     CheckSpec,
     DatasetSpec,
+    DriveCycleSpec,
     IdentificationSpec,
     MLEvalSpec,
     MLSpec,
+    SocErrorSpec,
     SweepSpec,
 )
 
@@ -21,6 +23,10 @@ SMALL_CONFIG = replace(
     checks=CheckSpec(packs_per_technique=6, dt_scaling_packs=2, dt_scaling_steps_s=(1.0, 0.5)),
     identification=IdentificationSpec(bootstrap_resamples=8),
     plot=PlotConfig(dpi=40),
+    drive_cycle=DriveCycleSpec(max_cycle_repeats=1, charge_horizon_s=3600),
+    soc_error=SocErrorSpec(
+        packs=6, max_balancing_h=4.0, deterministic_check_packs=3, sigma_percent=(0.0, 3.0)
+    ),
     ml_eval=MLEvalSpec(
         n_folds=3,
         conformal_repeats=2,

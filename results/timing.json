@@ -1,42 +1,42 @@
 {
   "speedup": {
-    "simulation_time_per_pack_s": 0.004116129785000036,
-    "prediction_time_per_pack_s": 2.7210082499967333e-05,
-    "speedup": 151.27222730783626
+    "simulation_time_per_pack_s": 0.0038448036014999618,
+    "prediction_time_per_pack_s": 2.7091488333326198e-05,
+    "speedup": 141.9192461556397
   },
   "ml_eval": {
     "label": "host CPU, not target hardware",
     "batch_1": {
       "per_pack_s": {
-        "simulator": 0.4701957053333293,
-        "physics": 0.0017615613333722042,
-        "hgb": 0.0034233790000447093,
-        "hybrid": 0.005055661666726034
+        "simulator": 0.4475722883333522,
+        "physics": 0.0017933143332508432,
+        "hgb": 0.0030551486667415397,
+        "hybrid": 0.005048912666552496
       },
       "speedup_over_simulator": {
         "simulator": 1.0,
-        "physics": 266.91986048150875,
-        "hgb": 137.34842251681408,
-        "hybrid": 93.00379185338574
+        "physics": 249.57826970691323,
+        "hgb": 146.49771161896,
+        "hybrid": 88.64726286481084
       },
       "n_packs": 3
     },
     "batch_1000": {
       "per_pack_s": {
-        "simulator": 0.006384603577577797,
-        "physics": 1.8859488488384966e-05,
-        "hgb": 3.889207207200477e-05,
-        "hybrid": 6.259905004996442e-05
+        "simulator": 0.005333331558558639,
+        "physics": 1.8156280280241196e-05,
+        "hgb": 3.634184084110491e-05,
+        "hybrid": 5.7961768768771186e-05
       },
       "speedup_over_simulator": {
         "simulator": 1.0,
-        "physics": 338.53535219207544,
-        "hgb": 164.16208336129134,
-        "hybrid": 101.9920202060866
+        "physics": 293.74582658115855,
+        "hgb": 146.75457916062152,
+        "hybrid": 92.01464468475895
       },
       "n_packs": 999
     }
   },
-  "physics_checks_s": 16.89009077899982,
-  "run_all_s": 99.15410996300011
+  "physics_checks_s": 16.44865004500025,
+  "run_all_s": 110.3098043949999
 }

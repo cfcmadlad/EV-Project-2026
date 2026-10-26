@@ -37,8 +37,11 @@ from src.plots import (
     plot_sweep,
 )
 from src.predictor import PredictorReport, train_and_evaluate
+from src.soc_error import soc_error_block
 from src.spice_check import converter_check
 from src.spice_plots import plot_current_parity
+from src.temperature import temperature_block
+from src.temperature_plots import plot_params_vs_temperature, plot_soc_error
 from src.uncertainty import (
     BOOTSTRAP_PATH,
     IDENTIFICATION_PATH,
@@ -461,6 +464,19 @@ def _run_stages(
             drive_traces, config.sim.soc_tolerance, results_dir / "drive_cycle_spread", config.plot
         )
         plot_drive_capacity(drive_block, results_dir / "drive_cycle_usable_capacity", config.plot)
+    temperature_result = temperature_block(config)
+    if temperature_result["status"] == "ok":
+        plot_params_vs_temperature(
+            temperature_result, results_dir / "params_vs_temperature", config.plot
+        )
+    soc_error_result, soc_error_study = soc_error_block(config, streams["soc_error"])
+    plot_soc_error(
+        soc_error_study,
+        config.soc_error.sigma_percent,
+        config.sim.soc_tolerance,
+        results_dir / "soc_error_true_spread",
+        config.plot,
+    )
     write_baseline_csv(table, results_dir / "baseline_table.csv")
     write_dataset_csv(dataset, results_dir / "dataset.csv")
     save_figures(baseline, sweeps, dataset, report, config, results_dir)
@@ -489,6 +505,8 @@ def _run_stages(
         ),
         "ml_eval": ml_eval_block,
         "drive_cycle": drive_block,
+        "temperature": temperature_result,
+        "soc_error": soc_error_result,
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start

@@ -172,6 +172,7 @@ def build_control(
     config: ProjectConfig,
     track_load: bool = False,
     gate_balancing: bool = False,
+    soc_bias: FloatArray | None = None,
 ) -> StepControl:
     sim = config.sim
     r1_ohm, _, gain, cross, offset = _rc_branch(packs, config)
@@ -194,6 +195,7 @@ def build_control(
             soc_per_amp_step=soc_per_amp_step(sim.dt_s, packs.capacity_ah),
             technique_parameter=parameter,
             ocv_tilt_v_per_soc=None if tilt is None else tilt[:, None],
+            soc_bias=soc_bias,
         ),
         currents=currents,
         element_loss=element_loss,
@@ -211,8 +213,9 @@ def simulate(
     frequency_hz: FloatArray,
     config: ProjectConfig,
     trace: bool = False,
+    soc_bias: FloatArray | None = None,
 ) -> BalanceResult:
-    control = build_control(technique, packs, component, frequency_hz, config)
+    control = build_control(technique, packs, component, frequency_hz, config, soc_bias=soc_bias)
     sim = config.sim
     n_steps = round(sim.t_max_s / sim.dt_s)
     trace_every = max(1, round(sim.trace_interval_s / sim.dt_s))
@@ -230,7 +233,7 @@ def simulate(
     state = PackState.initial(packs.soc0)
 
     for step_number in range(n_steps + 1):
-        done = state.spread < sim.soc_tolerance
+        done = state.estimated_spread(control.dynamics.soc_bias) < sim.soc_tolerance
         if done.any():
             finished = index[done]
             balancing_time[finished] = step_number * sim.dt_s

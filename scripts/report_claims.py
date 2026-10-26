@@ -297,6 +297,68 @@ def drive_cycle_claims() -> list[CheckedClaim]:
     return claims
 
 
+def temperature_claims() -> list[CheckedClaim]:
+    claims = []
+    for temperature in (0, 10, 25, 40):
+        for cycle in ("UDDS", "LA92"):
+            if temperature == 10 and cycle == "LA92":
+                continue
+            for field, label, limit in (
+                ("rmse_whole_v", "whole cycle", 0.030),
+                ("rmse_window_v", "20 to 80 % SOC window", 0.020),
+            ):
+                claims.append(
+                    CheckedClaim(
+                        f"Kept fitted model reproduces measured {cycle} at {temperature} C, "
+                        f"{label} RMSE (HPPC fit at that temperature only)",
+                        f"temperature.per_temperature.{temperature}.validation.{cycle}.{field}",
+                        f"<= {limit * 1000:.0f} mV",
+                        at_most(limit),
+                        millivolts,
+                        "10 C LA92 file is unusable (non-monotonic time)"
+                        if temperature == 10
+                        else "",
+                    )
+                )
+    claims += [
+        CheckedClaim(
+            "R0 of the fitted cell follows one Arrhenius law over 0 to 40 C (largest relative "
+            "deviation of the fit from the four measured values)",
+            "temperature.arrhenius.max_relative_residual",
+            "<= 10 %",
+            at_most(0.10),
+            percent,
+            "bootstrap interval on Ea reflects measurement noise only, not this misfit",
+        ),
+        CheckedClaim(
+            "A controller acting on SOC estimates with 1 % SOC bias leaves most buck-boost packs "
+            "above the 1 % true spread target",
+            "soc_error.techniques.buck_boost.sigma_1pct.fraction_true_spread_above_tolerance",
+            "> 50 % of packs",
+            lambda v: float(v) > 0.5,
+            percent,
+            "200 random packs, fixed seed, baseline component values",
+        ),
+        CheckedClaim(
+            "A controller acting on SOC estimates with 1 % SOC bias leaves most passive packs "
+            "above the 1 % true spread target",
+            "soc_error.techniques.passive.sigma_1pct.fraction_true_spread_above_tolerance",
+            "> 50 % of packs",
+            lambda v: float(v) > 0.5,
+            percent,
+            "200 random packs, fixed seed, baseline component values",
+        ),
+        CheckedClaim(
+            "SOC-error study with sigma = 0 reproduces the deterministic simulation exactly",
+            "soc_error.sigma_zero_reproduces_deterministic",
+            "bitwise equal",
+            is_true,
+            boolean,
+        ),
+    ]
+    return claims
+
+
 def checked_claims() -> list[CheckedClaim]:
     claims = [
         CheckedClaim(
@@ -366,10 +428,21 @@ def checked_claims() -> list[CheckedClaim]:
                 "residual is first order in dt (halves when dt halves)",
             )
         )
-    return claims + drive_cycle_claims()
+    return claims + drive_cycle_claims() + temperature_claims()
 
 
 UNSUPPORTED = (
+    UnsupportedClaim(
+        "Flying-capacitor balancing is robust to SOC estimation error in general",
+        "in this model the link current follows the true voltage difference while the controller "
+        "stops on the estimate, so 78 % to 98 % of packs never reach the estimated criterion in "
+        "12 h; the result is a property of the model, not a hardware measurement",
+    ),
+    UnsupportedClaim(
+        "Balancing results at 0, 10 or 40 C",
+        "only the cell parameters were fitted per temperature; no temperature-dependent "
+        "balancing study and the simulator stays at 25 C",
+    ),
     UnsupportedClaim(
         "Drive-cycle balancing gains hold for other packs, spreads, cycles or temperatures",
         "one baseline pack and measured Mixed cycles of one cell at 25 C; no statistics over packs",

@@ -38,6 +38,7 @@ class PackDynamics:
     soc_per_amp_step: FloatArray
     technique_parameter: FloatArray
     ocv_tilt_v_per_soc: FloatArray | None = None
+    soc_bias: FloatArray | None = None
 
     def select(self, mask: BoolArray) -> "PackDynamics":
         return _select(self, mask)
@@ -85,6 +86,12 @@ class PackState:
     @property
     def spread(self) -> FloatArray:
         return self.soc.max(axis=1) - self.soc.min(axis=1)
+
+    def estimated_spread(self, soc_bias: FloatArray | None) -> FloatArray:
+        if soc_bias is None:
+            return self.spread
+        estimate = self.soc + soc_bias
+        return estimate.max(axis=1) - estimate.min(axis=1)
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,9 +155,10 @@ def step(state: PackState, pack_current_a: FloatArray | None, control: StepContr
     emf = ocv - v1
     if pack_current_a is not None:
         emf = emf - pack_current_a[:, None] * r0
-    flow = control.currents(soc, ocv, emf, r0, dynamics.technique_parameter)
+    decision_soc = soc if dynamics.soc_bias is None else soc + dynamics.soc_bias
+    flow = control.currents(decision_soc, ocv, emf, r0, dynamics.technique_parameter)
     if control.balance_threshold is not None:
-        active = state.spread >= control.balance_threshold
+        active = state.estimated_spread(dynamics.soc_bias) >= control.balance_threshold
         if not active.all():
             flow = _gate(flow, active)
     balancing = flow.cell_current_a
