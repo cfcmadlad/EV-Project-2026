@@ -311,11 +311,21 @@ class SocEstimationSpec:
     seeds: tuple[int, ...] = (0, 1, 2)
     epochs: int = 12
     batch_size: int = 256
-    train_stride_s: int = 3
+    train_stride_s: int = 6
     learning_rate: float = 3e-3
-    ekf_process_std_grid: tuple[float, ...] = (1e-5, 3e-5, 1e-4, 3e-4)
-    ekf_measurement_std_v_grid: tuple[float, ...] = (0.005, 0.01, 0.02, 0.04)
+    ekf_process_std_grid: tuple[float, ...] = (1e-7, 1e-6, 1e-5, 1e-4)
+    ekf_measurement_std_v_grid: tuple[float, ...] = (0.01, 0.02, 0.04, 0.08, 0.16)
     ekf_initial_std: float = 0.2
     pool_window: tuple[float, float] = (0.3, 0.7)
     pool_min_time_s: float = 300.0
     feedthrough_packs: int = 200
+
+
+@dataclass(frozen=True, slots=True)
+class ScalingSpec:
+    cells: tuple[int, ...] = (4, 8, 16, 32)
+    packs: int = 200
+    max_balancing_h: float = 1000.0
+    deadband_fraction: float = 0.9
+    large_n_min: int = 8
+    slope_tolerance: float = 0.25

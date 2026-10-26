@@ -359,6 +359,118 @@ def temperature_claims() -> list[CheckedClaim]:
     return claims
 
 
+def verdict_is(expected: str) -> Callable[[object], bool]:
+    return lambda value: value == expected
+
+
+def text(value: object) -> str:
+    return str(value)
+
+
+def soc_estimation_claims() -> list[CheckedClaim]:
+    claims = []
+    scope = "RMSE, Test A and Test B, margin above the GRU seed spread on both"
+    for scenario, label in (
+        ("nominal_inputs", "coulomb counting with a 0.5 % FS current offset"),
+        ("nominal_inputs_cc_at_tester_accuracy", "coulomb counting with a 0.1 % FS current offset"),
+    ):
+        base = f"soc_estimation.comparisons.{scenario}"
+        claims += [
+            CheckedClaim(
+                f"The GRU beats the EKF ({scope})",
+                f"{base}.gru_vs_ekf.verdict",
+                "gru_beats_ekf",
+                verdict_is("gru_beats_ekf"),
+                text,
+                "EKF on a 1RC model; GRU trained at 0, 25, 40 C",
+            )
+            if scenario == "nominal_inputs"
+            else None,
+            CheckedClaim(
+                f"The GRU beats {label} ({scope})",
+                f"{base}.gru_vs_cc.verdict",
+                "gru_beats_cc",
+                verdict_is("gru_beats_cc"),
+                text,
+            ),
+            CheckedClaim(
+                f"The EKF beats {label} ({scope})",
+                f"{base}.ekf_vs_cc.verdict",
+                "ekf_beats_cc",
+                verdict_is("ekf_beats_cc"),
+                text,
+            ),
+        ]
+    claims = [c for c in claims if c is not None]
+    for test_set in ("test_a", "test_b"):
+        claims.append(
+            CheckedClaim(
+                f"EKF error 300 s after a 20 % wrong start ({test_set}, mean absolute)",
+                f"soc_estimation.results.ekf.wrong_start.{test_set}.all."
+                "abs_error_at_300s_percent_mean",
+                "<= 2 % SOC",
+                at_most(2.0),
+                lambda v: f"{float(v):.3g} % SOC",
+            )
+        )
+    for technique in ("passive", "buck_boost"):
+        for estimator in ("ekf", "gru"):
+            claims.append(
+                CheckedClaim(
+                    f"Balancing on {estimator.upper()} SOC ({technique}) brings most packs "
+                    "to the 1 % true spread target",
+                    f"soc_estimation.feedthrough.techniques.{technique}.{estimator}."
+                    "fraction_true_spread_above_tolerance",
+                    "<= 50 % of packs above target",
+                    at_most(0.5),
+                    percent,
+                    "bias drawn from the measured error pool, 200 packs",
+                )
+            )
+    return claims
+
+
+def scaling_claims() -> list[CheckedClaim]:
+    claims = []
+    for profile, text_profile in (
+        ("step", "step initial profile"),
+        ("random", "random initial SOCs"),
+    ):
+        for key, label in (
+            ("passive", "passive shunt"),
+            ("buck_boost", "inductor buck-boost"),
+            ("flying_capacitor", "flying capacitor"),
+        ):
+            if profile == "random" and key == "flying_capacitor":
+                continue
+            claims.append(
+                CheckedClaim(
+                    f"{label}: balancing time vs N follows the derived power law ({text_profile})",
+                    f"scaling.profiles.{profile}.{key}.agrees_with_theory",
+                    "|fitted - theory slope| <= 0.25",
+                    is_true,
+                    boolean,
+                    "log-log fit over N >= 8",
+                )
+            )
+    for key, label in (
+        ("passive", "passive"),
+        ("buck_boost", "buck-boost"),
+        ("flying_capacitor", "flying capacitor"),
+    ):
+        claims.append(
+            CheckedClaim(
+                f"Phase 3 physics baseline for {label} still predicts balancing time at N = 32 "
+                "(random initial SOCs, median error)",
+                f"scaling.profiles.random.{key}.physics_time_median_abs_pct_error_by_n.32",
+                "<= 10 %",
+                at_most(10.0),
+                lambda v: f"{float(v):.3g} %",
+            )
+        )
+    return claims
+
+
 def checked_claims() -> list[CheckedClaim]:
     claims = [
         CheckedClaim(
@@ -428,10 +540,29 @@ def checked_claims() -> list[CheckedClaim]:
                 "residual is first order in dt (halves when dt halves)",
             )
         )
-    return claims + drive_cycle_claims() + temperature_claims()
+    return (
+        claims
+        + drive_cycle_claims()
+        + temperature_claims()
+        + soc_estimation_claims()
+        + scaling_claims()
+    )
 
 
 UNSUPPORTED = (
+    UnsupportedClaim(
+        "The GRU or EKF numbers describe other cells, other chemistries or aged cells",
+        "one cell, labels from integrated tester current, Mixed 3 absent at 0 and 10 C, no "
+        "validation data at 40 C",
+    ),
+    UnsupportedClaim(
+        "The 4-cell ML surrogate predicts strings with N != 4",
+        "its input layout is fixed at 4 cells; only the physics baselines were extended to N",
+    ),
+    UnsupportedClaim(
+        "Balancing time scales as N^2 for flying-capacitor strings of random cells",
+        "the N^2 slowest-mode law holds for smooth step profiles; random profiles scale slower",
+    ),
     UnsupportedClaim(
         "Flying-capacitor balancing is robust to SOC estimation error in general",
         "in this model the link current follows the true voltage difference while the controller "

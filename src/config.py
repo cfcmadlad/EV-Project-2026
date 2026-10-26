@@ -21,6 +21,7 @@ from src.params import (
     ParameterSet,
     PassiveSpec,
     SanitySpec,
+    ScalingSpec,
     SimSpec,
     SocErrorSpec,
     SocEstimationSpec,
@@ -104,6 +105,7 @@ class ProjectConfig:
     drive_cycle: DriveCycleSpec = DriveCycleSpec()
     soc_error: SocErrorSpec = SocErrorSpec()
     soc_estimation: SocEstimationSpec = SocEstimationSpec()
+    scaling: ScalingSpec = ScalingSpec()
     plot: PlotConfig = PlotConfig()
 
     @property

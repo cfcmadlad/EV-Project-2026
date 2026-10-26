@@ -1045,3 +1045,61 @@ A 10 mV cell voltage error is 1.07 % SOC at 50 % SOC (fitted OCV slope 9.35 mV p
 - 48 h cap reduced to 12 h for this study only; packs that reach the cap are reported through `estimated_criterion_reached_fraction`.
 
 Figures: `results/params_vs_temperature.png`, `results/soc_error_true_spread.png`.
+
+## t. SOC estimation: GRU against EKF and coulomb counting (final phase, block C)
+
+**Data and labels.** The drive cycles of the dataset (UDDS, HWFET, LA92, US06 and Mixed 1 to 8) at 0, 10, 25 and 40 °C, only the drive part of each file (status `TABLE`), downsampled to 1 s: current is the charge-preserving mean over the second, voltage and case temperature are taken at the end of the second. The reference SOC is 1 at the start of each file (the cell was charged to 4.2 V with a 50 mA cut-off before) minus the integrated tester current over the C/20 discharge capacity at that temperature (2.599, 2.649, 2.781, 2.690 Ah). The tester accuracy is 0.1 % of a 75 A full scale (dataset readme), so the label can itself drift by up to 75 mA times the cycle time; reported errors include that label uncertainty.
+
+**Fixed splits** (`data/processed/soc_splits.json`, committed before any training, with a test that train, validation and test files are disjoint). Train: Mixed 1 to 6 at 0, 25, 40 °C. Validation: Mixed 7. Test A: Mixed 8, UDDS, HWFET, LA92, US06 at 0, 25, 40 °C. Test B: every cycle at 10 °C. Nothing in Test A or B is used for training, tuning, early stopping or EKF tuning. Files that do not exist or are unusable are listed in the splits file and in `metrics.json`: Mixed 3 is absent at 0 and 10 °C; `562_Mixed4` to `Mixed8` (40 °C) are aborted runs (0.19 Ah, case at 23 °C), so 40 °C has train Mixed 1 to 3 but no validation or Mixed 8 file; HWFET at 25 °C has no current; LA92 at 10 °C is the spliced file of section s. The result is 14 train, 2 validation, 13 Test A and 10 Test B files.
+
+**Estimators.** (1) Coulomb counting from a correct and from a 20 % wrong start, with an injected current offset of 0.5 % of the tester full scale (0.375 A, the value the task prescribes) and, as a fairer baseline, 0.1 % (75 mA, the tester's stated accuracy). Without any offset it equals the label by construction. (2) EKF on the 1RC model (states SOC and V1), per-temperature OCV, capacity and 1RC parameters from the HPPC fits of section s; the process and measurement noise and the choice between constant and SOC-dependent 1RC parameters were grid-searched on the validation files only, by the mean RMSE over the nominal, wrong-start and injected-offset runs (chosen: SOC-dependent table, process std 1e-4, measurement std 20 mV). (3) GRU in PyTorch (CPU, deterministic algorithms, one thread): inputs V, I, case temperature over a sliding window, 1 layer, hidden size 32, output SOC at the window end, 3 seeds. The window was chosen on validation from {100, 300} s (RMSE 2.40 ± 0.06 % against 2.24 ± 0.11 %): 300 s. 3585 parameters, 1.008 M MACs per estimate (window 300 s), weights 17 kB each. Training took 130 to 165 s per model (`results/timing.json`); all runs used the full 12 epochs.
+
+**Metrics** (RMSE, MAE, max error over the time after the first 300 s, so every estimator is scored on the same samples; from `metrics.json` under `soc_estimation`). Test A pools 0, 25, 40 °C; Test B is the unseen 10 °C.
+
+| Estimator (nominal inputs unless noted) | Test A RMSE / MAE / max (% SOC) | Test B RMSE / MAE / max (% SOC) |
+| --- | --- | --- |
+| Coulomb counting, 0.5 % FS offset | 25.2 / 20.6 / 59.2 | 20.2 / 16.5 / 56.2 |
+| Coulomb counting, 0.1 % FS offset | 5.05 / 4.12 / 11.8 | 4.03 / 3.29 / 11.2 |
+| EKF | 4.96 / 4.14 / 16.9 | 6.18 / 5.70 / 15.0 |
+| GRU (mean of 3 seeds) | 2.49 ± 0.10 / 1.97 / 10.8 | 2.97 ± 0.07 / 2.44 / 9.9 |
+
+Robustness (RMSE, Test A / Test B): with 5 mV voltage noise the EKF is unchanged (4.96 / 6.17) and the GRU is unchanged (2.50 / 2.98). With the 0.5 % FS offset on the input current the EKF gives 4.09 / 5.34 and the GRU 3.48 / 4.64. From a start 20 % too low the EKF error 300 s later is 1.79 % (Test A) and 1.95 % (Test B) mean absolute, about the same as from a correct start, because with the prior used here the first voltage measurement already pulls the state; coulomb counting keeps the 20 % error (21 %). The GRU has no state to initialise: its first estimate comes at 300 s and its error there is 2.4 % (Test A), 1.25 % (Test B). By temperature the GRU RMSE is 3.14 (0 °C), 2.09 (25 °C), 2.09 (40 °C) and 2.97 (10 °C, unseen); the EKF 7.44, 3.27, 2.75 and 6.18.
+
+**Who beats whom** (rule: wins on RMSE on both Test A and Test B by more than the seed spread of the GRU, zero spread for the EKF and coulomb counting): the GRU beats the EKF (margins 2.5 and 3.2 points against spreads of 0.10 and 0.07) and coulomb counting at either offset; the EKF beats coulomb counting with the 0.5 % FS offset but has no verdict against coulomb counting with the 0.1 % FS offset (margin +0.08 on Test A, -2.1 on Test B). With the 0.5 % FS offset injected into all three, the GRU still beats the EKF (margins 0.6 and 0.7). The EKF is limited by its model: the 1RC model that feeds it misses the 30 mV validation limit at 25 °C and fails it more at 0 and 10 °C (section s).
+
+**Feed-through to balancing.** The SOC-error machinery of section s was rerun with the cell biases drawn from the measured error distribution (signed errors between 30 and 70 % SOC after 300 s, all Test A and B cycles, nominal inputs; std 3.0 % for the EKF and 1.8 % for the GRU) instead of a synthetic σ. True final spread, median and 95th percentile, 200 packs: passive 5.5 / 10.8 % (EKF) and 3.1 / 5.9 % (GRU); buck-boost 5.6 / 11.0 % and 3.3 / 6.1 %. At least 97 % of passive and buck-boost packs end above the 1 % target with either estimator, and the extra dissipated energy is +1951 J (EKF) and +451 J (GRU) for passive, +44 J and +4.6 J for buck-boost. The flying-capacitor result again reflects the model (links follow true voltage, the estimate only stops the run): 2 % (EKF) and 12 % (GRU) of packs reach the estimated criterion within 12 h. A real BMS built on these estimators would therefore not reach a 1 % true spread.
+
+**Assumptions.**
+- SOC reference from C/20 capacity per temperature; the cycle start is taken as 100 % SOC.
+- The 0.5 % full-scale injected offset is 0.375 A (full scale 75 A), a very large offset: coulomb counting without it is the label, so the 0.1 % row is the realistic coulomb-counting baseline.
+- The metric window starts at 300 s for all estimators (the GRU needs a full 300 s window); GRU and EKF are scored on the same cycles, the GRU every 2 s (6 s for robustness runs).
+- The GRU is trained on clean inputs only (no augmentation) and early stopping on the validation files never triggered within 12 epochs.
+- The best GRU for the feed-through is the seed with the lowest validation RMSE; the best EKF is the tuned one.
+
+Figures: `results/soc_est_test_traces.png`, `results/soc_est_error_summary.png`, `results/soc_est_wrong_init.png`. Reproduce with `python -m scripts.make_soc_splits` (already committed), `python -m scripts.train_gru` and `python -m scripts.evaluate_soc`.
+
+## u. Scaling to longer strings (final phase, block D)
+
+**Method.** All three techniques on N = 4, 8, 16, 32 cells in series (adjacent-cell links only), 200 random packs per N with the per-cell statistics of the 4-cell study (capacity ±5 %, R0 ±10 %, 2 to 10 % max-minus-min SOC spread over the whole string), baseline component values, 1 s steps, cap 1000 h. Results are cached by `python -m scripts.run_scaling` in `data/processed/scaling_results.json` (about 3 minutes). N = 96 was not run: it is left for later.
+
+**Needed model change.** With the fixed 0.2 % link deadband a long string can stall: 15 links each just under the deadband leave a 2.85 % spread that no link acts on (a test shows this). For N > 4 the deadband is therefore min(0.2 %, 0.9 × 1 % / (N - 1)); N = 4 is unchanged.
+
+**Theory.** Flying capacitor: the SOC dynamics are a path-graph diffusion, whose slowest mode decays at a rate proportional to 2 - 2 cos(π/N), so time ∝ N² for a smooth initial profile that excites that mode. Buck-boost: each link carries a fixed current, so time = largest charge crossing a link / link current; for a step profile (top half high) the middle link must pass N/2 cells' excess, time ∝ N; for independent random SOCs the crossing charge is a random-walk bridge, ∝ √N. Passive: cells drain independently to the lowest one, so time depends on the spread and component extremes, not on N. Both profiles were run: random SOCs (project statistics) and the step profile (same packs, SOCs replaced by a half-high, half-low step of the same spread).
+
+**Fitted log-log slopes of median time, N = 8 to 32** (agreement means within 0.25 of theory):
+
+| Technique | Random: fitted / theory | Step: fitted / theory | Step agrees |
+| --- | --- | --- | --- |
+| Passive | -0.05 / 0 | -0.04 / 0 | yes |
+| Buck-boost | 0.14 / 0.5 | 0.94 / 1.0 | yes (random: no) |
+| Flying capacitor | 0.77 / none | 1.98 / 1.99 | yes |
+
+Median times (h), N = 4 / 8 / 16 / 32, random: passive 2.21 / 2.33 / 2.38 / 2.17, buck-boost 0.39 / 0.47 / 0.50 / 0.57, flying capacitor 0.91 / 1.67 / 2.71 / 4.83. Step: buck-boost 0.78 / 1.73 / 3.51 / 6.34, flying capacitor 1.69 / 6.46 / 25.8 / 100. The laws are confirmed for the smooth step profile. For random SOCs the N² law does not apply: most modes start below the 1 % target, so the flying capacitor grows much more slowly (0.77), and the buck-boost grows far less than √N (0.14) because links work in parallel instead of through one planned crossing.
+
+**ML and physics baselines.** The 4-cell surrogate cannot represent N != 4 (fixed 4-cell inputs). The Phase 3 physics baselines are written for any N and were run unchanged. Median time error at N = 32 on random packs: passive 0 %, flying capacitor 3.3 % (95th percentile 25.7 %), buck-boost 39.8 % (95th percentile 154 %); the buck-boost planned-crossing formula degrades with N because the simulated links work concurrently. On step packs all three stay within 8 % (median). Median energy error stays below 15 % everywhere.
+
+**Assumptions.** Medians use balanced packs only (all packs balanced within the cap). The slope tolerance 0.25 and the N >= 8 fit range were fixed before looking at agreement. Figure: `results/scaling_time_vs_n.png`.
+
+## v. Status of the final phase
+
+Blocks A to D (sections r to u) are done and committed. Not done yet, left for later: block E (reinforcement-learning control under load), the N = 96 scaling run, and block F consolidation (rewrite of sections a, j, k for the final state, `results/FIGURES.md`, final privacy grep and double-run check). The claims file `results/claims.md` is current and contains FAIL rows that are results, not bugs (low-temperature validation, Arrhenius misfit, balancing on estimated SOC, physics baseline at N = 32 for buck-boost).

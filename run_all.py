@@ -37,7 +37,12 @@ from src.plots import (
     plot_sweep,
 )
 from src.predictor import PredictorReport, train_and_evaluate
+from src.scaling import scaling_block
+from src.scaling_plots import plot_scaling
 from src.soc_error import soc_error_block
+from src.soc_estimation.plots import plot_error_summary, plot_traces, plot_wrong_start
+from src.soc_estimation.report import RESULTS_PATH as SOC_RESULTS_PATH
+from src.soc_estimation.report import soc_estimation_block, timing_block
 from src.spice_check import converter_check
 from src.spice_plots import plot_current_parity
 from src.temperature import temperature_block
@@ -477,6 +482,19 @@ def _run_stages(
         results_dir / "soc_error_true_spread",
         config.plot,
     )
+    soc_estimation_result = soc_estimation_block(config)
+    if soc_estimation_result["status"] == "ok":
+        soc_cache = json.loads(SOC_RESULTS_PATH.read_text())
+        plot_traces(soc_cache["traces"], results_dir / "soc_est_test_traces", config.plot)
+        plot_error_summary(
+            soc_estimation_result["results"], results_dir / "soc_est_error_summary", config.plot
+        )
+        plot_wrong_start(
+            soc_cache["wrong_start_curves"], results_dir / "soc_est_wrong_init", config.plot
+        )
+    scaling_result = scaling_block(config)
+    if scaling_result["status"] == "ok":
+        plot_scaling(scaling_result, results_dir / "scaling_time_vs_n", config.plot)
     write_baseline_csv(table, results_dir / "baseline_table.csv")
     write_dataset_csv(dataset, results_dir / "dataset.csv")
     save_figures(baseline, sweeps, dataset, report, config, results_dir)
@@ -507,6 +525,8 @@ def _run_stages(
         "drive_cycle": drive_block,
         "temperature": temperature_result,
         "soc_error": soc_error_result,
+        "soc_estimation": soc_estimation_result,
+        "scaling": scaling_result,
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start
@@ -517,6 +537,7 @@ def _run_stages(
             "speedup": speedup,
         },
         "ml_eval": ml_timing,
+        "soc_estimation": timing_block(),
         "physics_checks_s": checks_time,
         "run_all_s": runtime,
     }
