@@ -16,6 +16,10 @@ def passive_element_loss_w(
     return np.einsum("ij,i->i", flow.cell_current_a**2, r_bleed_ohm)
 
 
+def rms_ratio(duty: float | FloatArray) -> float | FloatArray:
+    return 4.0 / (3.0 * duty)
+
+
 def buck_boost_element_loss_w(
     flow: StepFlow,
     emf: FloatArray,
@@ -39,6 +43,15 @@ def buck_boost_element_loss_w(
         (hardware.r_inductor_ohm + hardware.r_ds_on_ohm) * peak_a**2 * demagnetising_duty
     )
     link_loss = (on_interval_loss + off_interval_loss) / 3.0
+    if hardware.ripple_r0_loss:
+        r0_source = np.where(forward, r0[:, :-1], r0[:, 1:])
+        r0_sink = np.where(forward, r0[:, 1:], r0[:, :-1])
+        sink_duty = np.maximum(demagnetising_duty, 1e-9)
+        link_loss = (
+            link_loss
+            + r0_source * flow.link_source_a**2 * (rms_ratio(hardware.duty) - 1.0)
+            + r0_sink * flow.link_sink_a**2 * (rms_ratio(sink_duty) - 1.0)
+        )
     return np.where(flow.link_source_a > 0.0, link_loss, 0.0).sum(axis=1)
 
 

@@ -20,6 +20,7 @@ from src.config import (
     ProjectConfig,
     Technique,
 )
+from src.converter_audit import converter_audit_block
 from src.dataset import TARGET_NAMES, Dataset, generate_dataset
 from src.drive_cycle import drive_cycle_stage, load_profiles, population_block
 from src.drive_plots import plot_drive_capacity, plot_drive_spread
@@ -550,6 +551,7 @@ def _run_stages(
         "link_coupling": coupling_result,
         "drive_cycle_population": drive_population_result,
         "midsem_consistency": midsem_block(config, report.metrics),
+        "converter_audit": converter_audit_block(config, streams["audit"]),
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start

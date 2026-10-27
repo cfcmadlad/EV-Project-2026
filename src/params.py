@@ -57,11 +57,13 @@ class BuckBoostSpec:
     duty: float = 0.4
     r_inductor_ohm: float = 0.08
     r_ds_on_ohm: float = 0.02
+    ripple_r0_loss: bool = False
 
 
 class FlyingCapModel(StrEnum):
     MIDSEM = "midsem"
     TWO_PHASE = "two_phase"
+    COTH = "coth"
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,6 +126,7 @@ class CheckSpec:
     ledger_tolerance: float = 0.01
     dt_scaling_packs: int = 20
     coupling_packs: int = 100
+    audit_packs: int = 100
     dt_scaling_steps_s: tuple[float, ...] = (1.0, 0.5, 0.25)
     passive_closed_form_tolerance: float = 0.03
     charge_conservation_tolerance: float = 1e-9

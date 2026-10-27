@@ -582,6 +582,57 @@ def midsem_claims() -> list[CheckedClaim]:
 MIDSEM_R2 = {"balancing_time_s": 0.9726, "energy_dissipated_j": 0.9946}
 
 
+def converter_audit_claims() -> list[CheckedClaim]:
+    base = "converter_audit"
+    return [
+        CheckedClaim(
+            "Buck-boost cell R0 loss: the RMS (triangular) current model raises the baseline "
+            "dissipated energy compared with the average-current default (flag only, default "
+            "unchanged)",
+            f"{base}.buck_boost.ripple_r0.baseline.energy_ratio",
+            "reported; ratio > 1",
+            lambda v: float(v) > 1.0,
+            lambda v: f"{float(v):.4f}",
+            "default stays on average current until circuit validation",
+        ),
+        CheckedClaim(
+            "Energy ledger still closes with the RMS current flag on (100 random packs, "
+            "relative to removed energy)",
+            f"{base}.buck_boost.ripple_r0.dataset_range.ledger_gap_vs_removed_max_rms_model",
+            "<= 1 %",
+            at_most(0.01),
+            percent,
+        ),
+        CheckedClaim(
+            "Buck-boost link stays in discontinuous conduction for every cell voltage pair "
+            "from 3.0 to 4.2 V (D + D2 below 1)",
+            f"{base}.buck_boost.peak_current.dcm.discontinuous_everywhere",
+            "D + D2 < 1",
+            is_true,
+            boolean,
+            "margin 4 % at the corner",
+        ),
+        CheckedClaim(
+            "Worst-case inductor peak current over the L and f range stays below 20 A",
+            f"{base}.buck_boost.peak_current.worst_case.peak_current_a",
+            "<= 20 A",
+            at_most(20.0),
+            lambda v: f"{float(v):.3g} A",
+            "L = 10 uH, f = 10 kHz, 4.2 V; saturation rating of a real inductor not checked",
+        ),
+        CheckedClaim(
+            "The switched-capacitor form (1/fC) coth(1/(4 f R C)) equals the two-phase "
+            "flying-capacitor link formula for equal phase resistances",
+            f"{base}.flying_capacitor."
+            "coth_equals_two_phase_for_equal_phase_resistance_max_relative_difference",
+            "<= 1e-9",
+            at_most(1e-9),
+            scientific,
+            "the default model has used this form since Phase 2",
+        ),
+    ]
+
+
 def coupling_claims() -> list[CheckedClaim]:
     return [
         CheckedClaim(
@@ -695,6 +746,7 @@ def checked_claims() -> list[CheckedClaim]:
         + rl_claims()
         + coupling_claims()
         + midsem_claims()
+        + converter_audit_claims()
         + drive_population_claims()
     )
 
@@ -728,6 +780,17 @@ UNSUPPORTED = (
         "Balancing results at 0, 10 or 40 C",
         "only the cell parameters were fitted per temperature; no temperature-dependent "
         "balancing study and the simulator stays at 25 C",
+    ),
+    UnsupportedClaim(
+        "Flying-capacitor link resistance and balancing time match hardware (coth form "
+        "against the series form: baseline time 1.96 h against 1.18 h)",
+        "only ideal-switch SPICE checks exist; circuit validation with real switches, ESR and "
+        "dead time is still open",
+    ),
+    UnsupportedClaim(
+        "The RMS-current R0 loss of the buck-boost (+7 to 8 % energy) is the correct default",
+        "an input capacitor on the cell side would smooth the cell current and remove part "
+        "of the ripple loss; needs circuit validation",
     ),
     UnsupportedClaim(
         "Drive-cycle balancing gains hold for other packs, spreads, cycles or temperatures",

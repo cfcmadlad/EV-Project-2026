@@ -12,6 +12,10 @@ def two_phase_resistance_ohm(
     return inverse_fc * (1.0 / x_one + 1.0 / x_two - 1.0)
 
 
+def coth_resistance_ohm(inverse_fc: FloatArray, r_phase_ohm: FloatArray) -> FloatArray:
+    return inverse_fc / np.tanh(inverse_fc / (4.0 * r_phase_ohm))
+
+
 def link_resistance_ohm(
     inverse_fc: FloatArray, r0: FloatArray, hardware: FlyingCapSpec
 ) -> FloatArray:
@@ -24,6 +28,8 @@ def link_resistance_ohm(
             + r0[:, 1:]
         )
     r_phase = r0 + 2.0 * hardware.r_ds_on_ohm + hardware.esr_ohm
+    if hardware.model is FlyingCapModel.COTH:
+        return coth_resistance_ohm(inverse_fc[:, None], 0.5 * (r_phase[:, :-1] + r_phase[:, 1:]))
     return two_phase_resistance_ohm(inverse_fc[:, None], r_phase[:, :-1], r_phase[:, 1:])
 
 

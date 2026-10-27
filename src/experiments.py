@@ -15,6 +15,7 @@ STREAM_NAMES = (
     "rl_eval",
     "coupling",
     "drive_population",
+    "audit",
 )
 
 

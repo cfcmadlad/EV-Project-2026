@@ -24,7 +24,11 @@ SMALL_CONFIG = replace(
     dataset=DatasetSpec(runs_per_technique=30),
     ml=MLSpec(max_iter=20, permutation_repeats=2, timing_repeats=1),
     checks=CheckSpec(
-        packs_per_technique=6, dt_scaling_packs=2, dt_scaling_steps_s=(1.0, 0.5), coupling_packs=4
+        packs_per_technique=6,
+        dt_scaling_packs=2,
+        dt_scaling_steps_s=(1.0, 0.5),
+        coupling_packs=4,
+        audit_packs=4,
     ),
     identification=IdentificationSpec(bootstrap_resamples=8),
     plot=PlotConfig(dpi=40),

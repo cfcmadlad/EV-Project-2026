@@ -29,6 +29,7 @@ from src.ledger import (
     flying_capacitor_element_loss_w,
     passive_element_loss_w,
     rc_square_weights,
+    rms_ratio,
 )
 from src.pack import PackBatch
 from src.params import BuckBoostSpec, LinkCoupling
@@ -136,6 +137,12 @@ def buck_boost_currents(
         / 3.0
     )
     p_out = v_source * i_source - conduction_loss
+    if hardware.ripple_r0_loss:
+        extra_source = r_source * i_source**2 * (rms_ratio(hardware.duty) - 1.0)
+        p_pre = p_out - extra_source
+        i_pre = p_pre / emf_sink
+        extra_sink = r_sink * i_pre**2 * (rms_ratio(np.maximum(sink_duty, 1e-9)) - 1.0)
+        p_out = p_pre - extra_sink
     i_sink = 2.0 * p_out / (emf_sink + np.sqrt(emf_sink**2 + 4.0 * r_sink * p_out))
     return StepFlow(
         cell_current_a=scatter(i_source, i_sink, forward),
