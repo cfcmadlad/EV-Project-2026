@@ -6,10 +6,11 @@
    4,
    8,
    16,
-   32
+   32,
+   96
   ],
   "packs": 200,
-  "max_balancing_h": 1000.0,
+  "max_balancing_h": 1500.0,
   "deadband_fraction": 0.9,
   "pack": {
    "capacity_tolerance": 0.05,
@@ -71,6 +72,18 @@
      "physics_time_p95_abs_pct_error": 0.023794961841558906,
      "physics_energy_median_abs_pct_error": 2.514917773099812,
      "physics_energy_p95_abs_pct_error": 7.494072164978295
+    },
+    "96": {
+     "balanced_fraction": 1.0,
+     "time_s_median": 8405.0,
+     "time_s_p05": 2191.05,
+     "time_s_p95": 13961.999999999998,
+     "energy_j_median": 91622.98474249753,
+     "physics_time_s_median": 8404.46120817761,
+     "physics_time_median_abs_pct_error": 0.005178291049257044,
+     "physics_time_p95_abs_pct_error": 0.02416430863460827,
+     "physics_energy_median_abs_pct_error": 2.0053042733357396,
+     "physics_energy_p95_abs_pct_error": 6.947340259710742
     }
    },
    "buck_boost": {
@@ -121,6 +134,18 @@
      "physics_time_p95_abs_pct_error": 154.4560522891316,
      "physics_energy_median_abs_pct_error": 14.513287970235261,
      "physics_energy_p95_abs_pct_error": 54.86581993169417
+    },
+    "96": {
+     "balanced_fraction": 1.0,
+     "time_s_median": 2939.0,
+     "time_s_p05": 440.35,
+     "time_s_p95": 8974.85,
+     "energy_j_median": 4195.054884048463,
+     "physics_time_s_median": 6330.403121923905,
+     "physics_time_median_abs_pct_error": 115.12656447519869,
+     "physics_time_p95_abs_pct_error": 275.71482865850254,
+     "physics_energy_median_abs_pct_error": 29.780114490333098,
+     "physics_energy_p95_abs_pct_error": 116.21488632250761
     }
    },
    "flying_capacitor": {
@@ -130,11 +155,11 @@
      "time_s_p05": 1094.2,
      "time_s_p95": 6328.65,
      "energy_j_median": 9.943511512240661,
-     "physics_time_s_median": 3173.032034636465,
-     "physics_time_median_abs_pct_error": 0.9672999097705026,
-     "physics_time_p95_abs_pct_error": 6.806266663215058,
-     "physics_energy_median_abs_pct_error": 0.051132041973872555,
-     "physics_energy_p95_abs_pct_error": 0.5246213834625023
+     "physics_time_s_median": 3173.0320346364824,
+     "physics_time_median_abs_pct_error": 0.9672999097726176,
+     "physics_time_p95_abs_pct_error": 6.806266663222043,
+     "physics_energy_median_abs_pct_error": 0.0511320419678607,
+     "physics_energy_p95_abs_pct_error": 0.5246213833496443
     },
     "8": {
      "balanced_fraction": 1.0,
@@ -142,11 +167,11 @@
      "time_s_p05": 1792.95,
      "time_s_p95": 17573.05,
      "energy_j_median": 16.165497033271777,
-     "physics_time_s_median": 5547.45180793739,
-     "physics_time_median_abs_pct_error": 5.907528327440442,
-     "physics_time_p95_abs_pct_error": 15.341734630084956,
-     "physics_energy_median_abs_pct_error": 0.22985455796658005,
-     "physics_energy_p95_abs_pct_error": 1.4197474215820352
+     "physics_time_s_median": 5547.451807937507,
+     "physics_time_median_abs_pct_error": 5.907528327441103,
+     "physics_time_p95_abs_pct_error": 15.341734630083073,
+     "physics_energy_median_abs_pct_error": 0.22985455796609155,
+     "physics_energy_p95_abs_pct_error": 1.4197474215732082
     },
     "16": {
      "balanced_fraction": 1.0,
@@ -154,11 +179,11 @@
      "time_s_p05": 2512.7500000000005,
      "time_s_p95": 49705.849999999984,
      "energy_j_median": 26.065308976606502,
-     "physics_time_s_median": 9353.234867081042,
-     "physics_time_median_abs_pct_error": 4.28962665235309,
-     "physics_time_p95_abs_pct_error": 18.72180772284345,
-     "physics_energy_median_abs_pct_error": 0.18760524489082608,
-     "physics_energy_p95_abs_pct_error": 0.9776694328612704
+     "physics_time_s_median": 9353.234867080719,
+     "physics_time_median_abs_pct_error": 4.2896266523548725,
+     "physics_time_p95_abs_pct_error": 18.721807722846037,
+     "physics_energy_median_abs_pct_error": 0.1876052448543386,
+     "physics_energy_p95_abs_pct_error": 0.9776694329011169
     },
     "32": {
      "balanced_fraction": 1.0,
@@ -166,11 +191,23 @@
      "time_s_p05": 3390.5000000000005,
      "time_s_p95": 138025.69999999978,
      "energy_j_median": 44.40855327341524,
-     "physics_time_s_median": 16045.57790385482,
-     "physics_time_median_abs_pct_error": 3.259437509385471,
-     "physics_time_p95_abs_pct_error": 25.666796993128056,
-     "physics_energy_median_abs_pct_error": 0.1395576194165027,
-     "physics_energy_p95_abs_pct_error": 0.7718395439512418
+     "physics_time_s_median": 16045.577903854126,
+     "physics_time_median_abs_pct_error": 3.259437509384344,
+     "physics_time_p95_abs_pct_error": 25.666796993127882,
+     "physics_energy_median_abs_pct_error": 0.13955761937765043,
+     "physics_energy_p95_abs_pct_error": 0.7718395439399713
+    },
+    "96": {
+     "balanced_fraction": 1.0,
+     "time_s_median": 56055.5,
+     "time_s_p05": 4279.2,
+     "time_s_p95": 514219.69999999955,
+     "energy_j_median": 139.2737842521019,
+     "physics_time_s_median": 54272.62507748937,
+     "physics_time_median_abs_pct_error": 1.7627747415706718,
+     "physics_time_p95_abs_pct_error": 26.14130878829204,
+     "physics_energy_median_abs_pct_error": 0.07395675740795027,
+     "physics_energy_p95_abs_pct_error": 0.43917296897096764
     }
    }
   },
@@ -223,6 +260,18 @@
      "physics_time_p95_abs_pct_error": 0.021803872199477322,
      "physics_energy_median_abs_pct_error": 4.704436654615396,
      "physics_energy_p95_abs_pct_error": 22.153263476109764
+    },
+    "96": {
+     "balanced_fraction": 1.0,
+     "time_s_median": 8730.0,
+     "time_s_p05": 2206.75,
+     "time_s_p95": 14549.249999999998,
+     "energy_j_median": 97789.29379543247,
+     "physics_time_s_median": 8729.357120388144,
+     "physics_time_median_abs_pct_error": 0.004969958887224291,
+     "physics_time_p95_abs_pct_error": 0.0252382215459884,
+     "physics_energy_median_abs_pct_error": 4.331041837756732,
+     "physics_energy_p95_abs_pct_error": 30.53515966420487
     }
    },
    "buck_boost": {
@@ -273,6 +322,18 @@
      "physics_time_p95_abs_pct_error": 16.206258056009574,
      "physics_energy_median_abs_pct_error": 2.3786508995277176,
      "physics_energy_p95_abs_pct_error": 9.212242384814036
+    },
+    "96": {
+     "balanced_fraction": 1.0,
+     "time_s_median": 62376.5,
+     "time_s_p05": 19308.5,
+     "time_s_p95": 100653.54999999999,
+     "energy_j_median": 66083.2305502306,
+     "physics_time_s_median": 71257.65380236777,
+     "physics_time_median_abs_pct_error": 14.171806977453262,
+     "physics_time_p95_abs_pct_error": 17.92696909909265,
+     "physics_energy_median_abs_pct_error": 17.724849840335033,
+     "physics_energy_p95_abs_pct_error": 20.055379411204726
     }
    },
    "flying_capacitor": {
@@ -282,11 +343,11 @@
      "time_s_p05": 3141.7000000000003,
      "time_s_p95": 7601.099999999999,
      "energy_j_median": 16.04937555982292,
-     "physics_time_s_median": 6078.829182829226,
-     "physics_time_median_abs_pct_error": 0.4890608971102661,
-     "physics_time_p95_abs_pct_error": 1.8681318627831907,
-     "physics_energy_median_abs_pct_error": 0.02419318458735109,
-     "physics_energy_p95_abs_pct_error": 0.0611901068055481
+     "physics_time_s_median": 6078.829182828969,
+     "physics_time_median_abs_pct_error": 0.48906089711107104,
+     "physics_time_p95_abs_pct_error": 1.8681318627858163,
+     "physics_energy_median_abs_pct_error": 0.02419318459596087,
+     "physics_energy_p95_abs_pct_error": 0.06119010673635511
     },
     "8": {
      "balanced_fraction": 1.0,
@@ -294,11 +355,11 @@
      "time_s_p05": 13857.35,
      "time_s_p95": 27816.399999999998,
      "energy_j_median": 34.87766376131367,
-     "physics_time_s_median": 22167.38011184521,
-     "physics_time_median_abs_pct_error": 4.708964826935952,
-     "physics_time_p95_abs_pct_error": 8.9479922269911,
-     "physics_energy_median_abs_pct_error": 0.18408408928742293,
-     "physics_energy_p95_abs_pct_error": 1.1660682737003156
+     "physics_time_s_median": 22167.380111845778,
+     "physics_time_median_abs_pct_error": 4.708964826932776,
+     "physics_time_p95_abs_pct_error": 8.94799222699191,
+     "physics_energy_median_abs_pct_error": 0.18408408928747844,
+     "physics_energy_p95_abs_pct_error": 1.1660682738005979
     },
     "16": {
      "balanced_fraction": 1.0,
@@ -306,11 +367,11 @@
      "time_s_p05": 54759.15,
      "time_s_p95": 111167.95,
      "energy_j_median": 72.41403900517616,
-     "physics_time_s_median": 86627.07490944935,
-     "physics_time_median_abs_pct_error": 6.641243313675455,
-     "physics_time_p95_abs_pct_error": 11.499640799603027,
-     "physics_energy_median_abs_pct_error": 0.2602592418891325,
-     "physics_energy_p95_abs_pct_error": 1.714377436390407
+     "physics_time_s_median": 86627.07490945142,
+     "physics_time_median_abs_pct_error": 6.641243313680034,
+     "physics_time_p95_abs_pct_error": 11.499640799600403,
+     "physics_energy_median_abs_pct_error": 0.2602592418893046,
+     "physics_energy_p95_abs_pct_error": 1.714377436386553
     },
     "32": {
      "balanced_fraction": 1.0,
@@ -318,11 +379,23 @@
      "time_s_p05": 236076.85,
      "time_s_p95": 442685.0,
      "energy_j_median": 124.89555322776141,
-     "physics_time_s_median": 333201.21692168806,
-     "physics_time_median_abs_pct_error": 7.694949432265657,
-     "physics_time_p95_abs_pct_error": 11.95368233834125,
-     "physics_energy_median_abs_pct_error": 0.35389310904261895,
-     "physics_energy_p95_abs_pct_error": 1.6433898116710037
+     "physics_time_s_median": 333201.2169216892,
+     "physics_time_median_abs_pct_error": 7.694949432264714,
+     "physics_time_p95_abs_pct_error": 11.953682338336018,
+     "physics_energy_median_abs_pct_error": 0.3538931090340869,
+     "physics_energy_p95_abs_pct_error": 1.6433898117180747
+    },
+    "96": {
+     "balanced_fraction": 1.0,
+     "time_s_median": 3371881.5,
+     "time_s_p05": 1884039.65,
+     "time_s_p95": 4018038.3,
+     "energy_j_median": 424.3742955320049,
+     "physics_time_s_median": 3091395.0807897416,
+     "physics_time_median_abs_pct_error": 8.297802089797779,
+     "physics_time_p95_abs_pct_error": 14.761899218885349,
+     "physics_energy_median_abs_pct_error": 0.3420555890014998,
+     "physics_energy_p95_abs_pct_error": 2.6116388583193135
     }
    }
   }

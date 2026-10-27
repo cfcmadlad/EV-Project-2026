@@ -471,6 +471,37 @@ def scaling_claims() -> list[CheckedClaim]:
     return claims
 
 
+def rl_claims() -> list[CheckedClaim]:
+    claims = []
+    for key, label in (
+        ("none", "no balancing"),
+        ("rule_based", "the midsem rule-based controller"),
+        ("greedy", "greedy maximum-transfer balancing"),
+    ):
+        claims.append(
+            CheckedClaim(
+                f"The PPO policy beats {label} on the reward (Ah minus lambda times loss), "
+                "mean paired gain above two standard errors on every test cycle",
+                f"rl_control.verdicts.{key}.reward.rl_beats",
+                "all 4 test cycles, > 2 SE",
+                is_true,
+                boolean,
+                "100 fresh packs per cycle, 3 seeds averaged; null result is reported as such",
+            )
+        )
+    claims.append(
+        CheckedClaim(
+            "No cell leaves its voltage window before the episode ends, for every controller "
+            "and test pack (seconds above 4.2 V, summed over 100 packs)",
+            "rl_control.limit_violation_seconds_total",
+            "= 0 s",
+            at_most(0.0),
+            lambda v: f"{float(v):.3g} s",
+        )
+    )
+    return claims
+
+
 def checked_claims() -> list[CheckedClaim]:
     claims = [
         CheckedClaim(
@@ -546,10 +577,16 @@ def checked_claims() -> list[CheckedClaim]:
         + temperature_claims()
         + soc_estimation_claims()
         + scaling_claims()
+        + rl_claims()
     )
 
 
 UNSUPPORTED = (
+    UnsupportedClaim(
+        "Learned (RL) control improves balancing under load",
+        "PPO reached no gain over no balancing and lost to the rule-based controller on all "
+        "four test cycles in two training configurations; a null result",
+    ),
     UnsupportedClaim(
         "The GRU or EKF numbers describe other cells, other chemistries or aged cells",
         "one cell, labels from integrated tester current, Mixed 3 absent at 0 and 10 C, no "

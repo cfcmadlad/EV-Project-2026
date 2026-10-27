@@ -20,6 +20,7 @@ from src.params import (
     PackSpec,
     ParameterSet,
     PassiveSpec,
+    RlSpec,
     SanitySpec,
     ScalingSpec,
     SimSpec,
@@ -106,6 +107,7 @@ class ProjectConfig:
     soc_error: SocErrorSpec = SocErrorSpec()
     soc_estimation: SocEstimationSpec = SocEstimationSpec()
     scaling: ScalingSpec = ScalingSpec()
+    rl: RlSpec = RlSpec()
     plot: PlotConfig = PlotConfig()
 
     @property

@@ -126,7 +126,7 @@ def gru_estimate(
 
 
 def downsample(values: np.ndarray) -> list[float | None]:
-    return [None if np.isnan(v) else float(v) for v in values[::TRACE_STEP]]
+    return [None if np.isnan(v) else float(v) for v in values[TRACE_STEP - 1 :: TRACE_STEP]]
 
 
 def main() -> int:

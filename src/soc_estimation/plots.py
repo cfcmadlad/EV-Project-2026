@@ -33,7 +33,7 @@ def plot_traces(traces: dict[str, dict[str, object]], stem: Path, config: PlotCo
         for ax, (name, trace) in zip(axes[0], traces.items(), strict=False):
             step = trace["step_s"]
             true = np.array(trace["true"], dtype=float)
-            minutes = np.arange(true.size) * step / SECONDS_PER_MINUTE
+            minutes = (np.arange(true.size) + 1) * step / SECONDS_PER_MINUTE
             ax.plot(minutes, true * PERCENT, color=config.reference_color, label="Reference")
             for key, label, index in TRACE_KEYS:
                 values = np.array([np.nan if v is None else v for v in trace[key]])

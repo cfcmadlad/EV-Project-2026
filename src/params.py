@@ -323,9 +323,33 @@ class SocEstimationSpec:
 
 @dataclass(frozen=True, slots=True)
 class ScalingSpec:
-    cells: tuple[int, ...] = (4, 8, 16, 32)
+    cells: tuple[int, ...] = (4, 8, 16, 32, 96)
     packs: int = 200
-    max_balancing_h: float = 1000.0
+    max_balancing_h: float = 1500.0
     deadband_fraction: float = 0.9
     large_n_min: int = 8
     slope_tolerance: float = 0.25
+
+
+@dataclass(frozen=True, slots=True)
+class RlSpec:
+    control_step_s: int = 10
+    d_max: float = 0.4
+    dcm_margin: float = 0.95
+    estimate_sigma: float = 0.01
+    loss_weight_ah_per_j: float = 1e-4
+    train_cycles: tuple[str, ...] = ("Mixed1", "Mixed2", "Mixed3", "Mixed4", "Mixed5", "Mixed6")
+    test_cycles: tuple[str, ...] = ("Mixed7", "Mixed8", "UDDS", "US06")
+    test_packs: int = 100
+    seeds: tuple[int, ...] = (0, 1, 2)
+    total_timesteps: int = 300_000
+    gamma: float = 0.999
+    gae_lambda: float = 0.98
+    log_std_init: float = -1.0
+    n_steps: int = 1024
+    batch_size: int = 256
+    learning_rate: float = 3e-4
+    hidden_units: int = 64
+    elapsed_reference_s: float = 7200.0
+    current_window_s: int = 60
+    standard_errors: float = 2.0

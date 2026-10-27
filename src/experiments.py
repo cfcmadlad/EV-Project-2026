@@ -12,6 +12,7 @@ STREAM_NAMES = (
     "soc_error",
     "soc_feedthrough",
     "scaling",
+    "rl_eval",
 )
 
 

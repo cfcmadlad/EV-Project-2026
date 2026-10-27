@@ -1,38 +1,38 @@
 {
   "speedup": {
-    "simulation_time_per_pack_s": 0.004100866165500065,
-    "prediction_time_per_pack_s": 2.6705494166587112e-05,
-    "speedup": 153.55889465737394
+    "simulation_time_per_pack_s": 0.0036035837555000397,
+    "prediction_time_per_pack_s": 2.535251000002366e-05,
+    "speedup": 142.1391316085341
   },
   "ml_eval": {
     "label": "host CPU, not target hardware",
     "batch_1": {
       "per_pack_s": {
-        "simulator": 0.46353922866668046,
-        "physics": 0.0026975423334079096,
-        "hgb": 0.003749838333230097,
-        "hybrid": 0.007290515333200649
+        "simulator": 0.42971115933323745,
+        "physics": 0.0026003843331636745,
+        "hgb": 0.005430318333310424,
+        "hybrid": 0.0073825026668904075
       },
       "speedup_over_simulator": {
         "simulator": 1.0,
-        "physics": 171.83761045227914,
-        "hgb": 123.61579019525075,
-        "hybrid": 63.581133497620606
+        "physics": 165.24909562520057,
+        "hgb": 79.13185433298115,
+        "hybrid": 58.20670560139961
       },
       "n_packs": 3
     },
     "batch_1000": {
       "per_pack_s": {
-        "simulator": 0.0060878549869870825,
-        "physics": 2.419476876875032e-05,
-        "hgb": 3.665470070030336e-05,
-        "hybrid": 7.063851851897241e-05
+        "simulator": 0.005043626242242227,
+        "physics": 1.7012296296883136e-05,
+        "hgb": 3.619583283223262e-05,
+        "hybrid": 5.611432232206232e-05
       },
       "speedup_over_simulator": {
         "simulator": 1.0,
-        "physics": 251.61864720319562,
-        "hgb": 166.08661019394705,
-        "hybrid": 86.18322007067545
+        "physics": 296.4694568108529,
+        "hgb": 139.3427322316188,
+        "hybrid": 89.88126441757343
       },
       "n_packs": 999
     }
@@ -49,6 +49,13 @@
     "gru_weight_bytes_max": 17285,
     "gru_parameters": 3585
   },
-  "physics_checks_s": 17.074427236999327,
-  "run_all_s": 134.60899085300025
+  "rl_control": {
+    "training_time_s": {
+      "0": 735.2282148139998,
+      "1": 752.1764668390001,
+      "2": 747.5338469900003
+    }
+  },
+  "physics_checks_s": 13.846252262000235,
+  "run_all_s": 113.05925992500033
 }

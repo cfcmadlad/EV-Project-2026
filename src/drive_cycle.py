@@ -218,7 +218,7 @@ def _soc_equalised(pack: PackBatch) -> PackBatch:
     return replace(pack, soc0=np.broadcast_to(mean, pack.soc0.shape).copy())
 
 
-def _charge_equalised(pack: PackBatch, mode: Mode) -> PackBatch:
+def charge_equalised(pack: PackBatch, mode: Mode) -> PackBatch:
     stored = pack.capacity_ah * pack.soc0
     if mode is Mode.DISCHARGE:
         soc0 = stored.mean(axis=1, keepdims=True) / pack.capacity_ah
@@ -274,7 +274,7 @@ def run_drive_cycle(
     config: ProjectConfig,
 ) -> dict[str, object]:
     spec = config.drive_cycle
-    names = list(profiles["profiles"])
+    names = [n for n in profiles["profiles"] if n.startswith("Mixed")]
     program = program_from_profiles(
         [np.array(profiles["profiles"][name]["current_a"]) for name in names]
     )
@@ -290,7 +290,7 @@ def run_drive_cycle(
             delayed(_strategy_runs)(None, _soc_equalised(pack), program, charge, None, config),
             delayed(_strategy_runs)(
                 None,
-                _charge_equalised(pack, Mode.DISCHARGE),
+                charge_equalised(pack, Mode.DISCHARGE),
                 program,
                 charge,
                 None,
@@ -299,7 +299,7 @@ def run_drive_cycle(
             ),
             delayed(_strategy_runs)(
                 None,
-                _charge_equalised(pack, Mode.CHARGE),
+                charge_equalised(pack, Mode.CHARGE),
                 program,
                 charge,
                 None,

@@ -2,7 +2,7 @@ import json
 import sys
 
 from src.config import CONFIG, PROJECT_ROOT
-from src.hg2 import TestKind, discharge_sign, load_recording
+from src.hg2 import discharge_sign, load_recording
 from src.params import SECONDS_PER_HOUR
 from src.resample import interval_mean
 
@@ -15,7 +15,10 @@ DECIMALS = 6
 
 
 def main() -> int:
-    paths = sorted(RAW_DIR.glob("*_Mixed?.csv"))
+    paths = sorted(RAW_DIR.glob("*_Mixed?.csv")) + [
+        RAW_DIR / "551_UDDS.csv",
+        RAW_DIR / "551_US06.csv",
+    ]
     if not paths:
         print(f"no Mixed files in {RAW_DIR}; run scripts/fetch_hg2.py --group mixed25 first")
         return 1
@@ -32,7 +35,7 @@ def main() -> int:
         current = interval_mean(
             recording.time_s[rows], sign * recording.current_a[rows], step_s
         ).round(DECIMALS)
-        name = f"Mixed{path.stem[-1]}"
+        name = path.stem.split("_")[1] if "Mixed" not in path.stem else f"Mixed{path.stem[-1]}"
         profiles[name] = {
             "source_file": path.name,
             "source_sha256": hashes[path.name],
@@ -42,7 +45,6 @@ def main() -> int:
             "peak_regen_a": float(-current.min()),
             "current_a": current.tolist(),
         }
-        assert recording.kind is TestKind.MIXED
     payload = {
         "temperature": "25degC",
         "doi": json.loads(PROVENANCE_PATH.read_text())["dataset"]["doi"],

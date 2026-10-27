@@ -37,6 +37,10 @@ from src.plots import (
     plot_sweep,
 )
 from src.predictor import PredictorReport, train_and_evaluate
+from src.rl_plots import plot_rl_vs_baselines, plot_training_curves
+from src.rl_report import RESULTS_PATH as RL_RESULTS_PATH
+from src.rl_report import rl_block
+from src.rl_report import timing_block as rl_timing_block
 from src.scaling import scaling_block
 from src.scaling_plots import plot_scaling
 from src.soc_error import soc_error_block
@@ -495,6 +499,13 @@ def _run_stages(
     scaling_result = scaling_block(config)
     if scaling_result["status"] == "ok":
         plot_scaling(scaling_result, results_dir / "scaling_time_vs_n", config.plot)
+    rl_result = rl_block(config)
+    if rl_result["status"] == "ok":
+        rl_cache = json.loads(RL_RESULTS_PATH.read_text())
+        plot_training_curves(
+            rl_cache["training"]["curves"], results_dir / "rl_training_curves", config.plot
+        )
+        plot_rl_vs_baselines(rl_cache["test"], results_dir / "rl_vs_baselines", config.plot)
     write_baseline_csv(table, results_dir / "baseline_table.csv")
     write_dataset_csv(dataset, results_dir / "dataset.csv")
     save_figures(baseline, sweeps, dataset, report, config, results_dir)
@@ -527,6 +538,7 @@ def _run_stages(
         "soc_error": soc_error_result,
         "soc_estimation": soc_estimation_result,
         "scaling": scaling_result,
+        "rl_control": rl_result,
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start
@@ -538,6 +550,7 @@ def _run_stages(
         },
         "ml_eval": ml_timing,
         "soc_estimation": timing_block(),
+        "rl_control": rl_timing_block(),
         "physics_checks_s": checks_time,
         "run_all_s": runtime,
     }
