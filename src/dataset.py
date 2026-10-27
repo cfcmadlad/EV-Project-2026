@@ -87,20 +87,12 @@ def _draw_block(
     return packs, component, frequency
 
 
-def _simulate_block(
-    technique: Technique,
-    packs: PackBatch,
-    component: FloatArray,
-    frequency: FloatArray,
-    config: ProjectConfig,
-) -> tuple[FloatArray, FloatArray, FloatArray, BoolArray, float]:
-    runs = packs.n_packs
-    start = perf_counter()
-    result = simulate(technique, packs, component, frequency, config)
-    elapsed = perf_counter() - start
-    one_hot = np.zeros((runs, len(Technique)))
+def pack_features(
+    technique: Technique, packs: PackBatch, component: FloatArray, frequency: FloatArray
+) -> FloatArray:
+    one_hot = np.zeros((packs.n_packs, len(Technique)))
     one_hot[:, technique] = 1.0
-    features = np.column_stack(
+    return np.column_stack(
         (
             np.ptp(packs.soc0, axis=1),
             packs.soc0.std(axis=1),
@@ -112,5 +104,18 @@ def _simulate_block(
             frequency,
         )
     )
+
+
+def _simulate_block(
+    technique: Technique,
+    packs: PackBatch,
+    component: FloatArray,
+    frequency: FloatArray,
+    config: ProjectConfig,
+) -> tuple[FloatArray, FloatArray, FloatArray, BoolArray, float]:
+    start = perf_counter()
+    result = simulate(technique, packs, component, frequency, config)
+    elapsed = perf_counter() - start
+    features = pack_features(technique, packs, component, frequency)
     targets = np.column_stack((result.balancing_time_s, result.energy_dissipated_j))
     return features, targets, result.efficiency, result.balanced, elapsed

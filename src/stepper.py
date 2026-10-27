@@ -39,6 +39,7 @@ class PackDynamics:
     technique_parameter: FloatArray
     ocv_tilt_v_per_soc: FloatArray | None = None
     soc_bias: FloatArray | None = None
+    noise_std: FloatArray | None = None
 
     def select(self, mask: BoolArray) -> "PackDynamics":
         return _select(self, mask)
@@ -103,6 +104,7 @@ class StepControl:
     dt_s: float
     balance_threshold: float | None = None
     track_load: bool = False
+    noise_rng: np.random.Generator | None = None
 
     def with_dynamics(self, dynamics: PackDynamics) -> "StepControl":
         return replace(self, dynamics=dynamics)
@@ -156,6 +158,10 @@ def step(state: PackState, pack_current_a: FloatArray | None, control: StepContr
     if pack_current_a is not None:
         emf = emf - pack_current_a[:, None] * r0
     decision_soc = soc if dynamics.soc_bias is None else soc + dynamics.soc_bias
+    if dynamics.noise_std is not None and control.noise_rng is not None:
+        decision_soc = decision_soc + dynamics.noise_std * control.noise_rng.standard_normal(
+            soc.shape
+        )
     flow = control.currents(decision_soc, ocv, emf, r0, dynamics.technique_parameter)
     if control.balance_threshold is not None:
         active = state.estimated_spread(dynamics.soc_bias) >= control.balance_threshold

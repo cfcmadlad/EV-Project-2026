@@ -24,11 +24,13 @@ from src.params import (
     RlSpec,
     SanitySpec,
     ScalingSpec,
+    SelectorSpec,
     SimSpec,
     SocErrorSpec,
     SocEstimationSpec,
     SweepSpec,
     TechniqueSpec,
+    VoltageBalancingSpec,
 )
 
 type FloatArray = NDArray[np.float64]
@@ -110,6 +112,8 @@ class ProjectConfig:
     scaling: ScalingSpec = ScalingSpec()
     rl: RlSpec = RlSpec()
     calibration: CalibrationSpec = CalibrationSpec()
+    voltage_balancing: VoltageBalancingSpec = VoltageBalancingSpec()
+    selector: SelectorSpec = SelectorSpec()
     plot: PlotConfig = PlotConfig()
 
     @property

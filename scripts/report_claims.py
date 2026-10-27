@@ -633,6 +633,64 @@ def converter_audit_claims() -> list[CheckedClaim]:
     ]
 
 
+def voltage_claims() -> list[CheckedClaim]:
+    claims = []
+    for key, label in (("passive", "passive shunt"), ("buck_boost", "inductor buck-boost")):
+        for sigma in (1, 2, 5, 10):
+            claims.append(
+                CheckedClaim(
+                    f"Rest-voltage balancing with {sigma} mV cell sensor error and a 0.5 % "
+                    f"stopping threshold brings at least 95 % of {label} packs below 1 % true "
+                    "spread (200 packs)",
+                    f"voltage_balancing.results.{key}.stop_0p5pct_sigma_{sigma}mv."
+                    "fraction_true_spread_below_target",
+                    ">= 95 % of packs",
+                    lambda v: float(v) >= 0.95,
+                    percent,
+                    "sensor model: fixed offset plus 60 s averaged noise, rest voltage mapped by "
+                    "the fitted OCV curve",
+                )
+            )
+    claims.append(
+        CheckedClaim(
+            "Rest-voltage balancing stopping exactly at the 1 % target (no margin) brings at "
+            "least 95 % of passive packs below 1 % true spread at 0.5 mV sensor error",
+            "voltage_balancing.results.passive.stop_1pct_sigma_0p5mv."
+            "fraction_true_spread_below_target",
+            ">= 95 % of packs",
+            lambda v: float(v) >= 0.95,
+            percent,
+            "a stopping threshold below the target is needed",
+        )
+    )
+    return claims
+
+
+def selector_claims() -> list[CheckedClaim]:
+    claims = []
+    for hours in ("0.5", "1", "1.5", "2", "3", "4", "6", "8"):
+        base = f"technique_selector.by_budget.{hours.replace('.', 'p')}.policies.selector"
+        claims += [
+            CheckedClaim(
+                f"Surrogate selector picks the oracle technique for a {hours} h parking budget "
+                "(300 held-out packs)",
+                f"{base}.agrees_with_oracle",
+                ">= 90 %",
+                lambda v: float(v) >= 0.9,
+                percent,
+            ),
+            CheckedClaim(
+                f"Surrogate selector misses a {hours} h budget on at most 5 % of the packs "
+                "where some technique meets it",
+                f"{base}.budget_violation_fraction_among_feasible",
+                "<= 5 %",
+                at_most(0.05),
+                percent,
+            ),
+        ]
+    return claims
+
+
 def coupling_claims() -> list[CheckedClaim]:
     return [
         CheckedClaim(
@@ -747,6 +805,8 @@ def checked_claims() -> list[CheckedClaim]:
         + coupling_claims()
         + midsem_claims()
         + converter_audit_claims()
+        + voltage_claims()
+        + selector_claims()
         + drive_population_claims()
     )
 

@@ -45,6 +45,8 @@ from src.rl_report import rl_block
 from src.rl_report import timing_block as rl_timing_block
 from src.scaling import scaling_block
 from src.scaling_plots import plot_scaling
+from src.selector import selector_block
+from src.selector_plots import plot_selector
 from src.soc_error import soc_error_block
 from src.soc_estimation.plots import plot_error_summary, plot_traces, plot_wrong_start
 from src.soc_estimation.report import RESULTS_PATH as SOC_RESULTS_PATH
@@ -60,6 +62,8 @@ from src.uncertainty import (
     load_cached,
     propagate_baseline,
 )
+from src.voltage_balancing import voltage_balancing_block
+from src.voltage_plots import plot_voltage_balancing
 
 TARGET_AXES = (
     ("Balancing time", "h", 1.0 / SECONDS_PER_HOUR),
@@ -508,6 +512,11 @@ def _run_stages(
     if scaling_result["status"] == "ok":
         plot_scaling(scaling_result, results_dir / "scaling_time_vs_n", config.plot)
     coupling_result = link_coupling_check(config, streams["coupling"])
+    voltage_result = voltage_balancing_block(config)
+    if voltage_result["status"] == "ok":
+        plot_voltage_balancing(voltage_result, results_dir / "voltage_balancing", config.plot)
+    selector_result = selector_block(config, streams["selector"], report)
+    plot_selector(selector_result, results_dir / "technique_selector", config.plot)
     rl_result = rl_block(config)
     if rl_result["status"] == "ok":
         rl_cache = json.loads(RL_RESULTS_PATH.read_text())
@@ -552,6 +561,8 @@ def _run_stages(
         "drive_cycle_population": drive_population_result,
         "midsem_consistency": midsem_block(config, report.metrics),
         "converter_audit": converter_audit_block(config, streams["audit"]),
+        "voltage_balancing": voltage_result,
+        "technique_selector": selector_result,
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start

@@ -16,6 +16,8 @@ STREAM_NAMES = (
     "coupling",
     "drive_population",
     "audit",
+    "voltage_balancing",
+    "selector",
 )
 
 

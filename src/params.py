@@ -373,3 +373,22 @@ class RlSpec:
     elapsed_reference_s: float = 7200.0
     current_window_s: int = 60
     standard_errors: float = 2.0
+
+
+@dataclass(frozen=True, slots=True)
+class VoltageBalancingSpec:
+    sigma_mv: tuple[float, ...] = (0.5, 1.0, 2.0, 5.0, 10.0)
+    stop_thresholds: tuple[float, ...] = (0.01, 0.005, 0.0025)
+    packs: int = 200
+    noise_averaging_samples: int = 60
+    max_balancing_h: float = 12.0
+    target_spread: float = 0.01
+    required_fraction: float = 0.95
+
+
+@dataclass(frozen=True, slots=True)
+class SelectorSpec:
+    budgets_h: tuple[float, ...] = (0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0)
+    packs: int = 300
+    min_accuracy: float = 0.9
+    max_violation: float = 0.05

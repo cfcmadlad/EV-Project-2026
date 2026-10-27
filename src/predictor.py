@@ -28,6 +28,7 @@ class PredictorReport:
     importance_mean: FloatArray
     importance_std: FloatArray
     prediction_time_per_pack_s: float
+    models: list[TransformedTargetRegressor]
 
 
 def train_and_evaluate(dataset: Dataset, config: MLSpec, seed: int) -> PredictorReport:
@@ -78,6 +79,7 @@ def train_and_evaluate(dataset: Dataset, config: MLSpec, seed: int) -> Predictor
         importance_mean=np.array([imp.importances_mean for imp in importances]),
         importance_std=np.array([imp.importances_std for imp in importances]),
         prediction_time_per_pack_s=prediction_time,
+        models=models,
     )
 
 

@@ -13,9 +13,11 @@ from src.params import (
     MLSpec,
     RlSpec,
     ScalingSpec,
+    SelectorSpec,
     SocErrorSpec,
     SocEstimationSpec,
     SweepSpec,
+    VoltageBalancingSpec,
 )
 
 SMALL_CONFIG = replace(
@@ -34,6 +36,10 @@ SMALL_CONFIG = replace(
     plot=PlotConfig(dpi=40),
     scaling=ScalingSpec(cells=(4, 8), packs=4, max_balancing_h=50.0),
     soc_estimation=SocEstimationSpec(feedthrough_packs=4, epochs=1),
+    voltage_balancing=VoltageBalancingSpec(
+        sigma_mv=(1.0,), stop_thresholds=(0.005,), packs=4, max_balancing_h=2.0
+    ),
+    selector=SelectorSpec(budgets_h=(1.0, 2.0), packs=6),
     rl=RlSpec(test_packs=4, total_timesteps=2048, seeds=(0,)),
     drive_cycle=DriveCycleSpec(max_cycle_repeats=1, charge_horizon_s=3600, population_packs=4),
     soc_error=SocErrorSpec(

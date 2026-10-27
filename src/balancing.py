@@ -187,6 +187,8 @@ def build_control(
     track_load: bool = False,
     gate_balancing: bool = False,
     soc_bias: FloatArray | None = None,
+    noise_std: FloatArray | None = None,
+    noise_rng: np.random.Generator | None = None,
 ) -> StepControl:
     sim = config.sim
     r1_ohm, _, gain, cross, offset = _rc_branch(packs, config)
@@ -210,6 +212,7 @@ def build_control(
             technique_parameter=parameter,
             ocv_tilt_v_per_soc=None if tilt is None else tilt[:, None],
             soc_bias=soc_bias,
+            noise_std=noise_std,
         ),
         currents=currents,
         element_loss=element_loss,
@@ -217,6 +220,7 @@ def build_control(
         dt_s=sim.dt_s,
         balance_threshold=sim.soc_tolerance if gate_balancing else None,
         track_load=track_load,
+        noise_rng=noise_rng,
     )
 
 
@@ -228,8 +232,19 @@ def simulate(
     config: ProjectConfig,
     trace: bool = False,
     soc_bias: FloatArray | None = None,
+    noise_std: FloatArray | None = None,
+    noise_rng: np.random.Generator | None = None,
 ) -> BalanceResult:
-    control = build_control(technique, packs, component, frequency_hz, config, soc_bias=soc_bias)
+    control = build_control(
+        technique,
+        packs,
+        component,
+        frequency_hz,
+        config,
+        soc_bias=soc_bias,
+        noise_std=noise_std,
+        noise_rng=noise_rng,
+    )
     sim = config.sim
     n_steps = round(sim.t_max_s / sim.dt_s)
     trace_every = max(1, round(sim.trace_interval_s / sim.dt_s))
