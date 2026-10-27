@@ -1,0 +1,23 @@
+{
+ "inputs": {
+  "seed": 2026,
+  "runs_per_technique": 2000,
+  "parameter_set": "assumed",
+  "ml": {
+   "max_iter": 500,
+   "learning_rate": 0.05,
+   "max_leaf_nodes": 31,
+   "test_fraction": 0.2
+  }
+ },
+ "ml": {
+  "balancing_time_s": {
+   "r2": 0.972559802781448,
+   "mae": 414.63554036244557
+  },
+  "energy_dissipated_j": {
+   "r2": 0.994608541618122,
+   "mae": 72.85999977541957
+  }
+ }
+}

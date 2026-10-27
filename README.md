@@ -1124,7 +1124,7 @@ Robustness (RMSE, Test A / Test B): with 5 mV voltage noise the EKF is unchanged
 
 **Second EKF.** With two RC branches and hysteresis the EKF reaches 2.06 % RMSE on Test A and 2.11 % on Test B (maximum 15.1 and 9.6 %), which beats the 1RC EKF (margins 2.9 and 4.1 points) and the GRU (margins 0.43 and 0.86 points, GRU seed spread 0.10 and 0.07). It is insensitive to 5 mV voltage noise, gives 2.76 and 2.40 % with the 0.5 % FS offset, and its mean error 300 s after a 20 % wrong start is 1.59 % (Test A) and 2.39 % (Test B, FAIL against the 2 % limit used for the 1RC EKF). With the injected offset on all estimators it still beats the GRU by 0.72 and 2.24 points. The GRU is better only at 0 °C (3.14 % against 3.33 %). Its parameters come from the HPPC fits at each temperature, so at 10 °C it uses parameters measured at 10 °C and not any 10 °C drive cycle.
 
-**Feed-through to balancing.** The SOC-error machinery of section s was rerun with the cell biases drawn from the measured error distribution (signed errors between 30 and 70 % SOC after 300 s, all Test A and B cycles, nominal inputs; std 3.0 % for the 1RC EKF, 2.0 % for the 2RC EKF and 1.8 % for the GRU) instead of a synthetic sigma. True final spread, median and 95th percentile, 200 packs: passive 5.5 / 10.8 % (1RC EKF), 2.9 / 5.9 % (2RC EKF) and 3.4 / 6.3 % (GRU); buck-boost 5.6 / 11.0 %, 3.0 / 6.2 % and 3.6 / 6.3 %. At least 94 % of passive and buck-boost packs end above the 1 % target with every estimator, and the extra dissipated energy is +1951 J, +622 J and +930 J for passive, +44 J, +14 J and +22 J for buck-boost. The flying-capacitor result again reflects the model (links follow true voltage, the estimate only stops the run): 2 %, 10.5 % and 5.5 % of packs reach the estimated criterion within 12 h. A real BMS built on any of these estimators would therefore not reach a 1 % true spread; section x tests balancing on rest voltage instead.
+**Feed-through to balancing.** The SOC-error machinery of section s was rerun with the cell biases drawn from the measured error distribution (signed errors between 30 and 70 % SOC after 300 s, all Test A and B cycles, nominal inputs; std 3.0 % for the 1RC EKF, 2.0 % for the 2RC EKF and 1.8 % for the GRU) instead of a synthetic sigma. True final spread, median and 95th percentile, 200 packs: passive 5.5 / 10.8 % (1RC EKF), 2.9 / 5.9 % (2RC EKF) and 3.4 / 6.3 % (GRU); buck-boost 5.6 / 11.0 %, 3.0 / 6.2 % and 3.6 / 6.3 %. At least 94 % of passive and buck-boost packs end above the 1 % target with every estimator, and the extra dissipated energy is +1951 J, +622 J and +930 J for passive, +44 J, +14 J and +22 J for buck-boost. The flying-capacitor result again reflects the model (links follow true voltage, the estimate only stops the run): 2 %, 10.5 % and 5.5 % of packs reach the estimated criterion within 12 h. A real BMS built on any of these estimators would therefore not reach a 1 % true spread; section z tests balancing on rest voltage instead.
 
 **Assumptions.**
 - SOC reference from C/20 capacity per temperature; the cycle start is taken as 100 % SOC.
@@ -1198,3 +1198,25 @@ This improves every temperature (0 °C UDDS from 38.5 mV, 10 °C from 38.4 mV) a
 **Drive and charge on 200 random packs** (`drive_cycle_population` in `metrics.json`, measured Mixed 1 current). Median gain in usable Ah against no balancing, with the 5th to 95th percentile: driving, buck-boost +0.072 Ah (0.019 to 0.151, 99.5 % of packs gain), flying capacitor +0.074 Ah (0.020 to 0.154, 100 %), passive 0.000 (down to -0.012); charging, passive +0.068, buck-boost +0.078, flying capacitor +0.068 Ah. The 1 % criterion is reached by 50 % (buck-boost) and 77 % (flying capacitor) of packs while driving and by 80 % and 10 % while charging.
 
 **Assumptions.** The calibration cycles are fixed in `CalibrationSpec` before looking at the results. The 40 °C calibration uses HWFET, US06 and Mixed 1 and 2; 25 °C has no HWFET current and uses the other three.
+
+## x. Midsem consistency check (final phase)
+
+**Which model did the midsem numbers come from?** The generic 3 Ah NMC cell of the midsem (`ASSUMED`: R0 30 mΩ, R1 15 mΩ, C1 2000 F, 21-point assumed OCV table, midsem flying-capacitor formula). The fitted HG2 cell (`FITTED_HG2_25C`) replaced it as the default in endsem Phase 1. The baseline pack is the same in both (SOCs 45.0, 47.8, 55.0, 53.1 %; the capacities and resistances scale with the cell). `metrics.json` key `midsem_consistency` holds the full comparison.
+
+| Baseline (10 % spread pack) | Midsem value | Reproduced with the assumed model | Fitted HG2 model (default now) |
+| --- | --- | --- | --- |
+| Passive time, energy | 4.56 h, 7680 J | 4.56 h, 7680 J | 4.19 h, 7176 J |
+| Buck-boost time, energy, efficiency | 1.17 h, 220.8 J, 96.4 % | 1.17 h, 220.8 J, 96.4 % | 1.07 h, 199.9 J, 96.5 % |
+| Flying capacitor time, energy, efficiency | 2.54 h, 20.5 J, 99.6 % | 2.54 h, 20.5 J, 99.6 % | 1.96 h, 29.9 J, 99.4 % |
+
+The assumed model reproduces every midsem value exactly (relative difference 0). The fitted model changes the times by -8 % (passive), -9 % (buck-boost) and -23 % (flying capacitor) and the energies by -7 %, -10 % and +46 %. The flying-capacitor change combines the new cell and the exact two-phase link formula of Phase 2 (section p); the midsem formula is kept as `FlyingCapModel.MIDSEM`.
+
+**Surrogate.** The surrogate that `run_all.py` trains and reports has been trained on the HG2 model since Phase 1. Protocol (identical to the midsem): 2000 random runs per technique, 19 features, `HistGradientBoostingRegressor` with 500 iterations, learning rate 0.05, 31 leaves, log targets, 80/20 split stratified by technique. Retraining it on the assumed model with the current code reproduces the midsem metrics exactly (`scripts/midsem_consistency.py`, cached in `data/processed/midsem_consistency.json`):
+
+| Surrogate test metrics | Time R², MAE | Energy R², MAE |
+| --- | --- | --- |
+| Midsem (assumed model) | 0.9726, 414.6 s | 0.9946, 72.9 J |
+| Retrained now on the assumed model | 0.9726, 414.6 s | 0.9946, 72.9 J |
+| Trained on the fitted HG2 model (default) | 0.9886, 281.7 s | 0.9952, 65.1 J |
+
+The speedup measured at midsem was 93 times (`results/midsem_reference/metrics.json`); the current run reports about 150 times in `results/timing.json`. Both are machine dependent and not claims.

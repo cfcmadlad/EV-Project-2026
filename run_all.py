@@ -25,6 +25,7 @@ from src.drive_cycle import drive_cycle_stage, load_profiles, population_block
 from src.drive_plots import plot_drive_capacity, plot_drive_spread
 from src.experiments import baseline_pack, random_streams, run_baseline
 from src.identification import table_slope_mv_per_percent
+from src.midsem import midsem_block
 from src.ml_eval import evaluate
 from src.ml_plots import plot_conformal_coverage, plot_cv_comparison, plot_out_of_range
 from src.pack import PackBatch, tile_pack
@@ -548,6 +549,7 @@ def _run_stages(
         "rl_control": rl_result,
         "link_coupling": coupling_result,
         "drive_cycle_population": drive_population_result,
+        "midsem_consistency": midsem_block(config, report.metrics),
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start

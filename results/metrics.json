@@ -7366,5 +7366,117 @@
         "energy_dissipated_j_median": 10.080170455724556
       }
     }
+  },
+  "midsem_consistency": {
+    "status": "ok",
+    "midsem_cell_model": "assumed generic 3 Ah NMC cell, midsem flying-capacitor formula",
+    "baseline_soc0_percent": [
+      45.0,
+      47.77671114631796,
+      55.00000000000001,
+      53.10320250072718
+    ],
+    "baseline": {
+      "passive": {
+        "midsem_reference": {
+          "balancing_time_s": 16400.0,
+          "energy_dissipated_j": 7679.870161638161,
+          "efficiency_pct": 0.0
+        },
+        "reproduced_assumed_model": {
+          "balancing_time_s": 16400.0,
+          "energy_dissipated_j": 7679.870161638161,
+          "efficiency_pct": 0.0
+        },
+        "fitted_hg2_model": {
+          "balancing_time_s": 15068.0,
+          "energy_dissipated_j": 7175.509992712934,
+          "efficiency_pct": 0.0
+        },
+        "max_relative_difference_reproduced_vs_midsem": 0.0,
+        "time_ratio_fitted_over_midsem": 0.9187804878048781,
+        "energy_ratio_fitted_over_midsem": 0.9343269927342568
+      },
+      "buck_boost": {
+        "midsem_reference": {
+          "balancing_time_s": 4203.0,
+          "energy_dissipated_j": 220.84864387671496,
+          "efficiency_pct": 96.42509286514112
+        },
+        "reproduced_assumed_model": {
+          "balancing_time_s": 4203.0,
+          "energy_dissipated_j": 220.84864387671496,
+          "efficiency_pct": 96.42509286514112
+        },
+        "fitted_hg2_model": {
+          "balancing_time_s": 3845.0,
+          "energy_dissipated_j": 199.91571791367187,
+          "efficiency_pct": 96.5348164378415
+        },
+        "max_relative_difference_reproduced_vs_midsem": 0.0,
+        "time_ratio_fitted_over_midsem": 0.9148227456578635,
+        "energy_ratio_fitted_over_midsem": 0.9052159633149999
+      },
+      "flying_capacitor": {
+        "midsem_reference": {
+          "balancing_time_s": 9140.0,
+          "energy_dissipated_j": 20.49609370298367,
+          "efficiency_pct": 99.64135850584262
+        },
+        "reproduced_assumed_model": {
+          "balancing_time_s": 9140.0,
+          "energy_dissipated_j": 20.49609370298367,
+          "efficiency_pct": 99.64135850584262
+        },
+        "fitted_hg2_model": {
+          "balancing_time_s": 7069.0,
+          "energy_dissipated_j": 29.936444768839465,
+          "efficiency_pct": 99.43595645181308
+        },
+        "max_relative_difference_reproduced_vs_midsem": 0.0,
+        "time_ratio_fitted_over_midsem": 0.7734135667396062,
+        "energy_ratio_fitted_over_midsem": 1.4605926964747207
+      }
+    },
+    "surrogate_protocol": {
+      "runs_per_technique": 2000,
+      "features": 19,
+      "model": "HistGradientBoostingRegressor",
+      "max_iter": 500,
+      "learning_rate": 0.05,
+      "log_targets": true,
+      "stratified_split": true,
+      "test_fraction": 0.2
+    },
+    "surrogate_midsem_reference": {
+      "balancing_time_s": {
+        "r2": 0.972559802781448,
+        "mae": 414.63554036244557
+      },
+      "energy_dissipated_j": {
+        "r2": 0.994608541618122,
+        "mae": 72.85999977541957
+      }
+    },
+    "surrogate_trained_on_fitted_hg2_model": {
+      "balancing_time_s": {
+        "r2": 0.9886054831923883,
+        "mae": 281.7148470372423
+      },
+      "energy_dissipated_j": {
+        "r2": 0.9952196011512433,
+        "mae": 65.10197702849692
+      }
+    },
+    "surrogate_retrained_on_assumed_model": {
+      "balancing_time_s": {
+        "r2": 0.972559802781448,
+        "mae": 414.63554036244557
+      },
+      "energy_dissipated_j": {
+        "r2": 0.994608541618122,
+        "mae": 72.85999977541957
+      }
+    }
   }
 }

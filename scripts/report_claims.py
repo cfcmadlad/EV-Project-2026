@@ -548,6 +548,40 @@ def rl_claims() -> list[CheckedClaim]:
     return claims
 
 
+def midsem_claims() -> list[CheckedClaim]:
+    claims = [
+        CheckedClaim(
+            f"The midsem baseline for {label} (time, energy, efficiency) is reproduced by the "
+            "assumed 3 Ah cell model",
+            f"midsem_consistency.baseline.{key}.max_relative_difference_reproduced_vs_midsem",
+            "<= 0.1 %",
+            at_most(0.001),
+            percent,
+            "generic NMC cell of the midsem, not the fitted HG2 cell",
+        )
+        for key, label in (
+            ("passive", "passive"),
+            ("buck_boost", "buck-boost"),
+            ("flying_capacitor", "flying capacitor"),
+        )
+    ]
+    for target in ("balancing_time_s", "energy_dissipated_j"):
+        claims.append(
+            CheckedClaim(
+                f"Retraining the surrogate on the assumed model reproduces the midsem test R2 "
+                f"for {target}",
+                f"midsem_consistency.surrogate_retrained_on_assumed_model.{target}.r2",
+                "within 1e-4 of the midsem value",
+                lambda v, t=target: abs(float(v) - MIDSEM_R2[t]) <= 1e-4,
+                lambda v: f"{float(v):.4f}",
+            )
+        )
+    return claims
+
+
+MIDSEM_R2 = {"balancing_time_s": 0.9726, "energy_dissipated_j": 0.9946}
+
+
 def coupling_claims() -> list[CheckedClaim]:
     return [
         CheckedClaim(
@@ -660,6 +694,7 @@ def checked_claims() -> list[CheckedClaim]:
         + scaling_claims()
         + rl_claims()
         + coupling_claims()
+        + midsem_claims()
         + drive_population_claims()
     )
 
