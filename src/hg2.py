@@ -19,7 +19,6 @@ class TestKind(StrEnum):
 
     HPPC = "HPPC"
     C20 = "C20DisCh"
-    INITIAL_CHARGE = "Charge"
     DISCHARGE_HALF_C = "Dis_0p5C"
     DISCHARGE_2C = "Dis_2C"
     CAPACITY_1C = "Cap_1C"
@@ -27,9 +26,11 @@ class TestKind(StrEnum):
     HWFET = "HWFET"
     LA92 = "LA92"
     US06 = "US06"
+    MIXED = "Mixed"
 
 
 DRIVE_CYCLES = (TestKind.UDDS, TestKind.HWFET, TestKind.LA92, TestKind.US06)
+MIXED_PATTERN = re.compile(r"^Mixed(?P<index>\d)$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,13 +46,6 @@ class Recording:
     step: IntArray
     status: np.ndarray
 
-    @property
-    def duration_s(self) -> float:
-        return float(self.time_s[-1] - self.time_s[0])
-
-    def discharge_current_a(self, discharge_sign: float) -> FloatArray:
-        return discharge_sign * self.current_a
-
 
 def classify(file_name: str) -> tuple[int, TestKind]:
     match = DESCRIPTOR_PATTERN.match(file_name)
@@ -59,6 +53,8 @@ def classify(file_name: str) -> tuple[int, TestKind]:
         raise ValueError(f"unrecognised file name {file_name}")
     kinds = {kind.value: kind for kind in TestKind}
     descriptor = match["kind"]
+    if MIXED_PATTERN.match(descriptor):
+        return int(match["test"]), TestKind.MIXED
     if descriptor not in kinds:
         raise ValueError(f"unrecognised test descriptor {descriptor}")
     return int(match["test"]), kinds[descriptor]
@@ -119,9 +115,19 @@ def charge_throughput_ah(time_s: FloatArray, discharge_a: FloatArray) -> FloatAr
     return np.concatenate(([0.0], np.cumsum(increments)))
 
 
-def load_all(directory: Path) -> dict[TestKind, list[Recording]]:
+def load_all(
+    directory: Path, include_mixed: bool = False, rejected: dict[str, str] | None = None
+) -> dict[TestKind, list[Recording]]:
     recordings: dict[TestKind, list[Recording]] = {}
     for path in sorted(directory.glob("*.csv")):
-        recording = load_recording(path)
+        if not include_mixed and classify(path.name)[1] is TestKind.MIXED:
+            continue
+        try:
+            recording = load_recording(path)
+        except ValueError as error:
+            if rejected is None:
+                raise
+            rejected[path.name] = str(error)
+            continue
         recordings.setdefault(recording.kind, []).append(recording)
     return recordings

@@ -57,11 +57,13 @@ class BuckBoostSpec:
     duty: float = 0.4
     r_inductor_ohm: float = 0.08
     r_ds_on_ohm: float = 0.02
+    ripple_r0_loss: bool = False
 
 
 class FlyingCapModel(StrEnum):
     MIDSEM = "midsem"
     TWO_PHASE = "two_phase"
+    COTH = "coth"
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,12 +78,18 @@ class FlyingCapSpec:
 TechniqueSpec = PassiveSpec | BuckBoostSpec | FlyingCapSpec
 
 
+class LinkCoupling(StrEnum):
+    PER_LINK = "per_link"
+    NET_CURRENT = "net_current"
+
+
 @dataclass(frozen=True, slots=True)
 class SimSpec:
     dt_s: float = 1.0
     t_max_s: float = 48.0 * SECONDS_PER_HOUR
     soc_tolerance: float = 0.01
     link_soc_deadband: float = 0.002
+    link_coupling: LinkCoupling = LinkCoupling.PER_LINK
     trace_interval_s: float = 10.0
 
 
@@ -117,6 +125,8 @@ class CheckSpec:
     packs_per_technique: int = 200
     ledger_tolerance: float = 0.01
     dt_scaling_packs: int = 20
+    coupling_packs: int = 100
+    audit_packs: int = 100
     dt_scaling_steps_s: tuple[float, ...] = (1.0, 0.5, 0.25)
     passive_closed_form_tolerance: float = 0.03
     charge_conservation_tolerance: float = 1e-9
@@ -143,6 +153,31 @@ class IdentificationSpec:
     slope_block_points: int = 5
     ci_percent: float = 95.0
     rest_noise_samples: int = 90
+
+
+@dataclass(frozen=True, slots=True)
+class DriveCycleSpec:
+    lower_voltage_v: float = 2.8
+    upper_voltage_v: float = 4.2
+    charge_c_rate: float = 0.5
+    max_cycle_repeats: int = 20
+    charge_horizon_s: int = 10800
+    population_packs: int = 200
+    primary_cycle: str = "Mixed1"
+    profile_step_s: float = 1.0
+    trace_interval_s: float = 10.0
+    soc_conservation_tolerance: float = 1e-9
+    ledger_tolerance: float = 0.01
+
+
+@dataclass(frozen=True, slots=True)
+class SocErrorSpec:
+    sigma_percent: tuple[float, ...] = (0.0, 1.0, 3.0)
+    packs: int = 200
+    voltage_error_mv: float = 10.0
+    spread_tail_percent: float = 95.0
+    max_balancing_h: float = 12.0
+    deterministic_check_packs: int = 20
 
 
 @dataclass(frozen=True, slots=True)
@@ -265,3 +300,95 @@ ASSUMED = ParameterSet(
     buck_boost=BuckBoostSpec(),
     flying_capacitor=FlyingCapSpec(model=FlyingCapModel.MIDSEM),
 )
+
+
+@dataclass(frozen=True, slots=True)
+class SocEstimationSpec:
+    train_temperatures_c: tuple[int, ...] = (0, 25, 40)
+    test_b_temperature_c: int = 10
+    train_mixed: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
+    validation_mixed: tuple[int, ...] = (7,)
+    test_a_cycles: tuple[str, ...] = ("Mixed8", "UDDS", "HWFET", "LA92", "US06")
+    step_s: float = 1.0
+    min_discharged_fraction: float = 0.8
+    wrong_start_soc: float = 0.20
+    wrong_start_check_s: float = 300.0
+    tester_full_scale_a: float = 75.0
+    tester_accuracy_fraction: float = 0.001
+    injected_offset_fraction: float = 0.005
+    voltage_noise_v: float = 0.005
+    windows_s: tuple[int, ...] = (100, 300)
+    hidden_size: int = 32
+    seeds: tuple[int, ...] = (0, 1, 2)
+    epochs: int = 12
+    batch_size: int = 256
+    train_stride_s: int = 6
+    learning_rate: float = 3e-3
+    ekf_process_std_grid: tuple[float, ...] = (1e-7, 1e-6, 1e-5, 1e-4)
+    ekf_measurement_std_v_grid: tuple[float, ...] = (0.01, 0.02, 0.04, 0.08, 0.16)
+    ekf_initial_std: float = 0.2
+    ekf2_process_std_grid: tuple[float, ...] = (1e-6, 1e-5, 1e-4)
+    ekf2_measurement_std_v_grid: tuple[float, ...] = (0.01, 0.02, 0.05)
+    ekf2_hysteresis_rate_grid: tuple[float, ...] = (0.0, 100.0, 500.0)
+    pool_window: tuple[float, float] = (0.3, 0.7)
+    feedthrough_packs: int = 200
+
+
+@dataclass(frozen=True, slots=True)
+class CalibrationSpec:
+    calibration_cycles: tuple[str, ...] = ("HWFET", "US06", "Mixed1", "Mixed2")
+    validation_cycles: tuple[str, ...] = ("UDDS", "LA92")
+    step_s: float = 1.0
+
+
+@dataclass(frozen=True, slots=True)
+class ScalingSpec:
+    cells: tuple[int, ...] = (4, 8, 16, 32, 96)
+    packs: int = 200
+    max_balancing_h: float = 1500.0
+    deadband_fraction: float = 0.9
+    large_n_min: int = 8
+    slope_tolerance: float = 0.25
+
+
+@dataclass(frozen=True, slots=True)
+class RlSpec:
+    control_step_s: int = 10
+    d_max: float = 0.4
+    dcm_margin: float = 0.95
+    estimate_sigma: float = 0.01
+    loss_weight_ah_per_j: float = 1e-4
+    train_cycles: tuple[str, ...] = ("Mixed1", "Mixed2", "Mixed3", "Mixed4", "Mixed5", "Mixed6")
+    test_cycles: tuple[str, ...] = ("Mixed7", "Mixed8", "UDDS", "US06")
+    test_packs: int = 100
+    seeds: tuple[int, ...] = (0, 1, 2)
+    total_timesteps: int = 300_000
+    gamma: float = 0.999
+    gae_lambda: float = 0.98
+    log_std_init: float = -1.0
+    n_steps: int = 1024
+    batch_size: int = 256
+    learning_rate: float = 3e-4
+    hidden_units: int = 64
+    elapsed_reference_s: float = 7200.0
+    current_window_s: int = 60
+    standard_errors: float = 2.0
+
+
+@dataclass(frozen=True, slots=True)
+class VoltageBalancingSpec:
+    sigma_mv: tuple[float, ...] = (0.5, 1.0, 2.0, 5.0, 10.0)
+    stop_thresholds: tuple[float, ...] = (0.01, 0.005, 0.0025)
+    packs: int = 200
+    noise_averaging_samples: int = 60
+    max_balancing_h: float = 12.0
+    target_spread: float = 0.01
+    required_fraction: float = 0.95
+
+
+@dataclass(frozen=True, slots=True)
+class SelectorSpec:
+    budgets_h: tuple[float, ...] = (0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0)
+    packs: int = 300
+    min_accuracy: float = 0.9
+    max_violation: float = 0.05

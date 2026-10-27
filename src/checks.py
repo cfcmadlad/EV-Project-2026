@@ -8,7 +8,7 @@ from src.baselines import passive_balancing_time_s
 from src.config import PERCENT, FloatArray, ProjectConfig, Technique
 from src.experiments import baseline_pack, run_baseline
 from src.pack import PackBatch, sample_packs
-from src.params import ASSUMED
+from src.params import ASSUMED, LinkCoupling
 
 MIDSEM_PINNED = {
     "passive": {
@@ -229,3 +229,34 @@ def physics_checks(config: ProjectConfig, rng: np.random.Generator) -> dict[str,
         "flying_capacitor_charge": charge,
         "midsem_regression": regression,
     }
+
+
+def link_coupling_check(config: ProjectConfig, rng: np.random.Generator) -> dict[str, object]:
+    coupled = replace(config, sim=replace(config.sim, link_coupling=LinkCoupling.NET_CURRENT))
+    n_packs = config.checks.coupling_packs
+    block: dict[str, object] = {"status": "ok", "n_packs": n_packs}
+    worst = 0.0
+    for technique in (Technique.BUCK_BOOST, Technique.FLYING_CAPACITOR):
+        packs, component, frequency = random_case(technique, n_packs, config, rng)
+        per_link = simulate(technique, packs, component, frequency, config)
+        net = simulate(technique, packs, component, frequency, coupled)
+        gap_per_link = ledger_discrepancy(per_link)
+        gap_net = ledger_discrepancy(net)
+        worst = max(worst, float(gap_net["net_vs_dissipated"].max()))
+        block[technique.key] = {
+            "median_time_ratio_net_over_per_link": float(
+                np.median(net.balancing_time_s / per_link.balancing_time_s)
+            ),
+            "median_energy_ratio_net_over_per_link": float(
+                np.median(net.energy_dissipated_j / per_link.energy_dissipated_j)
+            ),
+            "per_link_model_net_ledger_gap_vs_dissipated_max": float(
+                gap_per_link["net_vs_dissipated"].max()
+            ),
+            "net_model_net_ledger_gap_vs_dissipated_max": float(gap_net["net_vs_dissipated"].max()),
+            "net_model_all_balanced": bool(net.balanced.all()),
+        }
+    block["max_net_ledger_gap_vs_dissipated"] = worst
+    block["threshold"] = config.checks.ledger_tolerance
+    block["pass"] = bool(worst <= config.checks.ledger_tolerance)
+    return block

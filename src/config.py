@@ -8,10 +8,12 @@ from numpy.typing import NDArray
 from src.fitted import FITTED_HG2_25C
 from src.params import (
     BuckBoostSpec,
+    CalibrationSpec,
     CellParams,
     CheckSpec,
     ConverterCheckSpec,
     DatasetSpec,
+    DriveCycleSpec,
     FlyingCapSpec,
     IdentificationSpec,
     MLEvalSpec,
@@ -19,10 +21,16 @@ from src.params import (
     PackSpec,
     ParameterSet,
     PassiveSpec,
+    RlSpec,
     SanitySpec,
+    ScalingSpec,
+    SelectorSpec,
     SimSpec,
+    SocErrorSpec,
+    SocEstimationSpec,
     SweepSpec,
     TechniqueSpec,
+    VoltageBalancingSpec,
 )
 
 type FloatArray = NDArray[np.float64]
@@ -98,6 +106,14 @@ class ProjectConfig:
     checks: CheckSpec = CheckSpec()
     identification: IdentificationSpec = IdentificationSpec()
     converter_check: ConverterCheckSpec = ConverterCheckSpec()
+    drive_cycle: DriveCycleSpec = DriveCycleSpec()
+    soc_error: SocErrorSpec = SocErrorSpec()
+    soc_estimation: SocEstimationSpec = SocEstimationSpec()
+    scaling: ScalingSpec = ScalingSpec()
+    rl: RlSpec = RlSpec()
+    calibration: CalibrationSpec = CalibrationSpec()
+    voltage_balancing: VoltageBalancingSpec = VoltageBalancingSpec()
+    selector: SelectorSpec = SelectorSpec()
     plot: PlotConfig = PlotConfig()
 
     @property

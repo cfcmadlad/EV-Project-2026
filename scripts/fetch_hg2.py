@@ -1,5 +1,7 @@
+import argparse
 import hashlib
 import json
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,6 +40,18 @@ FOLDER_FILES = (
 )
 CSV_HEADER_START = "Time Stamp,"
 CSV_COLUMNS = ("Time Stamp", "Step", "Status", "Prog Time", "Step Time", "Voltage", "Current")
+TEMPERATURE_FOLDERS = ("0degC", "10degC", "25degC", "40degC")
+GROUPS: dict[str, tuple[tuple[str, ...], re.Pattern[str]]] = {
+    "mixed25": (("25degC",), re.compile(r"^\d+_Mixed\d\.csv$")),
+    "temperature_fits": (
+        ("0degC", "10degC", "40degC"),
+        re.compile(r"^\d+_(C20DisCh|HPPC|Cap_1C|UDDS|LA92)\.csv$"),
+    ),
+    "soc_cycles": (
+        TEMPERATURE_FOLDERS,
+        re.compile(r"^\d+_(UDDS|HWFET|LA92|US06|Mixed\d)\.csv$"),
+    ),
+}
 TIMEOUT_S = 120
 ATTEMPTS = 4
 RETRY_DELAY_S = 5.0
@@ -94,15 +108,29 @@ def list_files(folder_id: str, folder_name: str) -> list[RemoteFile]:
     ]
 
 
-def temperature_folder_id() -> str:
+def folder_id(folder_name: str) -> str:
     folders = get_json(f"{API_ROOT}/{DATASET_ID}/folders/{DATASET_VERSION}")
     if not isinstance(folders, list):
         raise FetchError("unexpected folder listing")
-    matches = [folder["id"] for folder in folders if folder["name"] == TEMPERATURE_FOLDER]
+    matches = [folder["id"] for folder in folders if folder["name"] == folder_name]
     if len(matches) != 1:
         names = [folder["name"] for folder in folders]
-        raise FetchError(f"folder {TEMPERATURE_FOLDER} not found among {names}")
+        raise FetchError(f"folder {folder_name} not found among {names}")
     return matches[0]
+
+
+def select_group(group: str) -> list[RemoteFile]:
+    folders, pattern = GROUPS[group]
+    selected: list[RemoteFile] = []
+    for folder in folders:
+        listing = list_files(folder_id(folder), folder)
+        matched = sorted(
+            (item for item in listing if pattern.match(item.name)), key=lambda x: x.name
+        )
+        if not matched:
+            raise FetchError(f"no files of group {group} found in folder {folder}")
+        selected += matched
+    return selected
 
 
 def select(listing: list[RemoteFile], wanted: tuple[str, ...]) -> list[RemoteFile]:
@@ -113,7 +141,22 @@ def select(listing: list[RemoteFile], wanted: tuple[str, ...]) -> list[RemoteFil
     return [by_name[name] for name in wanted]
 
 
-def download(item: RemoteFile, destination: Path) -> dict[str, object]:
+def destination(item: RemoteFile) -> Path:
+    if item.folder in ("root", TEMPERATURE_FOLDER):
+        return RAW_DIR / item.name
+    return RAW_DIR / item.folder / item.name
+
+
+def download(
+    item: RemoteFile, destination: Path, known: dict[str, object] | None = None
+) -> dict[str, object]:
+    if (
+        known is not None
+        and destination.exists()
+        and known["sha256"] == item.sha256
+        and hashlib.sha256(destination.read_bytes()).hexdigest() == item.sha256
+    ):
+        return known
     status, body = get(item.url)
     digest = hashlib.sha256(body).hexdigest()
     if status != 200:
@@ -122,6 +165,7 @@ def download(item: RemoteFile, destination: Path) -> dict[str, object]:
         raise FetchError(f"{item.name}: got {len(body)} bytes, listing says {item.size_bytes}")
     if digest != item.sha256:
         raise FetchError(f"{item.name}: sha256 {digest} differs from listing {item.sha256}")
+    destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(body)
     return {
         "name": item.name,
@@ -170,19 +214,28 @@ def parse_check(name: str, body: bytes) -> str:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--group", choices=("base", *GROUPS), default="base")
+    group = parser.parse_args().group
+    existing = json.loads(PROVENANCE_PATH.read_text()) if PROVENANCE_PATH.exists() else {}
+    known = {(r["folder"], r["name"]): r for r in existing.get("files", [])}
     try:
-        root_id = "root"
-        folder_id = temperature_folder_id()
-        wanted = select(list_files(root_id, "root"), ROOT_FILES) + select(
-            list_files(folder_id, TEMPERATURE_FOLDER), FOLDER_FILES
-        )
+        if group == "base":
+            wanted = select(list_files("root", "root"), ROOT_FILES) + select(
+                list_files(folder_id(TEMPERATURE_FOLDER), TEMPERATURE_FOLDER), FOLDER_FILES
+            )
+        else:
+            wanted = select_group(group)
         RAW_DIR.mkdir(parents=True, exist_ok=True)
-        records = [download(item, RAW_DIR / item.name) for item in wanted]
+        records = [
+            download(item, destination(item), known.get((item.folder, item.name)))
+            for item in wanted
+        ]
     except FetchError as error:
         print(f"FETCH FAILED: {error}")
         return 1
     PROVENANCE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    existing = json.loads(PROVENANCE_PATH.read_text()) if PROVENANCE_PATH.exists() else {}
+    merged = {**known, **{(r["folder"], r["name"]): r for r in records}}
     provenance = {
         **existing,
         "dataset": {
@@ -194,11 +247,11 @@ def main() -> int:
             "landing_page": f"https://data.mendeley.com/datasets/{DATASET_ID}/{DATASET_VERSION}",
             "api_root": API_ROOT,
         },
-        "files": records,
+        "files": list(merged.values()),
     }
     PROVENANCE_PATH.write_text(json.dumps(provenance, indent=2) + "\n", newline="\n")
     total = sum(int(record["size_bytes"]) for record in records)
-    print(f"downloaded {len(records)} files, {total} bytes, all sizes and sha256 verified")
+    print(f"group {group}: {len(records)} files, {total} bytes, all sizes and sha256 verified")
     return 0
 
 

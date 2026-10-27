@@ -138,6 +138,526 @@
       "listing_sha256": "4e43498d29ee21da6d6dcd7ef47bbedcd2cd3ed92100a0e8094976dbd0fa2d96",
       "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/ee36611b-918a-4aff-87e2-d1f5de2aea25/file_downloaded",
       "parse_check": "csv, 40155 data rows, 14 columns"
+    },
+    {
+      "name": "551_Mixed1.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 10008045,
+      "sha256": "59bf0ca287d0e43de95164254b28bad0be5c346eefb08010f1153b5b60b0b88c",
+      "listing_sha256": "59bf0ca287d0e43de95164254b28bad0be5c346eefb08010f1153b5b60b0b88c",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/a35ea1d4-890b-447e-9c51-3f76d39b8823/file_downloaded",
+      "parse_check": "csv, 77227 data rows, 14 columns"
+    },
+    {
+      "name": "551_Mixed2.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 10276386,
+      "sha256": "89355b5e6e34aa1df531cb56b3de6c2166a2f08a9345a5161f48b4831e46ab94",
+      "listing_sha256": "89355b5e6e34aa1df531cb56b3de6c2166a2f08a9345a5161f48b4831e46ab94",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/e25325ed-2967-416c-a83f-e39a6d245f82/file_downloaded",
+      "parse_check": "csv, 79172 data rows, 14 columns"
+    },
+    {
+      "name": "552_Mixed3.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 9565908,
+      "sha256": "9e0796fd62922781d7686da8befebd9ce643f81d4c9bcb650687a459e125b327",
+      "listing_sha256": "9e0796fd62922781d7686da8befebd9ce643f81d4c9bcb650687a459e125b327",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/d2e514b5-9fea-4783-a4b8-7fee88bc9dc7/file_downloaded",
+      "parse_check": "csv, 73827 data rows, 14 columns"
+    },
+    {
+      "name": "552_Mixed4.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 10515254,
+      "sha256": "98abdaeedf309773578885636e74f9d5dfbc4fe410a55872e7824622f2ee57ba",
+      "listing_sha256": "98abdaeedf309773578885636e74f9d5dfbc4fe410a55872e7824622f2ee57ba",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/95c58d63-9049-47c8-925a-895bb4afbf7f/file_downloaded",
+      "parse_check": "csv, 80850 data rows, 14 columns"
+    },
+    {
+      "name": "552_Mixed5.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 9353155,
+      "sha256": "17bd7e6d1c72b72f61de10fe82f81d0577c314a57e6a922d2da253e4244236ac",
+      "listing_sha256": "17bd7e6d1c72b72f61de10fe82f81d0577c314a57e6a922d2da253e4244236ac",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/727a422c-ea05-49b2-99aa-31206c031495/file_downloaded",
+      "parse_check": "csv, 72184 data rows, 14 columns"
+    },
+    {
+      "name": "552_Mixed6.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 10191845,
+      "sha256": "e978384a54b01418697041698ef080a2ed8a654a144b8329116bf9ccb12b596b",
+      "listing_sha256": "e978384a54b01418697041698ef080a2ed8a654a144b8329116bf9ccb12b596b",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/ccfa6ee9-d29f-4bad-860c-562ed5ade99d/file_downloaded",
+      "parse_check": "csv, 78106 data rows, 14 columns"
+    },
+    {
+      "name": "552_Mixed7.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 9489559,
+      "sha256": "ea676e6d1f5eacdcf84836de6de950a4fd38bf4b19a71b7140c54fb5b2daf2d4",
+      "listing_sha256": "ea676e6d1f5eacdcf84836de6de950a4fd38bf4b19a71b7140c54fb5b2daf2d4",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/6ce4e81f-5832-41c8-a370-e6c88d045af8/file_downloaded",
+      "parse_check": "csv, 73235 data rows, 14 columns"
+    },
+    {
+      "name": "552_Mixed8.csv",
+      "folder": "25degC",
+      "http_status": 200,
+      "size_bytes": 11220381,
+      "sha256": "495af3150051def440ceadd425dbb145fabda32c096e4b8fc2edbc063e7b89cc",
+      "listing_sha256": "495af3150051def440ceadd425dbb145fabda32c096e4b8fc2edbc063e7b89cc",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/dc8f291a-24dc-4ba0-8983-affebd447f5f/file_downloaded",
+      "parse_check": "csv, 85915 data rows, 14 columns"
+    },
+    {
+      "name": "585_C20DisCh.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 289247,
+      "sha256": "1b5a67d1399f50062f067f06043e30b8919331c168b8c3516306ff64fe9b0fe3",
+      "listing_sha256": "1b5a67d1399f50062f067f06043e30b8919331c168b8c3516306ff64fe9b0fe3",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/c057946c-dada-4ff1-b74f-3150eb8c47e7/file_downloaded",
+      "parse_check": "csv, 2244 data rows, 14 columns"
+    },
+    {
+      "name": "585_HPPC.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 5049748,
+      "sha256": "bdb4aee01f909c77451602a6292932a00fa8d552409ff1233a6aff572f7a04f5",
+      "listing_sha256": "bdb4aee01f909c77451602a6292932a00fa8d552409ff1233a6aff572f7a04f5",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/35ffb527-f673-4e18-a1da-03f2264ae082/file_downloaded",
+      "parse_check": "csv, 40219 data rows, 14 columns"
+    },
+    {
+      "name": "589_Cap_1C.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 47131,
+      "sha256": "b449febaede0f5b7d6dd5e5b7db6bc5c22054924d7a91663fdf71b79ed4bcd05",
+      "listing_sha256": "b449febaede0f5b7d6dd5e5b7db6bc5c22054924d7a91663fdf71b79ed4bcd05",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/65037c12-a866-44b3-9bbe-3bce1823923d/file_downloaded",
+      "parse_check": "csv, 366 data rows, 14 columns"
+    },
+    {
+      "name": "589_LA92.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 10510382,
+      "sha256": "309250cb85704e8f528957d899eeedb3ba4b8e0a85d76a524bb975925cee9af1",
+      "listing_sha256": "309250cb85704e8f528957d899eeedb3ba4b8e0a85d76a524bb975925cee9af1",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/c0b36d2d-44c1-49c9-ac82-ebdb8a2b5259/file_downloaded",
+      "parse_check": "csv, 81577 data rows, 14 columns"
+    },
+    {
+      "name": "589_UDDS.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 18191300,
+      "sha256": "7dfe6f7116ed8c553b1b5063019ff7e6febbbf1ce565ec8fa044f49cac2cbf5c",
+      "listing_sha256": "7dfe6f7116ed8c553b1b5063019ff7e6febbbf1ce565ec8fa044f49cac2cbf5c",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/60598ff0-8b83-44b4-b102-6b9e6de8f57f/file_downloaded",
+      "parse_check": "csv, 140435 data rows, 14 columns"
+    },
+    {
+      "name": "571_Cap_1C.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 47744,
+      "sha256": "e8ca7fbccd4a45c90e1018e64dec397a4de7570453b7df3b35f08fd460f426f5",
+      "listing_sha256": "e8ca7fbccd4a45c90e1018e64dec397a4de7570453b7df3b35f08fd460f426f5",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/e4fd755e-b24a-4bdb-b140-b78911d339d1/file_downloaded",
+      "parse_check": "csv, 368 data rows, 14 columns"
+    },
+    {
+      "name": "575_C20DisCh.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 299036,
+      "sha256": "fbd691995601bf5919b9d083ce13fcd889c62b272aa5a99969a192d4e64e1db7",
+      "listing_sha256": "fbd691995601bf5919b9d083ce13fcd889c62b272aa5a99969a192d4e64e1db7",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/7a2cf5ab-e333-476a-a992-488f7b308e1d/file_downloaded",
+      "parse_check": "csv, 2337 data rows, 14 columns"
+    },
+    {
+      "name": "575_HPPC.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 5515595,
+      "sha256": "d448b9f25fbb1f9f48d59237297eead9ed7d2a82d02f03fdb5d11cfc50d57d69",
+      "listing_sha256": "d448b9f25fbb1f9f48d59237297eead9ed7d2a82d02f03fdb5d11cfc50d57d69",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/4d6e953a-033d-4b11-b453-9a37a252603c/file_downloaded",
+      "parse_check": "csv, 44219 data rows, 14 columns"
+    },
+    {
+      "name": "576_Cap_1C.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 48815,
+      "sha256": "c5f630e5c0e835b923593235712095291efd2175b9f8972498af37dc6b6fbbc0",
+      "listing_sha256": "c5f630e5c0e835b923593235712095291efd2175b9f8972498af37dc6b6fbbc0",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/6a2dd7ac-6c78-4db2-a8f2-c0fb94be42dd/file_downloaded",
+      "parse_check": "csv, 375 data rows, 14 columns"
+    },
+    {
+      "name": "576_UDDS.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 19156952,
+      "sha256": "56fc99c76b1891bd01d946ff635ef3254dc50384819567c4a25a49fa6599f4dc",
+      "listing_sha256": "56fc99c76b1891bd01d946ff635ef3254dc50384819567c4a25a49fa6599f4dc",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/7c83a33b-543b-4a54-8ed1-db34746acb91/file_downloaded",
+      "parse_check": "csv, 148898 data rows, 14 columns"
+    },
+    {
+      "name": "582_LA92.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 11763882,
+      "sha256": "2c9a0a6ebe14f4e9c6ad167c59c9f0119d25a3945927bac2ea3db20c676743f1",
+      "listing_sha256": "2c9a0a6ebe14f4e9c6ad167c59c9f0119d25a3945927bac2ea3db20c676743f1",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/2a06532b-bfff-481c-9a90-948949ffd225/file_downloaded",
+      "parse_check": "csv, 90740 data rows, 14 columns"
+    },
+    {
+      "name": "555_C20DisCh.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 299516,
+      "sha256": "284764b92a255b4cf7efc775178ab986e1526db6b622bfcadbd8dfb6f0506c8d",
+      "listing_sha256": "284764b92a255b4cf7efc775178ab986e1526db6b622bfcadbd8dfb6f0506c8d",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/bebe7063-024e-4f26-a770-d0bfc795b8de/file_downloaded",
+      "parse_check": "csv, 2342 data rows, 14 columns"
+    },
+    {
+      "name": "555_HPPC.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 5552795,
+      "sha256": "ffaa6441582544024ff4678b2f392a3eb8ab5ed624fdabcb37d573d2cc7c3dcf",
+      "listing_sha256": "ffaa6441582544024ff4678b2f392a3eb8ab5ed624fdabcb37d573d2cc7c3dcf",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/33d22cf3-31c3-4cd9-929a-f779e1bc67a2/file_downloaded",
+      "parse_check": "csv, 44519 data rows, 14 columns"
+    },
+    {
+      "name": "556_LA92.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 12683253,
+      "sha256": "2131a823e1db0af1fba0a8c4b67979ce9cbe76ba473a29fd00e434be20783ec4",
+      "listing_sha256": "2131a823e1db0af1fba0a8c4b67979ce9cbe76ba473a29fd00e434be20783ec4",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/11133df0-5ca4-4721-9e81-2b061c8d2078/file_downloaded",
+      "parse_check": "csv, 98637 data rows, 14 columns"
+    },
+    {
+      "name": "556_UDDS.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 20481615,
+      "sha256": "1193904f7a4e1197667449c5c3a50ef02c1768d9ae27284b2f2f947427d43c84",
+      "listing_sha256": "1193904f7a4e1197667449c5c3a50ef02c1768d9ae27284b2f2f947427d43c84",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/540e8c0f-1488-4f31-9cb8-11ea5e741184/file_downloaded",
+      "parse_check": "csv, 158956 data rows, 14 columns"
+    },
+    {
+      "name": "557_Cap_1C.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 47556,
+      "sha256": "2ee1ecc2d75462b79d2192066a03c131dd87412661ef56358fa949741188f69c",
+      "listing_sha256": "2ee1ecc2d75462b79d2192066a03c131dd87412661ef56358fa949741188f69c",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/c32f5480-e1cd-44df-9c8f-52cab155bb74/file_downloaded",
+      "parse_check": "csv, 369 data rows, 14 columns"
+    },
+    {
+      "name": "589_HWFET.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 6395542,
+      "sha256": "20ff8c6ac9474724bc913afb53e1e20897758e7bf5cb25d37f0fab3f758f8659",
+      "listing_sha256": "20ff8c6ac9474724bc913afb53e1e20897758e7bf5cb25d37f0fab3f758f8659",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/65b266a5-4f66-42aa-8e7f-4cec765dbb20/file_downloaded",
+      "parse_check": "csv, 49678 data rows, 14 columns"
+    },
+    {
+      "name": "589_Mixed1.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 8696227,
+      "sha256": "2795c7d9f393822debea6cbe213dc4a179d892d5a326d1cc5da2558594fc2f60",
+      "listing_sha256": "2795c7d9f393822debea6cbe213dc4a179d892d5a326d1cc5da2558594fc2f60",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/f0d23b8b-29e8-44ad-9c8b-102f757fa1d5/file_downloaded",
+      "parse_check": "csv, 67312 data rows, 14 columns"
+    },
+    {
+      "name": "589_Mixed2.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 9253180,
+      "sha256": "9fcd9e1200098dc87f3567f43794fa07063ec91b2939c2184a845579cfb92601",
+      "listing_sha256": "9fcd9e1200098dc87f3567f43794fa07063ec91b2939c2184a845579cfb92601",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/2e1badf9-5afd-4c4c-b247-eb1af2f7935f/file_downloaded",
+      "parse_check": "csv, 72303 data rows, 14 columns"
+    },
+    {
+      "name": "589_US06.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 4340788,
+      "sha256": "d3b52e7c538fdee4451158526e5b83eab92c9698b22f6d88f551d009207b08a9",
+      "listing_sha256": "d3b52e7c538fdee4451158526e5b83eab92c9698b22f6d88f551d009207b08a9",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/55746932-9400-4042-b7be-10eecc1856c3/file_downloaded",
+      "parse_check": "csv, 33806 data rows, 14 columns"
+    },
+    {
+      "name": "590_Mixed4.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 8697540,
+      "sha256": "fcc3f2515cd189d0ff86edb34a007b8245820b13b4c14f1eb626d9b6baa84e3a",
+      "listing_sha256": "fcc3f2515cd189d0ff86edb34a007b8245820b13b4c14f1eb626d9b6baa84e3a",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/2245f732-00db-4118-aa5f-b4413dd52bba/file_downloaded",
+      "parse_check": "csv, 68027 data rows, 14 columns"
+    },
+    {
+      "name": "590_Mixed5.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 8310744,
+      "sha256": "c37c6302180dc99f76bc56a4dc55c419c32b707b07bfba3b600e4dfb61747c4a",
+      "listing_sha256": "c37c6302180dc99f76bc56a4dc55c419c32b707b07bfba3b600e4dfb61747c4a",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/93a848dd-d927-4d86-afed-64ca79bd579e/file_downloaded",
+      "parse_check": "csv, 64995 data rows, 14 columns"
+    },
+    {
+      "name": "590_Mixed6.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 7997477,
+      "sha256": "277fcf564f2b76f4b3d4dbb77596cde6c44e3b4a61d71a9e10b4627380e919f3",
+      "listing_sha256": "277fcf564f2b76f4b3d4dbb77596cde6c44e3b4a61d71a9e10b4627380e919f3",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/75cd6ac7-a86b-44b6-b241-1ba28865f784/file_downloaded",
+      "parse_check": "csv, 62483 data rows, 14 columns"
+    },
+    {
+      "name": "590_Mixed7.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 7863886,
+      "sha256": "4076f71204690b256bf2781bf656952db0b7f6642d5138396422015d991218b0",
+      "listing_sha256": "4076f71204690b256bf2781bf656952db0b7f6642d5138396422015d991218b0",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/4aeb19ee-1f47-4e34-9c4b-5c413c9b254f/file_downloaded",
+      "parse_check": "csv, 61540 data rows, 14 columns"
+    },
+    {
+      "name": "590_Mixed8.csv",
+      "folder": "0degC",
+      "http_status": 200,
+      "size_bytes": 9775160,
+      "sha256": "b8c43a61c52c996c3e60343d539af7096fbe85f071fd46a7bd3b13f72890152e",
+      "listing_sha256": "b8c43a61c52c996c3e60343d539af7096fbe85f071fd46a7bd3b13f72890152e",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/6956165d-52ac-4c23-8514-56e14e9d3134/file_downloaded",
+      "parse_check": "csv, 75838 data rows, 14 columns"
+    },
+    {
+      "name": "567_Mixed1.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 9382046,
+      "sha256": "89eb0f6c7f7cf4b5896c63136fe78a2652a51f9435a396eaa5b59987c760806d",
+      "listing_sha256": "89eb0f6c7f7cf4b5896c63136fe78a2652a51f9435a396eaa5b59987c760806d",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/ae72d701-3dae-4f9c-a473-2e4951594981/file_downloaded",
+      "parse_check": "csv, 72329 data rows, 14 columns"
+    },
+    {
+      "name": "567_Mixed2.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 10014124,
+      "sha256": "0ead5c7bb97aafb932f4ad4f3ee67eb004297dc6df9fd09e69836865cc7add3d",
+      "listing_sha256": "0ead5c7bb97aafb932f4ad4f3ee67eb004297dc6df9fd09e69836865cc7add3d",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/18939638-3362-4e5b-b9dc-e56a91ab10ec/file_downloaded",
+      "parse_check": "csv, 77752 data rows, 14 columns"
+    },
+    {
+      "name": "567_US06.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 5006357,
+      "sha256": "5f7000176770e529d1dce909b74b83a8be32c86ae5c79fe95f00c3a2aebec940",
+      "listing_sha256": "5f7000176770e529d1dce909b74b83a8be32c86ae5c79fe95f00c3a2aebec940",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/37f67dac-ee9e-428c-b995-1e623abb2d88/file_downloaded",
+      "parse_check": "csv, 38718 data rows, 14 columns"
+    },
+    {
+      "name": "571_Mixed4.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 9520197,
+      "sha256": "f9e596681dced183cc5663d1aebfb17d8971f3ab4024754fbf0900f5c7a1e3d4",
+      "listing_sha256": "f9e596681dced183cc5663d1aebfb17d8971f3ab4024754fbf0900f5c7a1e3d4",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/c0ef01a4-de62-40a0-8832-ae00f7a9172a/file_downloaded",
+      "parse_check": "csv, 73929 data rows, 14 columns"
+    },
+    {
+      "name": "571_Mixed5.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 8650674,
+      "sha256": "56274c4f088d81c2a1bfd1f4531aee2b8a94dd6b405adbb8fa0da1a24d1af02b",
+      "listing_sha256": "56274c4f088d81c2a1bfd1f4531aee2b8a94dd6b405adbb8fa0da1a24d1af02b",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/86ef3735-829b-4edd-a6c2-8f920d8928e3/file_downloaded",
+      "parse_check": "csv, 67174 data rows, 14 columns"
+    },
+    {
+      "name": "571_Mixed6.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 9569346,
+      "sha256": "586cd6d3f147daf53b307318ba429590aff4dd4cde90ffdf8eee61a4dfaadd56",
+      "listing_sha256": "586cd6d3f147daf53b307318ba429590aff4dd4cde90ffdf8eee61a4dfaadd56",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/0f03ed0d-2952-490b-9549-956e56d3b75e/file_downloaded",
+      "parse_check": "csv, 73921 data rows, 14 columns"
+    },
+    {
+      "name": "571_Mixed7.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 8927386,
+      "sha256": "e4f086dc43bd04aaecae76f5041d20a0b07f0810efe5fd0ab746c0094c7d6221",
+      "listing_sha256": "e4f086dc43bd04aaecae76f5041d20a0b07f0810efe5fd0ab746c0094c7d6221",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/9e508994-f0e6-42a5-a42a-865b26db1f3a/file_downloaded",
+      "parse_check": "csv, 69325 data rows, 14 columns"
+    },
+    {
+      "name": "571_Mixed8.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 10562318,
+      "sha256": "848511c2b47735410aa7c5e198cf5c64141e7e2ba29a547a70a95558033072c9",
+      "listing_sha256": "848511c2b47735410aa7c5e198cf5c64141e7e2ba29a547a70a95558033072c9",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/c650cf57-6057-4155-8f2b-c122426bb6ea/file_downloaded",
+      "parse_check": "csv, 81422 data rows, 14 columns"
+    },
+    {
+      "name": "576_HWFET.csv",
+      "folder": "10degC",
+      "http_status": 200,
+      "size_bytes": 6856941,
+      "sha256": "2f445c8f315e22fb0f8b5cffe5e01263eaae402b20a476e2732cba6fc73275d3",
+      "listing_sha256": "2f445c8f315e22fb0f8b5cffe5e01263eaae402b20a476e2732cba6fc73275d3",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/22cc8fd9-f822-42d7-8916-0867046de495/file_downloaded",
+      "parse_check": "csv, 52878 data rows, 14 columns"
+    },
+    {
+      "name": "556_HWFET.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 7190255,
+      "sha256": "86c45744ba133fed513b653359f3fdd9295255af2454965f9cb651e9a4fc01e0",
+      "listing_sha256": "86c45744ba133fed513b653359f3fdd9295255af2454965f9cb651e9a4fc01e0",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/e4f0d80d-adb2-4e13-9022-8541ff9fde05/file_downloaded",
+      "parse_check": "csv, 55910 data rows, 14 columns"
+    },
+    {
+      "name": "556_Mixed1.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 9735110,
+      "sha256": "6c13c23414846e6b70e387bff5172dafd296b2c126128749325f38db1e14d105",
+      "listing_sha256": "6c13c23414846e6b70e387bff5172dafd296b2c126128749325f38db1e14d105",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/e26ce92c-fbbe-4876-b39c-9ce1f827cca7/file_downloaded",
+      "parse_check": "csv, 75341 data rows, 14 columns"
+    },
+    {
+      "name": "556_Mixed2.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 10152383,
+      "sha256": "1bb9b7253fb8d811167d86ce2ad91fdf7615f60c551ad4ac596f3e2cd4d41ed5",
+      "listing_sha256": "1bb9b7253fb8d811167d86ce2ad91fdf7615f60c551ad4ac596f3e2cd4d41ed5",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/bfc39c4a-d62d-4c88-9d37-9ceff020176a/file_downloaded",
+      "parse_check": "csv, 78956 data rows, 14 columns"
+    },
+    {
+      "name": "556_US06.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 5131940,
+      "sha256": "c80068d34aacec1e79888aa0b1196914e4de032322156bcc26d69cfb2ea881ac",
+      "listing_sha256": "c80068d34aacec1e79888aa0b1196914e4de032322156bcc26d69cfb2ea881ac",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/aa1c1ded-1889-4253-8eec-db019bb950bd/file_downloaded",
+      "parse_check": "csv, 39961 data rows, 14 columns"
+    },
+    {
+      "name": "557_Mixed3.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 8693774,
+      "sha256": "b2716b46b376c67cd8f6b489d7cee1c8f8de109fbcd78cebceeaaff4af880c7b",
+      "listing_sha256": "b2716b46b376c67cd8f6b489d7cee1c8f8de109fbcd78cebceeaaff4af880c7b",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/510ce391-d019-4db0-8ff2-57c1cb95d00d/file_downloaded",
+      "parse_check": "csv, 67625 data rows, 14 columns"
+    },
+    {
+      "name": "562_Mixed4.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 1443099,
+      "sha256": "91f1d9e5048cd754c47b6c5669a861c2765e9272f14251ef9c148d0bfe3f96e8",
+      "listing_sha256": "91f1d9e5048cd754c47b6c5669a861c2765e9272f14251ef9c148d0bfe3f96e8",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/29f083c3-180e-4599-85a0-3f3224950c52/file_downloaded",
+      "parse_check": "csv, 11327 data rows, 14 columns"
+    },
+    {
+      "name": "562_Mixed5.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 1668991,
+      "sha256": "044415453619f7a0dad17c5f64605548acc72ad6eb6ef8fb2c5cf61460f46f8a",
+      "listing_sha256": "044415453619f7a0dad17c5f64605548acc72ad6eb6ef8fb2c5cf61460f46f8a",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/7fe688ce-4c04-454e-8b20-6c273fa421f2/file_downloaded",
+      "parse_check": "csv, 13087 data rows, 14 columns"
+    },
+    {
+      "name": "562_Mixed6.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 1505950,
+      "sha256": "0a137c6d4434af5234ee4f191325ca872e64f9f9d6fad05936414b2f70477e66",
+      "listing_sha256": "0a137c6d4434af5234ee4f191325ca872e64f9f9d6fad05936414b2f70477e66",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/6cdf6878-5c7c-484c-972e-ce2ab95b415f/file_downloaded",
+      "parse_check": "csv, 11761 data rows, 14 columns"
+    },
+    {
+      "name": "562_Mixed7.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 1002891,
+      "sha256": "5300a5ec9bace9c4a19c0f7b216c5ad685c3849a0c299aed503159485f03dfca",
+      "listing_sha256": "5300a5ec9bace9c4a19c0f7b216c5ad685c3849a0c299aed503159485f03dfca",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/681a514d-fda7-4e84-a153-fe51c7cdded7/file_downloaded",
+      "parse_check": "csv, 7848 data rows, 14 columns"
+    },
+    {
+      "name": "562_Mixed8.csv",
+      "folder": "40degC",
+      "http_status": 200,
+      "size_bytes": 1836388,
+      "sha256": "0c13819a71e5802621dd86fe00dadcf8d7d2ae94389bf8d0735bcffabce5f142",
+      "listing_sha256": "0c13819a71e5802621dd86fe00dadcf8d7d2ae94389bf8d0735bcffabce5f142",
+      "download_url": "https://data.mendeley.com/public-files/datasets/b5mj79w5w9/files/14ed59be-be6f-4b9b-80cb-f71c6fcefc70/file_downloaded",
+      "parse_check": "csv, 14385 data rows, 14 columns"
     }
   ],
   "datasheets": [

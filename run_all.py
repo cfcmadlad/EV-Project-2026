@@ -1,5 +1,6 @@
 import csv
 import json
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from pathlib import Path
@@ -9,7 +10,7 @@ import numpy as np
 
 from src.balancing import BalanceResult, simulate, tail_slowdown_ratio
 from src.cell_plots import plot_baseline_comparison
-from src.checks import physics_checks
+from src.checks import link_coupling_check, physics_checks
 from src.config import (
     CONFIG,
     HZ_PER_KHZ,
@@ -20,9 +21,13 @@ from src.config import (
     ProjectConfig,
     Technique,
 )
+from src.converter_audit import converter_audit_block
 from src.dataset import TARGET_NAMES, Dataset, generate_dataset
+from src.drive_cycle import drive_cycle_stage, load_profiles, population_block
+from src.drive_plots import plot_drive_capacity, plot_drive_spread
 from src.experiments import baseline_pack, random_streams, run_baseline
 from src.identification import table_slope_mv_per_percent
+from src.midsem import midsem_block
 from src.ml_eval import evaluate
 from src.ml_plots import plot_conformal_coverage, plot_cv_comparison, plot_out_of_range
 from src.pack import PackBatch, tile_pack
@@ -35,8 +40,22 @@ from src.plots import (
     plot_sweep,
 )
 from src.predictor import PredictorReport, train_and_evaluate
+from src.rl_plots import plot_rl_vs_baselines, plot_training_curves
+from src.rl_report import RESULTS_PATH as RL_RESULTS_PATH
+from src.rl_report import rl_block
+from src.rl_report import timing_block as rl_timing_block
+from src.scaling import scaling_block
+from src.scaling_plots import plot_scaling
+from src.selector import selector_block
+from src.selector_plots import plot_selector
+from src.soc_error import soc_error_block
+from src.soc_estimation.plots import plot_error_summary, plot_traces, plot_wrong_start
+from src.soc_estimation.report import RESULTS_PATH as SOC_RESULTS_PATH
+from src.soc_estimation.report import soc_estimation_block, timing_block
 from src.spice_check import converter_check
 from src.spice_plots import plot_current_parity
+from src.temperature import temperature_block
+from src.temperature_plots import plot_params_vs_temperature, plot_soc_error
 from src.uncertainty import (
     BOOTSTRAP_PATH,
     IDENTIFICATION_PATH,
@@ -44,6 +63,8 @@ from src.uncertainty import (
     load_cached,
     propagate_baseline,
 )
+from src.voltage_balancing import voltage_balancing_block
+from src.voltage_plots import plot_voltage_balancing
 
 TARGET_AXES = (
     ("Balancing time", "h", 1.0 / SECONDS_PER_HOUR),
@@ -418,7 +439,9 @@ def run(config: ProjectConfig, results_dir: Path) -> list[str]:
     results_dir.mkdir(parents=True, exist_ok=True)
     streams = random_streams(config.seed)
 
-    with ProcessPoolExecutor(max_workers=1) as pool:
+    with ProcessPoolExecutor(
+        max_workers=1, mp_context=multiprocessing.get_context("spawn")
+    ) as pool:
         checks_future = pool.submit(timed_physics_checks, config, streams["checks"])
         return _run_stages(config, results_dir, streams, start, checks_future)
 
@@ -453,6 +476,57 @@ def _run_stages(
     if converter_rows:
         write_comparison_csv(converter_rows, results_dir / "spice_vs_averaged.csv")
         plot_current_parity(converter_rows, config, results_dir / "spice_vs_averaged")
+    drive_block, drive_traces = drive_cycle_stage(config, pack, baseline)
+    population = load_profiles(config.drive_cycle)
+    drive_population_result = (
+        population_block(config, population, streams["drive_population"])
+        if drive_block["status"] == "ok"
+        else {"status": drive_block["status"]}
+    )
+    if drive_traces is not None:
+        plot_drive_spread(
+            drive_traces, config.sim.soc_tolerance, results_dir / "drive_cycle_spread", config.plot
+        )
+        plot_drive_capacity(drive_block, results_dir / "drive_cycle_usable_capacity", config.plot)
+    temperature_result = temperature_block(config)
+    if temperature_result["status"] == "ok":
+        plot_params_vs_temperature(
+            temperature_result, results_dir / "params_vs_temperature", config.plot
+        )
+    soc_error_result, soc_error_study = soc_error_block(config, streams["soc_error"])
+    plot_soc_error(
+        soc_error_study,
+        config.soc_error.sigma_percent,
+        config.sim.soc_tolerance,
+        results_dir / "soc_error_true_spread",
+        config.plot,
+    )
+    soc_estimation_result = soc_estimation_block(config)
+    if soc_estimation_result["status"] == "ok":
+        soc_cache = json.loads(SOC_RESULTS_PATH.read_text())
+        plot_traces(soc_cache["traces"], results_dir / "soc_est_test_traces", config.plot)
+        plot_error_summary(
+            soc_estimation_result["results"], results_dir / "soc_est_error_summary", config.plot
+        )
+        plot_wrong_start(
+            soc_cache["wrong_start_curves"], results_dir / "soc_est_wrong_init", config.plot
+        )
+    scaling_result = scaling_block(config)
+    if scaling_result["status"] == "ok":
+        plot_scaling(scaling_result, results_dir / "scaling_time_vs_n", config.plot)
+    coupling_result = link_coupling_check(config, streams["coupling"])
+    voltage_result = voltage_balancing_block(config)
+    if voltage_result["status"] == "ok":
+        plot_voltage_balancing(voltage_result, results_dir / "voltage_balancing", config.plot)
+    selector_result = selector_block(config, streams["selector"], report)
+    plot_selector(selector_result, results_dir / "technique_selector", config.plot)
+    rl_result = rl_block(config)
+    if rl_result["status"] == "ok":
+        rl_cache = json.loads(RL_RESULTS_PATH.read_text())
+        plot_training_curves(
+            rl_cache["training"]["curves"], results_dir / "rl_training_curves", config.plot
+        )
+        plot_rl_vs_baselines(rl_cache["test"], results_dir / "rl_vs_baselines", config.plot)
     write_baseline_csv(table, results_dir / "baseline_table.csv")
     write_dataset_csv(dataset, results_dir / "dataset.csv")
     save_figures(baseline, sweeps, dataset, report, config, results_dir)
@@ -480,6 +554,18 @@ def _run_stages(
             sweeps["flying_capacitor_frequency_hz"],
         ),
         "ml_eval": ml_eval_block,
+        "drive_cycle": drive_block,
+        "temperature": temperature_result,
+        "soc_error": soc_error_result,
+        "soc_estimation": soc_estimation_result,
+        "scaling": scaling_result,
+        "rl_control": rl_result,
+        "link_coupling": coupling_result,
+        "drive_cycle_population": drive_population_result,
+        "midsem_consistency": midsem_block(config, report.metrics),
+        "converter_audit": converter_audit_block(config, streams["audit"]),
+        "voltage_balancing": voltage_result,
+        "technique_selector": selector_result,
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start
@@ -490,6 +576,8 @@ def _run_stages(
             "speedup": speedup,
         },
         "ml_eval": ml_timing,
+        "soc_estimation": timing_block(),
+        "rl_control": rl_timing_block(),
         "physics_checks_s": checks_time,
         "run_all_s": runtime,
     }
