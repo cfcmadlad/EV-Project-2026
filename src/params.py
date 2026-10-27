@@ -317,7 +317,6 @@ class SocEstimationSpec:
     ekf_measurement_std_v_grid: tuple[float, ...] = (0.01, 0.02, 0.04, 0.08, 0.16)
     ekf_initial_std: float = 0.2
     pool_window: tuple[float, float] = (0.3, 0.7)
-    pool_min_time_s: float = 300.0
     feedthrough_packs: int = 200
 
 

@@ -12,7 +12,6 @@ from src.resample import interval_end, interval_mean
 
 RAW_DIR = PROJECT_ROOT / "data" / "raw" / "hg2"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
-INTERIM_DIR = PROJECT_ROOT / "data" / "interim"
 SPLITS_PATH = PROCESSED_DIR / "soc_splits.json"
 TEMPERATURE_PATH = PROCESSED_DIR / "hg2_temperature.json"
 PROVENANCE_PATH = PROCESSED_DIR / "provenance.json"

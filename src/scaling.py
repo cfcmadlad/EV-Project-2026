@@ -130,14 +130,6 @@ def loglog_slope(cells: list[int], values: list[float]) -> float:
     return float(np.polyfit(np.log(cells), np.log(values), 1)[0])
 
 
-def theory_slopes(cells: list[int]) -> dict[str, float]:
-    return {
-        "passive": 0.0,
-        "buck_boost": 0.5,
-        "flying_capacitor": loglog_slope(cells, [1.0 / path_laplacian_smallest(n) for n in cells]),
-    }
-
-
 def theory_for(profile: str, cells: list[int]) -> dict[str, float | None]:
     if profile == "step":
         return {

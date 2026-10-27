@@ -15,7 +15,7 @@ from src.scaling import (
     sample_string_packs,
     scaling_block,
     string_config,
-    theory_slopes,
+    theory_for,
 )
 
 
@@ -40,7 +40,7 @@ def test_fixed_deadband_stalls_a_long_string_above_the_spread_target() -> None:
 
 
 def test_flying_capacitor_theory_slope_approaches_two() -> None:
-    slopes = theory_slopes([8, 16, 32])
+    slopes = theory_for("step", [8, 16, 32])
     assert slopes["flying_capacitor"] == pytest.approx(2.0, abs=0.05)
     assert path_laplacian_smallest(32) < path_laplacian_smallest(16)
     assert loglog_slope([2, 4, 8], [4.0, 16.0, 64.0]) == pytest.approx(2.0)
