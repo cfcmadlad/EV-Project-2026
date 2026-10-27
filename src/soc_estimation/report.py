@@ -10,17 +10,31 @@ RESULTS_PATH = (
 )
 NOT_RUN = {"status": "not_run"}
 STALE = {"status": "stale_cache"}
-PAIRS = (("gru", "ekf"), ("gru", "cc"), ("ekf", "cc"))
+PAIRS = (
+    ("gru", "ekf"),
+    ("gru", "cc"),
+    ("ekf", "cc"),
+    ("ekf2", "ekf"),
+    ("ekf2", "gru"),
+    ("ekf2", "cc"),
+)
 COMPARISONS = {
-    "nominal_inputs": {"cc": "offset_injected", "ekf": "nominal", "gru": "nominal"},
+    "nominal_inputs": {
+        "cc": "offset_injected",
+        "ekf": "nominal",
+        "ekf2": "nominal",
+        "gru": "nominal",
+    },
     "nominal_inputs_cc_at_tester_accuracy": {
         "cc": "offset_tester_accuracy",
         "ekf": "nominal",
+        "ekf2": "nominal",
         "gru": "nominal",
     },
     "injected_offset_for_all": {
         "cc": "offset_injected",
         "ekf": "offset_injected",
+        "ekf2": "offset_injected",
         "gru": "offset_injected",
     },
 }
@@ -63,6 +77,8 @@ def compare(results: dict, scenario: dict[str, str]) -> dict[str, dict[str, obje
 
     comparisons: dict[str, dict[str, object]] = {}
     for first, second in PAIRS:
+        if first not in results or second not in results:
+            continue
         row: dict[str, object] = {}
         margins, spreads = [], []
         for test_set in SETS:
@@ -106,6 +122,7 @@ def soc_estimation_block(config: ProjectConfig) -> dict[str, object]:
         "rejected_files": {r["file"]: r["reason"] for r in splits["rejected_files"]},
         "absent_or_unusable": splits["absent_or_unusable"],
         "ekf": payload["ekf"],
+        "ekf2": payload["ekf2"],
         "gru": {k: v for k, v in payload["gru"].items() if k not in ("training_time_s",)},
         "results": strip(results),
         "comparisons": {name: compare(results, scenario) for name, scenario in COMPARISONS.items()},

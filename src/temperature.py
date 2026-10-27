@@ -1,8 +1,9 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
+from scipy.optimize import least_squares
 
 from src.config import FloatArray, ProjectConfig
 
@@ -46,6 +47,81 @@ def bootstrap_activation_ev(
             for j in range(r0_samples_ohm.shape[1])
         ]
     )
+
+
+def r0_forms(
+    temperature_c: FloatArray, r0_ohm: FloatArray, reference_c: float
+) -> dict[str, dict[str, object]]:
+    inverse = 1.0 / (np.asarray(temperature_c) + KELVIN_OFFSET) - 1.0 / (
+        reference_c + KELVIN_OFFSET
+    )
+    scale = float(np.median(r0_ohm))
+
+    def arrhenius(p: FloatArray, x: FloatArray) -> FloatArray:
+        return scale * np.exp(p[0] + p[1] * x)
+
+    def arrhenius_floor(p: FloatArray, x: FloatArray) -> FloatArray:
+        return scale * (p[2] + np.exp(p[0] + p[1] * x))
+
+    def quadratic(p: FloatArray, x: FloatArray) -> FloatArray:
+        return scale * np.exp(p[0] + p[1] * x + p[2] * x**2)
+
+    forms = {
+        "arrhenius": (arrhenius, np.array([0.0, 1000.0])),
+        "arrhenius_plus_floor": (arrhenius_floor, np.array([-1.0, 1000.0, 0.1])),
+        "log_quadratic_in_inverse_temperature": (quadratic, np.array([0.0, 1000.0, 0.0])),
+    }
+
+    def fit(model, start, x: FloatArray, y: FloatArray) -> FloatArray:
+        return least_squares(lambda p: model(p, x) / y - 1.0, start, x_scale="jac").x
+
+    out: dict[str, dict[str, object]] = {}
+    for name, (model, start) in forms.items():
+        params = fit(model, start, inverse, r0_ohm)
+        residual = np.abs(model(params, inverse) / r0_ohm - 1.0)
+        held_out = []
+        for k in range(r0_ohm.size):
+            keep = np.arange(r0_ohm.size) != k
+            local = fit(model, start, inverse[keep], r0_ohm[keep])
+            held_out.append(abs(model(local, inverse[[k]])[0] / r0_ohm[k] - 1.0))
+        out[name] = {
+            "n_parameters": int(start.size),
+            "max_relative_residual": float(residual.max()),
+            "leave_one_temperature_out_max_relative_error": float(max(held_out)),
+        }
+    return out
+
+
+def balancing_by_temperature(config: ProjectConfig, payload: dict) -> dict[str, object]:
+    from src.experiments import baseline_pack, run_baseline
+    from src.params import CellParams, OCVTable
+
+    rows: dict[str, object] = {}
+    for key, entry in payload["per_temperature"].items():
+        cell = entry["simulator_cell"]
+        params = replace(
+            config.params,
+            cell=CellParams(
+                capacity_ah=entry["capacity_ah"],
+                r0_ohm=cell["r0_ohm"],
+                r1_ohm=cell["r1_ohm"],
+                c1_farad=cell["c1_farad"],
+                ocv=OCVTable(tuple(entry["ocv"]["soc"]), tuple(entry["ocv"]["volt_v"])),
+            ),
+        )
+        local = replace(config, params=params)
+        results = run_baseline(baseline_pack(local), local, trace=False)
+        rows[key] = {
+            "validation_status": entry["selection"]["status"],
+            **{
+                technique.key: {
+                    "balancing_time_s": float(result.balancing_time_s[0]),
+                    "energy_dissipated_j": float(result.energy_dissipated_j[0]),
+                }
+                for technique, result in results.items()
+            },
+        }
+    return rows
 
 
 def linear_slope(temperature_c: FloatArray, values: FloatArray) -> float:
@@ -103,6 +179,19 @@ def temperature_block(config: ProjectConfig) -> dict[str, object]:
                 if cycle in GATED_CYCLES
             },
             "intervals": entry["intervals"],
+            "improved_model": {
+                "calibration_cycles": entry["improved"]["calibration_cycles"],
+                "validation": {
+                    cycle: {
+                        **values,
+                        "passes": bool(
+                            values["rmse_whole_v"] <= spec.rmse_whole_cycle_v
+                            and values["rmse_window_v"] <= spec.rmse_window_v
+                        ),
+                    }
+                    for cycle, values in entry["improved"]["validation"].items()
+                },
+            },
         }
     return {
         "status": "ok",
@@ -114,5 +203,11 @@ def temperature_block(config: ProjectConfig) -> dict[str, object]:
         "rejected_files": payload["rejected_files"],
         "per_temperature": per_temperature,
         "arrhenius": payload["arrhenius"],
+        "r0_forms": r0_forms(
+            np.array(payload["temperatures_c"], dtype=float),
+            np.array(payload["arrhenius"]["r0_measured_ohm"]),
+            payload["reference_c"],
+        ),
+        "balancing_by_temperature": balancing_by_temperature(config, payload),
         "ocv_shift": payload["ocv_shift"],
     }

@@ -24,10 +24,14 @@ def buck_boost_element_loss_w(
     hardware: BuckBoostSpec,
 ) -> FloatArray:
     forward = flow.link_forward
-    emf_source = np.where(forward, emf[:, :-1], emf[:, 1:])
-    emf_sink = np.where(forward, emf[:, 1:], emf[:, :-1])
-    r0_source = np.where(forward, r0[:, :-1], r0[:, 1:])
-    source_terminal_v = emf_source - flow.link_source_a * r0_source
+    if flow.terminal_v is not None:
+        source_terminal_v = np.where(forward, flow.terminal_v[:, :-1], flow.terminal_v[:, 1:])
+        emf_sink = np.where(forward, flow.terminal_v[:, 1:], flow.terminal_v[:, :-1])
+    else:
+        emf_source = np.where(forward, emf[:, :-1], emf[:, 1:])
+        emf_sink = np.where(forward, emf[:, 1:], emf[:, :-1])
+        r0_source = np.where(forward, r0[:, :-1], r0[:, 1:])
+        source_terminal_v = emf_source - flow.link_source_a * r0_source
     peak_a = source_terminal_v * hardware.duty * inverse_lf[:, None]
     demagnetising_duty = peak_a / (emf_sink * inverse_lf[:, None])
     on_interval_loss = (hardware.r_inductor_ohm + hardware.r_ds_on_ohm) * peak_a**2 * hardware.duty

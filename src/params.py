@@ -305,7 +305,6 @@ class SocEstimationSpec:
     test_b_temperature_c: int = 10
     train_mixed: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
     validation_mixed: tuple[int, ...] = (7,)
-    validation_mixed_override: tuple[tuple[int, tuple[int, ...]], ...] = ((40, (3,)),)
     test_a_cycles: tuple[str, ...] = ("Mixed8", "UDDS", "HWFET", "LA92", "US06")
     step_s: float = 1.0
     min_discharged_fraction: float = 0.8
@@ -325,6 +324,9 @@ class SocEstimationSpec:
     ekf_process_std_grid: tuple[float, ...] = (1e-7, 1e-6, 1e-5, 1e-4)
     ekf_measurement_std_v_grid: tuple[float, ...] = (0.01, 0.02, 0.04, 0.08, 0.16)
     ekf_initial_std: float = 0.2
+    ekf2_process_std_grid: tuple[float, ...] = (1e-6, 1e-5, 1e-4)
+    ekf2_measurement_std_v_grid: tuple[float, ...] = (0.01, 0.02, 0.05)
+    ekf2_hysteresis_rate_grid: tuple[float, ...] = (0.0, 100.0, 500.0)
     pool_window: tuple[float, float] = (0.3, 0.7)
     feedthrough_packs: int = 200
 

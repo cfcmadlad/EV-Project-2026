@@ -320,7 +320,38 @@ def temperature_claims() -> list[CheckedClaim]:
                         else "",
                     )
                 )
+    for temperature in (0, 10, 25, 40):
+        for cycle in ("UDDS", "LA92"):
+            if temperature == 10 and cycle == "LA92":
+                continue
+            for field, label, limit in (
+                ("rmse_whole_v", "whole cycle", 0.030),
+                ("rmse_window_v", "20 to 80 % SOC window", 0.020),
+            ):
+                claims.append(
+                    CheckedClaim(
+                        f"Calibrated nonlinear 2RC model reproduces measured {cycle} at "
+                        f"{temperature} C, {label} RMSE (tables from HPPC, six scale factors "
+                        "fitted on other drive cycles)",
+                        f"temperature.per_temperature.{temperature}.improved_model.validation."
+                        f"{cycle}.{field}",
+                        f"<= {limit * 1000:.0f} mV",
+                        at_most(limit),
+                        millivolts,
+                        "validation cycles never used for fitting; not usable in the simulator",
+                    )
+                )
     claims += [
+        CheckedClaim(
+            "R0(T) is described by a log-quadratic form in 1/T (largest error when one "
+            "temperature is left out)",
+            "temperature.r0_forms.log_quadratic_in_inverse_temperature."
+            "leave_one_temperature_out_max_relative_error",
+            "<= 10 %",
+            at_most(0.10),
+            percent,
+            "three parameters on four temperatures",
+        ),
         CheckedClaim(
             "R0 of the fitted cell follows one Arrhenius law over 0 to 40 C (largest relative "
             "deviation of the fit from the four measured values)",
@@ -413,8 +444,22 @@ def soc_estimation_claims() -> list[CheckedClaim]:
                 lambda v: f"{float(v):.3g} % SOC",
             )
         )
+    claims += [
+        CheckedClaim(
+            f"The 2RC EKF with hysteresis beats the {other_label} ({scope})",
+            f"soc_estimation.comparisons.nominal_inputs.{pair}.verdict",
+            expected,
+            verdict_is(expected),
+            text,
+            "same fixed splits; EKF parameters tuned on validation files only",
+        )
+        for pair, other_label, expected in (
+            ("ekf2_vs_ekf", "1RC EKF", "ekf2_beats_ekf"),
+            ("ekf2_vs_gru", "GRU", "ekf2_beats_gru"),
+        )
+    ]
     for technique in ("passive", "buck_boost"):
-        for estimator in ("ekf", "gru"):
+        for estimator in ("ekf", "ekf2", "gru"):
             claims.append(
                 CheckedClaim(
                     f"Balancing on {estimator.upper()} SOC ({technique}) brings most packs "
@@ -441,8 +486,6 @@ def scaling_claims() -> list[CheckedClaim]:
             ("buck_boost", "inductor buck-boost"),
             ("flying_capacitor", "flying capacitor"),
         ):
-            if profile == "random" and key == "flying_capacitor":
-                continue
             claims.append(
                 CheckedClaim(
                     f"{label}: balancing time vs N follows the derived power law ({text_profile})",
@@ -499,6 +542,41 @@ def rl_claims() -> list[CheckedClaim]:
             lambda v: f"{float(v):.3g} s",
         )
     )
+    return claims
+
+
+def coupling_claims() -> list[CheckedClaim]:
+    return [
+        CheckedClaim(
+            "Net-current link models (shared cell resistance solved) close the net-current "
+            "ledger for buck-boost and flying capacitor (200 random packs worst case, "
+            "relative to dissipated energy)",
+            "link_coupling.max_net_ledger_gap_vs_dissipated",
+            "<= 1 %",
+            at_most(0.01),
+            percent,
+            "per-link model remains the default for continuity with midsem results",
+        )
+    ]
+
+
+def drive_population_claims() -> list[CheckedClaim]:
+    claims = []
+    for key, label in (
+        ("buck_boost", "inductor buck-boost"),
+        ("flying_capacitor", "flying capacitor"),
+    ):
+        for scenario in ("driving", "charging"):
+            claims.append(
+                CheckedClaim(
+                    f"{label} raises usable pack Ah while {scenario} for most random packs "
+                    "(measured Mixed 1 current, 200 packs)",
+                    f"drive_cycle_population.{scenario}.{key}.fraction_packs_with_gain",
+                    ">= 90 % of packs",
+                    lambda v: float(v) >= 0.9,
+                    percent,
+                )
+            )
     return claims
 
 
@@ -578,6 +656,8 @@ def checked_claims() -> list[CheckedClaim]:
         + soc_estimation_claims()
         + scaling_claims()
         + rl_claims()
+        + coupling_claims()
+        + drive_population_claims()
     )
 
 

@@ -16,9 +16,11 @@ from src.soc_estimation.data import (
     load_splits,
 )
 from src.soc_estimation.ekf import MODES, build_cell
+from src.soc_estimation.ekf2 import build_cell2, run_ekf2
 from src.soc_estimation.evaluate import (
     ErrorSums,
     cycle_rng,
+    initial_soc,
     perturbed_inputs,
     run_coulomb,
     run_ekf_scenario,
@@ -38,6 +40,7 @@ from src.soc_estimation.report import current_inputs
 GRU_DIR = PROCESSED_DIR / "soc_gru"
 OUTPUT_PATH = PROCESSED_DIR / "soc_estimation_results.json"
 GRU_SCENARIOS = ("nominal", "noise_5mv", "offset_tester_accuracy", "offset_injected")
+EKF2_SCENARIOS = ("nominal", "wrong_start", "noise_5mv", "offset_injected")
 EKF_SCENARIOS = (
     "nominal",
     "wrong_start",
@@ -99,6 +102,56 @@ def tune_ekf(entries: dict, validation: list[Cycle], spec) -> dict[str, object]:
     return {"best": best, "grid": table}
 
 
+def run_ekf2_scenario(cell, cycle, scenario, params, spec, rng) -> np.ndarray:
+    current, voltage = perturbed_inputs(cycle, scenario, rng)
+    return run_ekf2(
+        cell,
+        current,
+        voltage,
+        initial_soc(cycle, scenario, spec),
+        params[0],
+        params[1],
+        spec.ekf_initial_std,
+        params[2],
+        spec.step_s,
+    )
+
+
+def tune_ekf2(entries: dict, validation: list[Cycle], spec) -> dict[str, object]:
+    cases = scenarios(spec)
+    first = start_index(spec)
+    cells = {t: build_cell2(entries[str(t)]) for t in {c.temperature_c for c in validation}}
+    best: dict[str, object] = {"score": float("inf")}
+    size = 0
+    for q in spec.ekf2_process_std_grid:
+        for r in spec.ekf2_measurement_std_v_grid:
+            for rate in spec.ekf2_hysteresis_rate_grid:
+                scores = []
+                for name in TUNING_SCENARIOS:
+                    errors = []
+                    for index, cycle in enumerate(validation):
+                        estimate = run_ekf2_scenario(
+                            cells[cycle.temperature_c],
+                            cycle,
+                            cases[name],
+                            (q, r, rate),
+                            spec,
+                            cycle_rng(CONFIG.seed, index),
+                        )
+                        errors.append((estimate - cycle.soc)[first:])
+                    scores.append(float(np.sqrt(np.mean(np.concatenate(errors) ** 2))))
+                size += 1
+                score = float(np.mean(scores))
+                if score < best["score"]:
+                    best = {
+                        "score": score,
+                        "process_std": q,
+                        "measurement_std_v": r,
+                        "hysteresis_rate": rate,
+                    }
+    return {"best": best, "grid_size": size}
+
+
 def load_gru_models(log: dict, window_s: int) -> list[tuple[int, SocGru]]:
     models = []
     for run in log["runs"]:
@@ -148,6 +201,10 @@ def main() -> int:
     tuning = tune_ekf(entries, validation, spec)
     best = tuning["best"]
     cells = {int(t): build_cell(e, best["mode"]) for t, e in entries.items()}
+    tuning2 = tune_ekf2(entries, validation, spec)
+    best2 = tuning2["best"]
+    cells2 = {int(t): build_cell2(e) for t, e in entries.items()}
+    params2 = (best2["process_std"], best2["measurement_std_v"], best2["hysteresis_rate"])
 
     by_window = {
         w: [r["best_validation_rmse_percent"] for r in log["runs"] if r["window_s"] == w]
@@ -168,7 +225,7 @@ def main() -> int:
 
     traces: dict[str, object] = {}
     curves: dict[tuple, list[np.ndarray]] = {}
-    pools: dict[str, list[np.ndarray]] = {"ekf": [], "gru": []}
+    pools: dict[str, list[np.ndarray]] = {"ekf": [], "ekf2": [], "gru": []}
     test_cycles = [(s, c) for s in ("test_a", "test_b") for c in load_split(splits[s], spec)]
     for index, (split, cycle) in enumerate(test_cycles):
         label = f"{cycle.temperature_c}_{cycle.cycle}"
@@ -205,6 +262,22 @@ def main() -> int:
                 window = (truth >= spec.pool_window[0]) & (truth <= spec.pool_window[1])
                 window[:first] = False
                 pools["ekf"].append(error[window])
+        for name in EKF2_SCENARIOS:
+            estimate = run_ekf2_scenario(
+                cells2[cycle.temperature_c],
+                cycle,
+                cases[name],
+                params2,
+                spec,
+                cycle_rng(CONFIG.seed, index),
+            )
+            error = estimate - truth
+            for key in keys:
+                accumulate(("ekf2", name, *key), label, error[first:], error[first])
+            if name == "nominal":
+                window = (truth >= spec.pool_window[0]) & (truth <= spec.pool_window[1])
+                window[:first] = False
+                pools["ekf2"].append(error[window])
         gru_estimates: dict[int, np.ndarray] = {}
         for name in GRU_SCENARIOS:
             current, voltage = perturbed_inputs(cycle, cases[name], cycle_rng(CONFIG.seed, index))
@@ -239,7 +312,7 @@ def main() -> int:
     def leaf(key: tuple) -> dict[str, object]:
         return sums[key].leaf()
 
-    results: dict[str, object] = {"cc": {}, "ekf": {}, "gru": {}}
+    results: dict[str, object] = {"cc": {}, "ekf": {}, "ekf2": {}, "gru": {}}
     temperatures = {"test_a": (*spec.train_temperatures_c, "all"), "test_b": (10, "all")}
     for name in CC_SCENARIOS:
         results["cc"][name] = {
@@ -248,6 +321,11 @@ def main() -> int:
     for name in EKF_SCENARIOS:
         results["ekf"][name] = {
             s: {str(t): leaf(("ekf", name, s, t)) for t in ts if ("ekf", name, s, t) in sums}
+            for s, ts in temperatures.items()
+        }
+    for name in EKF2_SCENARIOS:
+        results["ekf2"][name] = {
+            s: {str(t): leaf(("ekf2", name, s, t)) for t in ts if ("ekf2", name, s, t) in sums}
             for s, ts in temperatures.items()
         }
     for name in GRU_SCENARIOS:
@@ -291,6 +369,14 @@ def main() -> int:
             "tuning_score_percent": best["score"] * PERCENT,
             "tuning_set": [c.name for c in validation],
             "grid_size": len(tuning["grid"]),
+        },
+        "ekf2": {
+            "states": "SOC, two RC voltages, one-state hysteresis",
+            "process_std": best2["process_std"],
+            "measurement_std_v": best2["measurement_std_v"],
+            "hysteresis_rate": best2["hysteresis_rate"],
+            "tuning_score_percent": best2["score"] * PERCENT,
+            "grid_size": tuning2["grid_size"],
         },
         "gru": {
             "selected_window_s": window_s,

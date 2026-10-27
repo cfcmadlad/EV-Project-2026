@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 
 from src.balancing import BalanceResult, build_control
 from src.config import BoolArray, FloatArray, IntArray, ProjectConfig, Technique
-from src.pack import PackBatch, tile_pack
+from src.pack import PackBatch, sample_packs, tile_pack
 from src.params import DriveCycleSpec
 from src.stepper import PackState, cell_ocv, step
 
@@ -432,3 +432,55 @@ def drive_cycle_stage(
         return dict(NOT_RUN), None
     output = run_drive_cycle(pack, rest_results, profiles, config)
     return output["block"], output["traces"]
+
+
+def population_runs(
+    technique: Technique | None,
+    packs: PackBatch,
+    program: CurrentProgram,
+    charge: CurrentProgram,
+    config: ProjectConfig,
+) -> dict[str, ScenarioRun]:
+    return {
+        "driving": run_scenario(technique, packs, program, Mode.DISCHARGE, config),
+        "charging": run_scenario(technique, packs, charge, Mode.CHARGE, config),
+    }
+
+
+def population_block(
+    config: ProjectConfig, profiles: dict, rng: np.random.Generator
+) -> dict[str, object]:
+    spec = config.drive_cycle
+    n = spec.population_packs
+    packs = sample_packs(n, rng, config.cell, config.pack)
+    profile = np.array(profiles["profiles"][spec.primary_cycle]["current_a"])
+    program = program_from_profiles([profile] * n)
+    charge = constant_program(
+        -spec.charge_c_rate * config.cell.capacity_ah,
+        n,
+        round(spec.charge_horizon_s / config.sim.dt_s),
+    )
+    outputs = Parallel(n_jobs=len(STRATEGIES))(
+        delayed(population_runs)(t, packs, program, charge, config) for t in STRATEGIES
+    )
+    runs = dict(zip(STRATEGY_KEYS, outputs, strict=True))
+    tolerance = config.sim.soc_tolerance
+    block: dict[str, object] = {"n_packs": n, "cycle": spec.primary_cycle}
+    for scenario in ("driving", "charging"):
+        none = runs["none"][scenario]
+        rows: dict[str, object] = {}
+        for key in STRATEGY_KEYS:
+            run = runs[key][scenario]
+            gain = run.usable_ah - none.usable_ah
+            rows[key] = {
+                "usable_ah_median": float(np.median(run.usable_ah)),
+                "gain_vs_none_ah_median": float(np.median(gain)),
+                "gain_vs_none_ah_p05": float(np.percentile(gain, 5.0)),
+                "gain_vs_none_ah_p95": float(np.percentile(gain, 95.0)),
+                "fraction_packs_with_gain": float(np.mean(gain > 1e-9)),
+                "final_spread_median": float(np.median(run.final_spread)),
+                "fraction_reaching_criterion": float(np.mean(run.final_spread < tolerance)),
+                "energy_dissipated_j_median": float(np.median(run.energy_dissipated_j)),
+            }
+        block[scenario] = rows
+    return block

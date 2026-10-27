@@ -6,9 +6,11 @@ from time import perf_counter
 
 import numpy as np
 
+from src.cell import build_ocv_curve
+from src.cold_model import calibrate, replay_calibrated, table_model
 from src.config import CONFIG, MV_PER_V, PROJECT_ROOT
 from src.experiments import random_streams
-from src.hg2 import load_all
+from src.hg2 import TestKind, load_all
 from src.identification import (
     MODEL_2RC,
     candidate_models,
@@ -22,12 +24,15 @@ from src.identification import (
     usable_drive_cycles,
 )
 from src.identify import interval, ocv_slope_v_per_soc
+from src.params import CellParams, OCVTable
+from src.soc_estimation.data import CYCLE_PATTERN, build_cycle
 from src.temperature import (
     TEMPERATURES_C,
     bootstrap_activation_ev,
     fit_arrhenius,
     linear_slope,
 )
+from src.validate import replay_metrics
 
 RAW_DIR = PROJECT_ROOT / "data" / "raw" / "hg2"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
@@ -40,6 +45,68 @@ SOC_INDEX_50 = 50
 
 def folder_for(temperature_c: int) -> Path:
     return RAW_DIR if temperature_c == REFERENCE_C else RAW_DIR / f"{temperature_c}degC"
+
+
+def improved_model(folder, temperature: int, found, recordings, spec) -> dict[str, object]:
+    calibration = CONFIG.calibration
+    table = table_model(found.fits_2rc)
+    curve = build_ocv_curve(models_cell(found))
+    cycles = []
+    used = []
+    for path in sorted(folder.glob("*.csv")):
+        match = CYCLE_PATTERN.match(path.name)
+        if match is None or match["cycle"] not in calibration.calibration_cycles:
+            continue
+        try:
+            cycles.append(
+                build_cycle(
+                    path,
+                    match["cycle"],
+                    temperature,
+                    found.capacity_ah,
+                    found.sign,
+                    calibration.step_s,
+                )
+            )
+        except ValueError:
+            continue
+        used.append(path.name)
+    cycles = [c for c in cycles if c.n_steps > 1 and np.abs(c.current_a).max() > 1e-6]
+    scales = calibrate(
+        [np.arange(1, c.n_steps + 1) * calibration.step_s for c in cycles],
+        [c.current_a for c in cycles],
+        [c.voltage_v for c in cycles],
+        [c.soc for c in cycles],
+        table,
+        curve,
+    )
+    validation = {}
+    for kind in (TestKind.UDDS, TestKind.LA92):
+        if kind not in recordings:
+            continue
+        replay = replay_calibrated(
+            recordings[kind][0], found.sign, found.capacity_ah, table, curve, scales
+        )
+        metrics = replay_metrics(replay, spec)
+        validation[kind.value] = {
+            "rmse_whole_v": metrics.rmse_whole_v,
+            "rmse_window_v": metrics.rmse_window_v,
+        }
+    return {
+        "scales": scales.tolist(),
+        "calibration_cycles": [c.name for c in cycles],
+        "validation": validation,
+    }
+
+
+def models_cell(found):
+    return CellParams(
+        capacity_ah=found.capacity_ah,
+        r0_ohm=0.01,
+        r1_ohm=0.01,
+        c1_farad=100.0,
+        ocv=OCVTable(tuple(found.ocv.soc.tolist()), tuple(found.ocv.ocv_v.tolist())),
+    )
 
 
 def main() -> int:
@@ -77,6 +144,7 @@ def main() -> int:
             "capacity_ah": found.capacity_ah,
             "capacity_1c_ah": list(found.capacity.one_c_discharge_ah),
             "ocv": {"soc": found.ocv.soc.tolist(), "volt_v": found.ocv.ocv_v.tolist()},
+            "hysteresis_half_width_v": found.ocv.hysteresis_v.tolist(),
             "ocv_at_50_percent_v": float(found.ocv.ocv_v[SOC_INDEX_50]),
             "ocv_slope_at_50_percent_mv_per_percent": ocv_slope_v_per_soc(found.ocv, 0.5)
             * SLOPE_PER_PERCENT
@@ -108,6 +176,9 @@ def main() -> int:
                 for cycle, per_model in metrics.items()
             },
             "selection": selection,
+            "improved": improved_model(
+                folder_for(temperature), temperature, found, recordings, spec
+            ),
             "intervals": interval_table(
                 {k: samples[k] for k in ("r0_ohm", "r1_ohm", "c1_farad")}, spec
             ),

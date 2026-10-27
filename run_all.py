@@ -9,7 +9,7 @@ import numpy as np
 
 from src.balancing import BalanceResult, simulate, tail_slowdown_ratio
 from src.cell_plots import plot_baseline_comparison
-from src.checks import physics_checks
+from src.checks import link_coupling_check, physics_checks
 from src.config import (
     CONFIG,
     HZ_PER_KHZ,
@@ -21,7 +21,7 @@ from src.config import (
     Technique,
 )
 from src.dataset import TARGET_NAMES, Dataset, generate_dataset
-from src.drive_cycle import drive_cycle_stage
+from src.drive_cycle import drive_cycle_stage, load_profiles, population_block
 from src.drive_plots import plot_drive_capacity, plot_drive_spread
 from src.experiments import baseline_pack, random_streams, run_baseline
 from src.identification import table_slope_mv_per_percent
@@ -468,6 +468,12 @@ def _run_stages(
         write_comparison_csv(converter_rows, results_dir / "spice_vs_averaged.csv")
         plot_current_parity(converter_rows, config, results_dir / "spice_vs_averaged")
     drive_block, drive_traces = drive_cycle_stage(config, pack, baseline)
+    population = load_profiles(config.drive_cycle)
+    drive_population_result = (
+        population_block(config, population, streams["drive_population"])
+        if drive_block["status"] == "ok"
+        else {"status": drive_block["status"]}
+    )
     if drive_traces is not None:
         plot_drive_spread(
             drive_traces, config.sim.soc_tolerance, results_dir / "drive_cycle_spread", config.plot
@@ -499,6 +505,7 @@ def _run_stages(
     scaling_result = scaling_block(config)
     if scaling_result["status"] == "ok":
         plot_scaling(scaling_result, results_dir / "scaling_time_vs_n", config.plot)
+    coupling_result = link_coupling_check(config, streams["coupling"])
     rl_result = rl_block(config)
     if rl_result["status"] == "ok":
         rl_cache = json.loads(RL_RESULTS_PATH.read_text())
@@ -539,6 +546,8 @@ def _run_stages(
         "soc_estimation": soc_estimation_result,
         "scaling": scaling_result,
         "rl_control": rl_result,
+        "link_coupling": coupling_result,
+        "drive_cycle_population": drive_population_result,
     }
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start

@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 from src.fitted import FITTED_HG2_25C
 from src.params import (
     BuckBoostSpec,
+    CalibrationSpec,
     CellParams,
     CheckSpec,
     ConverterCheckSpec,
@@ -108,6 +109,7 @@ class ProjectConfig:
     soc_estimation: SocEstimationSpec = SocEstimationSpec()
     scaling: ScalingSpec = ScalingSpec()
     rl: RlSpec = RlSpec()
+    calibration: CalibrationSpec = CalibrationSpec()
     plot: PlotConfig = PlotConfig()
 
     @property

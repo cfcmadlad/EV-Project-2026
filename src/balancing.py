@@ -15,6 +15,7 @@ from src.config import (
     ProjectConfig,
     Technique,
 )
+from src.coupled_links import buck_boost_currents_net, flying_capacitor_currents_net
 from src.flow import StepFlow
 from src.ledger import (
     ElementLossModel,
@@ -24,7 +25,7 @@ from src.ledger import (
     rc_square_weights,
 )
 from src.pack import PackBatch
-from src.params import BuckBoostSpec
+from src.params import BuckBoostSpec, LinkCoupling
 from src.stepper import (
     CurrentModel,
     PackDynamics,
@@ -340,13 +341,16 @@ def _scatter_links(i_source: FloatArray, i_sink: FloatArray, forward: BoolArray)
 
 def _current_model(technique: Technique, config: ProjectConfig) -> CurrentModel:
     deadband = config.sim.link_soc_deadband
+    net = config.sim.link_coupling is LinkCoupling.NET_CURRENT
     match technique:
         case Technique.PASSIVE:
             return passive_currents
         case Technique.BUCK_BOOST:
-            return partial(buck_boost_currents, hardware=config.buck_boost, deadband=deadband)
+            model = buck_boost_currents_net if net else buck_boost_currents
+            return partial(model, hardware=config.buck_boost, deadband=deadband)
         case Technique.FLYING_CAPACITOR:
-            return partial(flying_capacitor_currents, deadband=deadband)
+            model = flying_capacitor_currents_net if net else flying_capacitor_currents
+            return partial(model, deadband=deadband)
 
 
 def _element_loss_model(technique: Technique, config: ProjectConfig) -> ElementLossModel:

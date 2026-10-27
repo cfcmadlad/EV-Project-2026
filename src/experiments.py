@@ -13,6 +13,8 @@ STREAM_NAMES = (
     "soc_feedthrough",
     "scaling",
     "rl_eval",
+    "coupling",
+    "drive_population",
 )
 
 
