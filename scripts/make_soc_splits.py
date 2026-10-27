@@ -48,11 +48,18 @@ def main() -> int:
                 continue
             seen.add((temperature, cycle))
             index = mixed_index(cycle)
+            validation_mixed = dict(spec.validation_mixed_override).get(
+                temperature, spec.validation_mixed
+            )
             if temperature == spec.test_b_temperature_c:
                 splits["test_b"].append(entry)
-            elif temperature in spec.train_temperatures_c and index in spec.train_mixed:
+            elif (
+                temperature in spec.train_temperatures_c
+                and index in spec.train_mixed
+                and index not in validation_mixed
+            ):
                 splits["train"].append(entry)
-            elif temperature in spec.train_temperatures_c and index in spec.validation_mixed:
+            elif temperature in spec.train_temperatures_c and index in validation_mixed:
                 splits["validation"].append(entry)
             elif temperature in spec.train_temperatures_c and cycle in spec.test_a_cycles:
                 splits["test_a"].append(entry)

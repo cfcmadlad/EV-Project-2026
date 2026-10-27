@@ -76,12 +76,18 @@ class FlyingCapSpec:
 TechniqueSpec = PassiveSpec | BuckBoostSpec | FlyingCapSpec
 
 
+class LinkCoupling(StrEnum):
+    PER_LINK = "per_link"
+    NET_CURRENT = "net_current"
+
+
 @dataclass(frozen=True, slots=True)
 class SimSpec:
     dt_s: float = 1.0
     t_max_s: float = 48.0 * SECONDS_PER_HOUR
     soc_tolerance: float = 0.01
     link_soc_deadband: float = 0.002
+    link_coupling: LinkCoupling = LinkCoupling.PER_LINK
     trace_interval_s: float = 10.0
 
 
@@ -117,6 +123,7 @@ class CheckSpec:
     packs_per_technique: int = 200
     ledger_tolerance: float = 0.01
     dt_scaling_packs: int = 20
+    coupling_packs: int = 100
     dt_scaling_steps_s: tuple[float, ...] = (1.0, 0.5, 0.25)
     passive_closed_form_tolerance: float = 0.03
     charge_conservation_tolerance: float = 1e-9
@@ -152,6 +159,7 @@ class DriveCycleSpec:
     charge_c_rate: float = 0.5
     max_cycle_repeats: int = 20
     charge_horizon_s: int = 10800
+    population_packs: int = 200
     primary_cycle: str = "Mixed1"
     profile_step_s: float = 1.0
     trace_interval_s: float = 10.0
@@ -297,6 +305,7 @@ class SocEstimationSpec:
     test_b_temperature_c: int = 10
     train_mixed: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
     validation_mixed: tuple[int, ...] = (7,)
+    validation_mixed_override: tuple[tuple[int, tuple[int, ...]], ...] = ((40, (3,)),)
     test_a_cycles: tuple[str, ...] = ("Mixed8", "UDDS", "HWFET", "LA92", "US06")
     step_s: float = 1.0
     min_discharged_fraction: float = 0.8
@@ -318,6 +327,13 @@ class SocEstimationSpec:
     ekf_initial_std: float = 0.2
     pool_window: tuple[float, float] = (0.3, 0.7)
     feedthrough_packs: int = 200
+
+
+@dataclass(frozen=True, slots=True)
+class CalibrationSpec:
+    calibration_cycles: tuple[str, ...] = ("HWFET", "US06", "Mixed1", "Mixed2")
+    validation_cycles: tuple[str, ...] = ("UDDS", "LA92")
+    step_s: float = 1.0
 
 
 @dataclass(frozen=True, slots=True)

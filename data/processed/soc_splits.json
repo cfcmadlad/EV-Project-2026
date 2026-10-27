@@ -129,15 +129,6 @@
     "sha256": "1bb9b7253fb8d811167d86ce2ad91fdf7615f60c551ad4ac596f3e2cd4d41ed5",
     "duration_s": 7295.333999999988,
     "discharge_ah": 2.5277562288057385
-   },
-   {
-    "file": "557_Mixed3.csv",
-    "folder": "40degC",
-    "temperature_c": 40,
-    "cycle": "Mixed3",
-    "sha256": "b2716b46b376c67cd8f6b489d7cee1c8f8de109fbcd78cebceeaaff4af880c7b",
-    "duration_s": 6162.226000000001,
-    "discharge_ah": 2.374730805208348
    }
   ],
   "validation": [
@@ -158,6 +149,15 @@
     "sha256": "ea676e6d1f5eacdcf84836de6de950a4fd38bf4b19a71b7140c54fb5b2daf2d4",
     "duration_s": 6723.285999999993,
     "discharge_ah": 2.5589999553250213
+   },
+   {
+    "file": "557_Mixed3.csv",
+    "folder": "40degC",
+    "temperature_c": 40,
+    "cycle": "Mixed3",
+    "sha256": "b2716b46b376c67cd8f6b489d7cee1c8f8de109fbcd78cebceeaaff4af880c7b",
+    "duration_s": 6162.226000000001,
+    "discharge_ah": 2.374730805208348
    }
   ],
   "test_a": [
