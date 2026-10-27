@@ -2,8 +2,9 @@ from dataclasses import dataclass, replace
 
 import numpy as np
 
-from src.balancing import _scatter_links, _source_sink, build_control
+from src.balancing import build_control
 from src.config import BoolArray, FloatArray, ProjectConfig
+from src.coupled_links import scatter, source_sink
 from src.drive_cycle import CurrentProgram
 from src.flow import StepFlow
 from src.pack import PackBatch
@@ -21,9 +22,9 @@ def commanded_currents(
     spec: RlSpec,
 ) -> tuple[StepFlow, FloatArray]:
     forward = command > 0.0
-    emf_source, emf_sink = _source_sink(emf, forward)
-    r_source, r_sink = _source_sink(r0, forward)
-    ocv_source, ocv_sink = _source_sink(ocv, forward)
+    emf_source, emf_sink = source_sink(emf, forward)
+    r_source, r_sink = source_sink(r0, forward)
+    ocv_source, ocv_sink = source_sink(ocv, forward)
     duty = np.minimum(np.abs(command) * spec.d_max, spec.dcm_margin / (1.0 + emf_source / emf_sink))
     conductance = 0.5 * duty**2 * inverse_lf[:, None]
     i_source = emf_source * conductance / (1.0 + conductance * r_source)
@@ -36,7 +37,7 @@ def commanded_currents(
     p_out = v_source * i_source - conduction_loss
     i_sink = 2.0 * p_out / (emf_sink + np.sqrt(emf_sink**2 + 4.0 * r_sink * p_out))
     flow = StepFlow(
-        cell_current_a=_scatter_links(i_source, i_sink, forward),
+        cell_current_a=scatter(i_source, i_sink, forward),
         removed_w=np.einsum("ij,ij->i", ocv_source, i_source),
         delivered_w=np.einsum("ij,ij->i", ocv_sink, i_sink),
         link_source_a=i_source,
@@ -54,8 +55,8 @@ def commanded_loss_w(
     inverse_lf: FloatArray,
     hardware: BuckBoostSpec,
 ) -> FloatArray:
-    emf_source, emf_sink = _source_sink(emf, flow.link_forward)
-    r_source, _ = _source_sink(r0, flow.link_forward)
+    emf_source, emf_sink = source_sink(emf, flow.link_forward)
+    r_source, _ = source_sink(r0, flow.link_forward)
     terminal_v = emf_source - flow.link_source_a * r_source
     peak_a = terminal_v * duty * inverse_lf[:, None]
     demagnetising = peak_a / (emf_sink * inverse_lf[:, None])

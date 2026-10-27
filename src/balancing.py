@@ -15,7 +15,13 @@ from src.config import (
     ProjectConfig,
     Technique,
 )
-from src.coupled_links import buck_boost_currents_net, flying_capacitor_currents_net
+from src.coupled_links import (
+    buck_boost_currents_net,
+    flying_capacitor_currents_net,
+    link_state,
+    scatter,
+    source_sink,
+)
 from src.flow import StepFlow
 from src.ledger import (
     ElementLossModel,
@@ -114,10 +120,10 @@ def buck_boost_currents(
     hardware: BuckBoostSpec,
     deadband: float,
 ) -> StepFlow:
-    active, forward = _link_state(soc, deadband)
-    emf_source, emf_sink = _source_sink(emf, forward)
-    r_source, r_sink = _source_sink(r0, forward)
-    ocv_source, ocv_sink = _source_sink(ocv, forward)
+    active, forward = link_state(soc, deadband)
+    emf_source, emf_sink = source_sink(emf, forward)
+    r_source, r_sink = source_sink(r0, forward)
+    ocv_source, ocv_sink = source_sink(ocv, forward)
     conductance = np.where(active, 0.5 * hardware.duty**2 * inverse_lf[:, None], 0.0)
     i_source = emf_source * conductance / (1.0 + conductance * r_source)
     v_source = emf_source - i_source * r_source
@@ -132,7 +138,7 @@ def buck_boost_currents(
     p_out = v_source * i_source - conduction_loss
     i_sink = 2.0 * p_out / (emf_sink + np.sqrt(emf_sink**2 + 4.0 * r_sink * p_out))
     return StepFlow(
-        cell_current_a=_scatter_links(i_source, i_sink, forward),
+        cell_current_a=scatter(i_source, i_sink, forward),
         removed_w=np.einsum("ij,ij->i", ocv_source, i_source),
         delivered_w=np.einsum("ij,ij->i", ocv_sink, i_sink),
         link_source_a=i_source,
@@ -149,14 +155,14 @@ def flying_capacitor_currents(
     resistance: FloatArray,
     deadband: float,
 ) -> StepFlow:
-    active, _ = _link_state(soc, deadband)
+    active, _ = link_state(soc, deadband)
     r_link = resistance[:, 0]
     i_link = np.where(active, (emf[:, :-1] - emf[:, 1:]) / r_link, 0.0)
     forward = i_link > 0.0
     magnitude = np.abs(i_link)
-    ocv_source, ocv_sink = _source_sink(ocv, forward)
+    ocv_source, ocv_sink = source_sink(ocv, forward)
     return StepFlow(
-        cell_current_a=_scatter_links(magnitude, magnitude, forward),
+        cell_current_a=scatter(magnitude, magnitude, forward),
         removed_w=np.einsum("ij,ij->i", ocv_source, magnitude),
         delivered_w=np.einsum("ij,ij->i", ocv_sink, magnitude),
         link_source_a=magnitude,
@@ -320,23 +326,6 @@ def _store(
 
 def _first_crossing(time_s: FloatArray, spread: FloatArray, level: float) -> float:
     return float(time_s[np.argmax(spread <= level)])
-
-
-def _link_state(soc: FloatArray, deadband: float) -> tuple[BoolArray, BoolArray]:
-    difference = soc[:, :-1] - soc[:, 1:]
-    return np.abs(difference) > deadband, difference > 0.0
-
-
-def _source_sink(values: FloatArray, forward: BoolArray) -> tuple[FloatArray, FloatArray]:
-    left, right = values[:, :-1], values[:, 1:]
-    return np.where(forward, left, right), np.where(forward, right, left)
-
-
-def _scatter_links(i_source: FloatArray, i_sink: FloatArray, forward: BoolArray) -> FloatArray:
-    current = np.zeros((forward.shape[0], forward.shape[1] + 1))
-    current[:, :-1] = np.where(forward, i_source, -i_sink)
-    current[:, 1:] += np.where(forward, -i_sink, i_source)
-    return current
 
 
 def _current_model(technique: Technique, config: ProjectConfig) -> CurrentModel:

@@ -1,23 +1,23 @@
 import numpy as np
 
-from src.config import FloatArray
+from src.config import BoolArray, FloatArray
 from src.flow import StepFlow
 from src.params import BuckBoostSpec
 
 ITERATIONS = 5
 
 
-def link_state(soc: FloatArray, deadband: float) -> tuple[FloatArray, FloatArray]:
+def link_state(soc: FloatArray, deadband: float) -> tuple[BoolArray, BoolArray]:
     difference = soc[:, :-1] - soc[:, 1:]
     return np.abs(difference) > deadband, difference > 0.0
 
 
-def source_sink(values: FloatArray, forward: FloatArray) -> tuple[FloatArray, FloatArray]:
+def source_sink(values: FloatArray, forward: BoolArray) -> tuple[FloatArray, FloatArray]:
     left, right = values[:, :-1], values[:, 1:]
     return np.where(forward, left, right), np.where(forward, right, left)
 
 
-def scatter(i_source: FloatArray, i_sink: FloatArray, forward: FloatArray) -> FloatArray:
+def scatter(i_source: FloatArray, i_sink: FloatArray, forward: BoolArray) -> FloatArray:
     current = np.zeros((forward.shape[0], forward.shape[1] + 1))
     current[:, :-1] = np.where(forward, i_source, -i_sink)
     current[:, 1:] += np.where(forward, -i_sink, i_source)

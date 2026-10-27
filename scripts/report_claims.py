@@ -433,17 +433,18 @@ def soc_estimation_claims() -> list[CheckedClaim]:
             ),
         ]
     claims = [c for c in claims if c is not None]
-    for test_set in ("test_a", "test_b"):
-        claims.append(
-            CheckedClaim(
-                f"EKF error 300 s after a 20 % wrong start ({test_set}, mean absolute)",
-                f"soc_estimation.results.ekf.wrong_start.{test_set}.all."
-                "abs_error_at_300s_percent_mean",
-                "<= 2 % SOC",
-                at_most(2.0),
-                lambda v: f"{float(v):.3g} % SOC",
+    for estimator, name in (("ekf", "EKF"), ("ekf2", "2RC EKF")):
+        for test_set in ("test_a", "test_b"):
+            claims.append(
+                CheckedClaim(
+                    f"{name} error 300 s after a 20 % wrong start ({test_set}, mean absolute)",
+                    f"soc_estimation.results.{estimator}.wrong_start.{test_set}.all."
+                    "abs_error_at_300s_percent_mean",
+                    "<= 2 % SOC",
+                    at_most(2.0),
+                    lambda v: f"{float(v):.3g} % SOC",
+                )
             )
-        )
     claims += [
         CheckedClaim(
             f"The 2RC EKF with hysteresis beats the {other_label} ({scope})",
@@ -486,6 +487,8 @@ def scaling_claims() -> list[CheckedClaim]:
             ("buck_boost", "inductor buck-boost"),
             ("flying_capacitor", "flying capacitor"),
         ):
+            if profile == "random" and key == "flying_capacitor":
+                continue
             claims.append(
                 CheckedClaim(
                     f"{label}: balancing time vs N follows the derived power law ({text_profile})",

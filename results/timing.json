@@ -1,43 +1,54 @@
 {
   "speedup": {
-    "simulation_time_per_pack_s": 0.0034107213521666607,
-    "prediction_time_per_pack_s": 2.584327083335817e-05,
-    "speedup": 131.97715467827487
+    "simulation_time_per_pack_s": 0.0034041312316666654,
+    "prediction_time_per_pack_s": 2.607397333333002e-05,
+    "speedup": 130.55667381983585
   },
   "ml_eval": {
     "label": "host CPU, not target hardware",
     "batch_1": {
       "per_pack_s": {
-        "simulator": 0.43795099866664106,
-        "physics": 0.001806347333361676,
-        "hgb": 0.003849531666674011,
-        "hybrid": 0.006101937333293487
+        "simulator": 0.4449923773333353,
+        "physics": 0.0024090423333310205,
+        "hgb": 0.004456848999997949,
+        "hybrid": 0.0058431426666629704
       },
       "speedup_over_simulator": {
         "simulator": 1.0,
-        "physics": 242.45115575397054,
-        "hgb": 113.7673453781535,
-        "hybrid": 71.77245106682527
+        "physics": 184.71754156268287,
+        "hgb": 99.84461608045058,
+        "hybrid": 76.15634303645564
       },
       "n_packs": 3
     },
     "batch_1000": {
       "per_pack_s": {
-        "simulator": 0.004820296473473411,
-        "physics": 1.8144939939883625e-05,
-        "hgb": 4.284887987993458e-05,
-        "hybrid": 6.123687687697832e-05
+        "simulator": 0.005040953526526517,
+        "physics": 1.7780585585575187e-05,
+        "hgb": 3.5809889889900045e-05,
+        "hybrid": 6.0131826826831696e-05
       },
       "speedup_over_simulator": {
         "simulator": 1.0,
-        "physics": 265.6551352301873,
-        "hgb": 112.49527378499049,
-        "hybrid": 78.71558314701669
+        "physics": 283.5088587080101,
+        "hgb": 140.769869497652,
+        "hybrid": 83.83170431597748
       },
       "n_packs": 999
     }
   },
-  "soc_estimation": null,
+  "soc_estimation": {
+    "gru_training_time_s": {
+      "w100_s0": 34.60008085199979,
+      "w100_s1": 32.06158657700007,
+      "w100_s2": 31.324719549999827,
+      "w300_s0": 164.50001117300008,
+      "w300_s1": 134.70380052200017,
+      "w300_s2": 130.5784446990001
+    },
+    "gru_weight_bytes_max": 17285,
+    "gru_parameters": 3585
+  },
   "rl_control": {
     "training_time_s": {
       "0": 735.2282148139998,
@@ -45,6 +56,6 @@
       "2": 747.5338469900003
     }
   },
-  "physics_checks_s": 15.321172703000002,
-  "run_all_s": 118.29495796499998
+  "physics_checks_s": 14.896224340999993,
+  "run_all_s": 126.431311333
 }
