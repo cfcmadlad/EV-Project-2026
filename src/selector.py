@@ -8,15 +8,6 @@ from src.pack import PackBatch, sample_packs
 from src.params import SECONDS_PER_HOUR
 from src.predictor import PredictorReport
 
-POLICY_KEYS = (
-    "selector",
-    "physics_selector",
-    "oracle",
-    "always_passive",
-    "always_buck_boost",
-    "always_flying_capacitor",
-)
-
 
 def budget_key(hours: float) -> str:
     return f"{hours:g}".replace(".", "p")

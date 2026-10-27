@@ -9,11 +9,9 @@ from src.hg2 import Recording, charge_throughput_ah
 from src.identify import TwoRcFit
 from src.validate import Replay
 
-N_SCALES = 6
 SCALE_BOUNDS = ([0.3, 0.3, 0.3, 0.3, 0.3, 0.5], [3.0, 3.0, 3.0, 10.0, 10.0, 200.0])
 INITIAL_SCALES = (1.0, 1.0, 1.0, 1.0, 1.0, 8.0)
 DIFF_STEP = 1e-2
-LINEAR_CURRENT_SCALE_A = 1e6
 
 
 @dataclass(frozen=True, slots=True)

@@ -19,7 +19,6 @@ class TestKind(StrEnum):
 
     HPPC = "HPPC"
     C20 = "C20DisCh"
-    INITIAL_CHARGE = "Charge"
     DISCHARGE_HALF_C = "Dis_0p5C"
     DISCHARGE_2C = "Dis_2C"
     CAPACITY_1C = "Cap_1C"
@@ -46,13 +45,6 @@ class Recording:
     capacity_ah: FloatArray
     step: IntArray
     status: np.ndarray
-
-    @property
-    def duration_s(self) -> float:
-        return float(self.time_s[-1] - self.time_s[0])
-
-    def discharge_current_a(self, discharge_sign: float) -> FloatArray:
-        return discharge_sign * self.current_a
 
 
 def classify(file_name: str) -> tuple[int, TestKind]:
