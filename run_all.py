@@ -1,5 +1,6 @@
 import csv
 import json
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from pathlib import Path
@@ -438,7 +439,9 @@ def run(config: ProjectConfig, results_dir: Path) -> list[str]:
     results_dir.mkdir(parents=True, exist_ok=True)
     streams = random_streams(config.seed)
 
-    with ProcessPoolExecutor(max_workers=1) as pool:
+    with ProcessPoolExecutor(
+        max_workers=1, mp_context=multiprocessing.get_context("spawn")
+    ) as pool:
         checks_future = pool.submit(timed_physics_checks, config, streams["checks"])
         return _run_stages(config, results_dir, streams, start, checks_future)
 

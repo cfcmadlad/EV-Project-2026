@@ -1,3 +1,4 @@
+import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from pathlib import Path
@@ -60,7 +61,9 @@ COMPARED_FILES = ("metrics.json", "baseline_table.csv", "dataset.csv")
 
 def test_two_runs_give_identical_metrics(tmp_path: Path) -> None:
     first, second = tmp_path / "first", tmp_path / "second"
-    with ProcessPoolExecutor(max_workers=2) as pool:
+    with ProcessPoolExecutor(
+        max_workers=2, mp_context=multiprocessing.get_context("spawn")
+    ) as pool:
         for future in [pool.submit(run, SMALL_CONFIG, folder) for folder in (first, second)]:
             future.result()
     for name in COMPARED_FILES:
