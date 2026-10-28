@@ -5,6 +5,8 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from src.balancing import simulate
+from src.calibration import buck_boost_feasible
+from src.cell import build_ocv_curve, open_circuit_voltage
 from src.config import BoolArray, FloatArray, IntArray, ProjectConfig, Technique
 from src.pack import PackBatch, sample_packs
 
@@ -55,7 +57,7 @@ def generate_dataset(config: ProjectConfig, rng: np.random.Generator) -> Dataset
     runs = config.dataset.runs_per_technique
     if runs < 1:
         raise ValueError(f"runs_per_technique must be positive, got {runs}")
-    draws = [_draw_block(technique, config, rng) for technique in Technique]
+    draws = [draw_block(technique, config, rng) for technique in Technique]
     blocks = Parallel(n_jobs=len(draws))(
         delayed(_simulate_block)(technique, packs, component, frequency, config)
         for technique, (packs, component, frequency) in zip(Technique, draws, strict=True)
@@ -76,15 +78,32 @@ def generate_dataset(config: ProjectConfig, rng: np.random.Generator) -> Dataset
     )
 
 
-def _draw_block(
-    technique: Technique, config: ProjectConfig, rng: np.random.Generator
+def draw_block(
+    technique: Technique, config: ProjectConfig, rng: np.random.Generator, runs: int | None = None
 ) -> tuple[PackBatch, FloatArray, FloatArray]:
-    runs = config.dataset.runs_per_technique
+    runs = config.dataset.runs_per_technique if runs is None else runs
     hardware = config.technique(technique)
     packs = sample_packs(runs, rng, config.cell, config.pack)
     component = rng.uniform(hardware.component.low, hardware.component.high, runs)
     frequency = rng.uniform(hardware.frequency_hz.low, hardware.frequency_hz.high, runs)
+    if technique is Technique.BUCK_BOOST:
+        component, frequency = _feasible_buck_boost(config, rng, component, frequency)
     return packs, component, frequency
+
+
+def _feasible_buck_boost(
+    config: ProjectConfig, rng: np.random.Generator, component: FloatArray, frequency: FloatArray
+) -> tuple[FloatArray, FloatArray]:
+    hardware = config.buck_boost
+    v_max = float(open_circuit_voltage(np.array([1.0]), build_ocv_curve(config.cell))[0])
+    bad = ~buck_boost_feasible(component, frequency, hardware.duty, v_max)
+    while bad.any():
+        component[bad] = rng.uniform(hardware.component.low, hardware.component.high, bad.sum())
+        frequency[bad] = rng.uniform(
+            hardware.frequency_hz.low, hardware.frequency_hz.high, bad.sum()
+        )
+        bad = ~buck_boost_feasible(component, frequency, hardware.duty, v_max)
+    return component, frequency
 
 
 def pack_features(
