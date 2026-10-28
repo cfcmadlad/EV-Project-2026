@@ -1,7 +1,8 @@
 import json
 
 from src.config import PROJECT_ROOT
-from src.fingerprint import maps_sha256
+from src.fingerprint import binary_sha256, maps_sha256, text_sha256
+from src.soc_estimation.report import current_inputs
 
 PROCESSED = PROJECT_ROOT / "data" / "processed"
 NOT_RUN = {"status": "not_run"}
@@ -120,10 +121,36 @@ def deep_models_block(dataset_hash: str) -> dict[str, object]:
             else {"status": "ok"} | _strip_timing(trajectory) | {"shape": shape_gaps(trajectory)}
         )
     soc = _load("soc")
-    out["soc"] = dict(NOT_RUN) if soc is None else {"status": "ok"} | _soc_summary(soc)
+    if soc is None:
+        out["soc"] = dict(NOT_RUN)
+    elif soc.get("inputs") != soc_inputs():
+        out["soc"] = dict(STALE)
+    else:
+        out["soc"] = {"status": "ok"} | _soc_summary(soc)
     rl = _load("rl")
-    out["rl"] = dict(NOT_RUN) if rl is None else {"status": "ok"} | rl_summary(rl)
+    if rl is None:
+        out["rl"] = dict(NOT_RUN)
+    elif rl.get("inputs") != rl_inputs():
+        out["rl"] = dict(STALE)
+    else:
+        out["rl"] = {"status": "ok"} | rl_summary(rl)
     return out
+
+
+def soc_inputs() -> dict[str, str]:
+    return current_inputs() | {
+        "ekf2_reference_sha256": text_sha256(PROCESSED / "soc_estimation_results.json")
+    }
+
+
+def rl_inputs() -> dict[str, object]:
+    return {
+        "drive_profiles_sha256": text_sha256(PROCESSED / "drive_profiles_25c.json"),
+        "policies_sha256": {
+            path.name: binary_sha256(path)
+            for path in sorted((PROCESSED / "rl2_policy").glob("*.zip"))
+        },
+    }
 
 
 def soc_verdicts(results: dict) -> dict[str, dict[str, bool]]:

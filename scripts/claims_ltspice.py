@@ -18,7 +18,7 @@ def ltspice_claims() -> list[CheckedClaim]:
     in_range = "points with I_pk below Isat = sqrt(2 * 50 uJ / L)"
     return [
         pair(
-            "Midsem series-form flying-capacitor current matches LTspice with real MOSFETs",
+            "Series-form flying-capacitor current matches LTspice with real MOSFETs",
             "flying_capacitor.real.current_error_series.max_abs",
             0.05,
             grid,

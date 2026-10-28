@@ -5,6 +5,7 @@ from pathlib import Path
 
 from scripts.claims_base import CheckedClaim, at_most, boolean, is_true, percent
 from scripts.claims_deep import deep_claims
+from scripts.claims_headroom import headroom_claims
 from scripts.claims_ltspice import ltspice_claims
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,8 +17,9 @@ TECHNIQUES = (
     ("flying_capacitor", "flying capacitor"),
 )
 LINK_NOTE = (
-    "averaged link equations book each cell's R0 drop per link, not on the net cell current; "
-    "see README"
+    "inherent approximation of the per-link model, which books each cell's R0 drop per link "
+    "instead of on the net cell current; the optional net-current link model removes it "
+    "(link_coupling); see README section i"
 )
 HEADER = (
     "| Claim | Evidence key | Value | Threshold | Status | Note |",
@@ -135,8 +137,8 @@ def converter_claims() -> list[CheckedClaim]:
             0.15,
         ),
         (
-            "Midsem flying-capacitor current formula (kept as a named option) matches SPICE",
-            "converter_check.flying_capacitor.midsem.max_abs_current_error",
+            "Series-form flying-capacitor current formula (kept as a named option) matches SPICE",
+            "converter_check.flying_capacitor.series.max_abs_current_error",
             "<= 5 %",
             0.05,
         ),
@@ -159,7 +161,7 @@ def converter_claims() -> list[CheckedClaim]:
 
 
 MODEL_NAMES = {
-    "hgb": "the midsem HGB model",
+    "hgb": "the plain HGB model",
     "physics": "the physics formula",
     "hybrid": "the hybrid (HGB on the physics residual)",
 }
@@ -499,7 +501,7 @@ def rl_claims() -> list[CheckedClaim]:
     claims = []
     for key, label in (
         ("none", "no balancing"),
-        ("rule_based", "the midsem rule-based controller"),
+        ("rule_based", "the rule-based controller"),
         ("greedy", "greedy maximum-transfer balancing"),
     ):
         claims.append(
@@ -524,40 +526,6 @@ def rl_claims() -> list[CheckedClaim]:
         )
     )
     return claims
-
-
-def midsem_claims() -> list[CheckedClaim]:
-    claims = [
-        CheckedClaim(
-            f"The midsem baseline for {label} (time, energy, efficiency) is reproduced by the "
-            "assumed 3 Ah cell model",
-            f"midsem_consistency.baseline.{key}.max_relative_difference_reproduced_vs_midsem",
-            "<= 0.1 %",
-            at_most(0.001),
-            percent,
-            "generic NMC cell of the midsem, not the fitted HG2 cell",
-        )
-        for key, label in (
-            ("passive", "passive"),
-            ("buck_boost", "buck-boost"),
-            ("flying_capacitor", "flying capacitor"),
-        )
-    ]
-    for target in ("balancing_time_s", "energy_dissipated_j"):
-        claims.append(
-            CheckedClaim(
-                f"Retraining the surrogate on the assumed model reproduces the midsem test R2 "
-                f"for {target}",
-                f"midsem_consistency.surrogate_retrained_on_assumed_model.{target}.r2",
-                "within 1e-4 of the midsem value",
-                lambda v, t=target: abs(float(v) - MIDSEM_R2[t]) <= 1e-4,
-                lambda v: f"{float(v):.4f}",
-            )
-        )
-    return claims
-
-
-MIDSEM_R2 = {"balancing_time_s": 0.9726, "energy_dissipated_j": 0.9946}
 
 
 def converter_audit_claims() -> list[CheckedClaim]:
@@ -682,7 +650,7 @@ def coupling_claims() -> list[CheckedClaim]:
             "<= 1 %",
             at_most(0.01),
             percent,
-            "per-link model remains the default for continuity with midsem results",
+            "per-link model remains the default",
         )
     ]
 
@@ -710,9 +678,9 @@ def drive_population_claims() -> list[CheckedClaim]:
 def checked_claims() -> list[CheckedClaim]:
     claims = [
         CheckedClaim(
-            "Under the ASSUMED parameter set the code reproduces the midsem baseline "
+            "Under the ASSUMED parameter set the code reproduces the pinned reference baseline "
             "times, energies and efficiencies at their printed precision",
-            "physics_checks.midsem_regression.pass",
+            "physics_checks.reference_regression.pass",
             "all 9 values equal",
             is_true,
             boolean,
@@ -784,13 +752,13 @@ def checked_claims() -> list[CheckedClaim]:
         + scaling_claims()
         + rl_claims()
         + coupling_claims()
-        + midsem_claims()
         + converter_audit_claims()
         + voltage_claims()
         + selector_claims()
         + drive_population_claims()
         + ltspice_claims()
         + deep_claims()
+        + headroom_claims()
     )
 
 

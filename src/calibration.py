@@ -44,6 +44,7 @@ class CircuitMaps:
     flying_gate_w: LogGrid
     buck_boost_current_ratio: LogGrid
     buck_boost_overhead_w: LogGrid
+    buck_boost_gate_w: LogGrid
 
 
 def _grid(rows: list[dict], x_key: str, y_key: str, value: str) -> LogGrid:
@@ -73,7 +74,7 @@ def buck_boost_rows(rows: list[dict]) -> list[dict]:
         real += [r for r in group if r["saturates"] == 0.0] or group
     for r in real:
         r["current_ratio"] = r["i_src_a"] / r["py_i_src_mean_a"]
-        r["overhead_w"] = max(r["p_loss_total_w"] - r["py_loss_mean_w"], 0.0)
+        r["overhead_w"] = max(r["p_loss_total_w"] - r["p_gate_w"] - r["py_loss_mean_w"], 0.0)
     return real
 
 
@@ -86,4 +87,5 @@ def circuit_maps(directory: Path = LTSPICE_DIR) -> CircuitMaps:
         flying_gate_w=_grid(flying, "c_f", "f_hz", "p_gate_w"),
         buck_boost_current_ratio=_grid(buck, "l_h", "f_hz", "current_ratio"),
         buck_boost_overhead_w=_grid(buck, "l_h", "f_hz", "overhead_w"),
+        buck_boost_gate_w=_grid(buck, "l_h", "f_hz", "p_gate_w"),
     )

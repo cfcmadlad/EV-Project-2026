@@ -25,7 +25,7 @@ def link_resistance_ohm(
 ) -> FloatArray:
     if hardware.model is FlyingCapModel.CIRCUIT:
         return circuit_element_ohm(inverse_fc, frequency_hz)[:, None] + r0[:, :-1] + r0[:, 1:]
-    if hardware.model is FlyingCapModel.MIDSEM:
+    if hardware.model is FlyingCapModel.SERIES:
         return (
             inverse_fc[:, None]
             + 2.0 * hardware.r_ds_on_ohm
@@ -56,7 +56,7 @@ def element_resistance_ohm(
         return np.broadcast_to(
             circuit_element_ohm(inverse_fc, frequency_hz)[:, None], r0[:, :-1].shape
         )
-    if hardware.model is FlyingCapModel.MIDSEM:
+    if hardware.model is FlyingCapModel.SERIES:
         return inverse_fc[:, None] + 2.0 * hardware.r_ds_on_ohm + hardware.esr_ohm
     if total is None:
         total = link_resistance_ohm(inverse_fc, r0, hardware)

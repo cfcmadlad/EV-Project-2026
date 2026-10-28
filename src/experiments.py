@@ -22,6 +22,7 @@ STREAM_NAMES = (
     "voltage_balancing",
     "selector",
     "trajectory",
+    "headroom",
 )
 
 

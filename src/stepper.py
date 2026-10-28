@@ -52,6 +52,8 @@ class PackState:
     removed_j: FloatArray
     transferred_j: FloatArray
     element_loss_j: FloatArray
+    gate_drive_j: FloatArray
+    gate_drive_ah: FloatArray
     r0_loss_j: FloatArray
     r1_loss_j: FloatArray
     r0_per_link_loss_j: FloatArray
@@ -71,6 +73,8 @@ class PackState:
             removed_j=zeros.copy(),
             transferred_j=zeros.copy(),
             element_loss_j=zeros.copy(),
+            gate_drive_j=zeros.copy(),
+            gate_drive_ah=zeros.copy(),
             r0_loss_j=zeros.copy(),
             r1_loss_j=zeros.copy(),
             r0_per_link_loss_j=zeros.copy(),
@@ -141,7 +145,13 @@ def _gate(flow: StepFlow, active: BoolArray) -> StepFlow:
         link_source_a=flow.link_source_a * column,
         link_sink_a=flow.link_sink_a * column,
         link_forward=flow.link_forward,
+        gate_drive_w=None if flow.gate_drive_w is None else flow.gate_drive_w * active,
+        gate_drive_a=None if flow.gate_drive_a is None else flow.gate_drive_a * active,
     )
+
+
+def _supply(value: FloatArray | None) -> FloatArray | float:
+    return 0.0 if value is None else value
 
 
 def cell_ocv(soc: FloatArray, control: StepControl) -> FloatArray:
@@ -194,6 +204,8 @@ def step(state: PackState, pack_current_a: FloatArray | None, control: StepContr
         transferred_j=state.transferred_j + flow.delivered_w * dt_s,
         element_loss_j=state.element_loss_j
         + control.element_loss(flow, emf, r0, dynamics.technique_parameter) * dt_s,
+        gate_drive_j=state.gate_drive_j + _supply(flow.gate_drive_w) * dt_s,
+        gate_drive_ah=state.gate_drive_ah + _supply(flow.gate_drive_a) * dt_s / SECONDS_PER_HOUR,
         r0_loss_j=state.r0_loss_j + np.einsum("ij,ij->i", current**2, r0) * dt_s,
         r1_loss_j=r1_loss,
         r0_per_link_loss_j=state.r0_per_link_loss_j + per_link_r0_loss_w(flow, r0) * dt_s,

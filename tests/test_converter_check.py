@@ -50,11 +50,11 @@ def test_flying_capacitor_average_follows_the_closed_form() -> None:
     assert link.total_loss_w == pytest.approx(delta_v * link.sink_current_a, rel=1e-9)
 
 
-def test_midsem_option_gives_the_larger_current_at_the_baseline_point() -> None:
+def test_series_option_gives_the_larger_current_at_the_baseline_point() -> None:
     case = case_named("flying_capacitor_s0_p1")
-    midsem = averaged_link(case, CONFIG, FlyingCapModel.MIDSEM)
+    series = averaged_link(case, CONFIG, FlyingCapModel.SERIES)
     two_phase = averaged_link(case, CONFIG, FlyingCapModel.TWO_PHASE)
-    assert 1.7 < midsem.sink_current_a / two_phase.sink_current_a < 1.9
+    assert 1.7 < series.sink_current_a / two_phase.sink_current_a < 1.9
 
 
 def test_compare_case_applies_the_thresholds() -> None:
@@ -114,8 +114,8 @@ def test_converter_check_verdicts() -> None:
     assert block["measurement_quality"]["pass"]
     assert block["buck_boost"]["pass"]
     assert block["flying_capacitor"]["two_phase"]["pass"]
-    assert not block["flying_capacitor"]["midsem"]["pass"]
-    assert block["flying_capacitor"]["midsem"]["n_pass"] == 2
+    assert not block["flying_capacitor"]["series"]["pass"]
+    assert block["flying_capacitor"]["series"]["n_pass"] == 2
     assert block["hypothesis"]["supported"]
     assert block["pass"]
 

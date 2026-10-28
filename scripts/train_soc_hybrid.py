@@ -9,6 +9,7 @@ import torch
 from torch import nn
 
 from src.config import CONFIG, PERCENT
+from src.deep_report import soc_inputs
 from src.experiments import random_streams
 from src.quantize import quantize_state
 from src.soc_estimation.data import PROCESSED_DIR, TEMPERATURE_PATH, load_split, load_splits
@@ -29,7 +30,6 @@ from src.soc_estimation.hybrid import (
     stack,
     to_device,
 )
-from src.soc_estimation.report import current_inputs
 
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 OUT = PROCESSED_DIR / "soc_deep_results.json"
@@ -284,7 +284,7 @@ def main() -> int:
         if window_s == selected[kind]:
             torch.save(model.cpu().state_dict(), CHECKPOINTS / f"{kind}_w{window_s}_s{seed}.pt")
     payload = {
-        "inputs": current_inputs(),
+        "inputs": soc_inputs(),
         "ekf2_params": asdict(params),
         "augmentation": {
             "copies": len(augmented),

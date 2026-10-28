@@ -1,4 +1,33 @@
 {
+ "inputs": {
+  "drive_profiles_sha256": "e068b2aff7081f8982b0b300720743231eac2fa0ea1d53a7992419d5696c5b86",
+  "policies_sha256": {
+   "imitation_plain_n4_s0.zip": "4a03b1537919451008d86b75f1819d417ea9a206664dd58bd0789d03ee0db37b",
+   "imitation_plain_n4_s1.zip": "dd30c24c00dc17ee3b542d93fc4dd0a5c3af61bb1a8ccae5bb13636c71ad7481",
+   "imitation_plain_n4_s2.zip": "3c0510d88d0d96de60a6fafb804e07e9f51f1ca5aaf08d3a93305fbd1cf44124",
+   "imitation_plain_n8_s0.zip": "f795b8dcffd89c46da7aea1589c8b9fccf302f338486005c1d3c5aa0754b5ceb",
+   "imitation_plain_n8_s1.zip": "db706819a41f7e3ce937ee34f7fb2bfa3ef67075a613681a7e066ad76ed77d74",
+   "imitation_plain_n8_s2.zip": "e3915e43bed97533b84dad278bb418b0b998e908c6b42c4bdbfb563361911e7e",
+   "imitation_shaped_n4_s0.zip": "0594caabebe5ebf28fe80d0c6959075b91563b596653dcb406e6b98b67c00de6",
+   "imitation_shaped_n4_s1.zip": "3503ed17f93ed8f52e8128db4667540e2899eda33ae0a54a31ef84268e55b33d",
+   "imitation_shaped_n4_s2.zip": "4ccca708ec406bbe6929909854df6d21a000fa17a4684df8357b6254a25d8b10",
+   "imitation_shaped_n8_s0.zip": "b649825709c700cce8082678aa8a08afc2ff0a13c8f9c66db45cb212a4d13904",
+   "imitation_shaped_n8_s1.zip": "5c900c9148f1568bb98cbd8f4be4bdc8090d67bab9ca877da1043c8da6a3c751",
+   "imitation_shaped_n8_s2.zip": "35e8e75c5097f677ea8948b2a0fcdc9bde2dbbe26964421d2e61360214f0ee41",
+   "residual_plain_n4_s0.zip": "f5069b22a9e68bbe3f621e681bb25eeba8637e9c129738a9c1193c027e499d1d",
+   "residual_plain_n4_s1.zip": "af9dd2e29d0585e3e238e8dab84f3a42ef1df7186b188a8cb7df9e01cf102441",
+   "residual_plain_n4_s2.zip": "999bdf6a796519aa17c622bdf39fe60172769ea7b21c85e0353ce078439d38ba",
+   "residual_plain_n8_s0.zip": "1ce0cc4ebc5c2df362dee09e45330be71a7b1d8ab4f4d1017a965510e67eb6dc",
+   "residual_plain_n8_s1.zip": "851784f710cc0ca94ed3e2b18859243b559d55e8057da8388068fc0fe64ca15e",
+   "residual_plain_n8_s2.zip": "b3a38dd63546a2eb20fe4632ee191c4d50581b66bdf0545fa201b13cebaf79a4",
+   "residual_shaped_n4_s0.zip": "3d84776aef68acf93ca56945db7e20701d2dda4582c9448b9e7765891cbcec53",
+   "residual_shaped_n4_s1.zip": "a88971292eb2d32b567b39d71faa64e3057954577f5abb459907ac171327745a",
+   "residual_shaped_n4_s2.zip": "aa6ffc6b7abf237a8d7185e6fd9bf2845e3b70cd5a75d8544b958bb766f7e68b",
+   "residual_shaped_n8_s0.zip": "f44cf53487d9072bc8d1e10f91688dfbe4a89a3e41eb437331087fca804f76d0",
+   "residual_shaped_n8_s1.zip": "d8b4891cccf03a0c9280fd34e6f34d5e48cada11feab5421f02d67f03dda0dd2",
+   "residual_shaped_n8_s2.zip": "2d2d823ae05cbd3827a2262495a1497dcbc897f4754e4e77ef35ab43cacd45fc"
+  }
+ },
  "timesteps": 150000,
  "configurations_per_method": 2,
  "training_time_s": {

@@ -28,7 +28,9 @@ from src.deep_report import deep_models_block, deep_timing
 from src.drive_cycle import drive_cycle_stage, load_profiles, population_block
 from src.drive_plots import plot_drive_capacity, plot_drive_spread
 from src.experiments import baseline_pack, random_streams, run_baseline, with_flying_model
-from src.fingerprint import text_sha256
+from src.fingerprint import stale_paths, text_sha256
+from src.headroom import load_cache as load_headroom
+from src.headroom_plots import plot_headroom
 from src.identification import table_slope_mv_per_percent
 from src.lt_plots import (
     plot_averaged_vs_ltspice,
@@ -36,7 +38,6 @@ from src.lt_plots import (
     plot_waveforms,
 )
 from src.lt_report import ltspice_block
-from src.midsem import midsem_block
 from src.ml_eval import evaluate
 from src.ml_plots import plot_conformal_coverage, plot_cv_comparison, plot_out_of_range
 from src.pack import PackBatch, tile_pack
@@ -89,6 +90,8 @@ def baseline_table(results: dict[Technique, BalanceResult]) -> list[Row]:
             "balancing_time_s": float(result.balancing_time_s[0]),
             "balancing_time_h": float(result.balancing_time_s[0] / SECONDS_PER_HOUR),
             "energy_dissipated_j": float(result.energy_dissipated_j[0]),
+            "energy_cell_side_j": float(result.energy_dissipated_j[0] - result.gate_drive_j[0]),
+            "energy_gate_drive_j": float(result.gate_drive_j[0]),
             "efficiency_pct": float(result.efficiency[0] * PERCENT),
         }
         for technique, result in results.items()
@@ -362,13 +365,13 @@ def flying_model_comparison(
         }
         sweep["frequency_hz"] = values.tolist()
         sweep[f"balancing_time_s_{model.value}"] = times.tolist()
-    old, new = baseline[FlyingCapModel.MIDSEM.value], baseline[FlyingCapModel.TWO_PHASE.value]
+    old, new = baseline[FlyingCapModel.SERIES.value], baseline[FlyingCapModel.TWO_PHASE.value]
     return {
         "status": "ok",
         "parameter_set": config.params.name,
         "baseline": baseline,
-        "time_ratio_two_phase_over_midsem": new["balancing_time_s"] / old["balancing_time_s"],
-        "energy_ratio_two_phase_over_midsem": new["energy_dissipated_j"]
+        "time_ratio_two_phase_over_series": new["balancing_time_s"] / old["balancing_time_s"],
+        "energy_ratio_two_phase_over_series": new["energy_dissipated_j"]
         / old["energy_dissipated_j"],
         "frequency_sweep": sweep,
         "active_model": config.flying_capacitor.model.value,
@@ -531,6 +534,9 @@ def _run_stages(
     ):
         if deep_block[key]["status"] == "ok":
             plot(deep_block[key], results_dir / name, config.plot)
+    headroom_result = load_headroom(config)
+    if headroom_result["status"] == "ok":
+        plot_headroom(headroom_result, results_dir / "controller_headroom", config.plot)
     drive_block, drive_traces = drive_cycle_stage(config, pack, baseline)
     population = load_profiles(config.drive_cycle)
     drive_population_result = (
@@ -604,6 +610,7 @@ def _run_stages(
         "ltspice_validation": ltspice_result,
         "calibration_effect": calibration_effect(pack, config, baseline),
         "deep_models": deep_block,
+        "headroom": headroom_result,
         "flying_capacitor_model_comparison": flying_model_comparison(
             pack,
             config,
@@ -619,11 +626,13 @@ def _run_stages(
         "rl_control": rl_result,
         "link_coupling": coupling_result,
         "drive_cycle_population": drive_population_result,
-        "midsem_consistency": midsem_block(config, report.metrics),
         "converter_audit": converter_audit_block(config, streams["audit"]),
         "voltage_balancing": voltage_result,
         "technique_selector": selector_result,
     }
+    stale = stale_paths(metrics)
+    if stale and config == CONFIG:
+        raise RuntimeError(f"stale caches, rerun their scripts: {sorted(stale)}")
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start
     timing = {

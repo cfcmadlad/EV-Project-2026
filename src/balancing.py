@@ -20,8 +20,9 @@ from src.coupled_links import (
     bb_parameters,
     buck_boost_currents_net,
     flying_capacitor_currents_net,
+    flying_gate_w,
+    gate_supply,
     link_state,
-    overhead_power_w,
     scatter,
     source_sink,
 )
@@ -51,6 +52,8 @@ LEDGER_KEYS = (
     "removed_j",
     "transferred_j",
     "element_loss_j",
+    "gate_drive_j",
+    "gate_drive_ah",
     "r0_loss_j",
     "r1_loss_j",
     "r0_per_link_loss_j",
@@ -67,6 +70,8 @@ class BalanceResult:
     trace_soc: FloatArray
     final_soc: FloatArray
     element_loss_j: FloatArray
+    gate_drive_j: FloatArray
+    gate_drive_ah: FloatArray
     r0_loss_j: FloatArray
     r1_loss_j: FloatArray
     c1_stored_j: FloatArray
@@ -78,11 +83,23 @@ class BalanceResult:
 
     @property
     def ledger_j(self) -> FloatArray:
-        return self.element_loss_j + self.r0_loss_j + self.r1_loss_j + self.c1_stored_j
+        return (
+            self.element_loss_j
+            + self.gate_drive_j
+            + self.r0_loss_j
+            + self.r1_loss_j
+            + self.c1_stored_j
+        )
 
     @property
     def per_link_ledger_j(self) -> FloatArray:
-        return self.element_loss_j + self.r0_per_link_loss_j + self.r1_loss_j + self.c1_stored_j
+        return (
+            self.element_loss_j
+            + self.gate_drive_j
+            + self.r0_per_link_loss_j
+            + self.r1_loss_j
+            + self.c1_stored_j
+        )
 
     @property
     def efficiency(self) -> FloatArray:
@@ -125,7 +142,7 @@ def buck_boost_currents(
     deadband: float,
 ) -> StepFlow:
     active, forward = link_state(soc, deadband)
-    inverse_lf, ratio, overhead = bb_parameters(inverse_lf)
+    inverse_lf, ratio, overhead, gate_w = bb_parameters(inverse_lf)
     emf_source, emf_sink = source_sink(emf, forward)
     r_source, r_sink = source_sink(r0, forward)
     ocv_source, ocv_sink = source_sink(ocv, forward)
@@ -148,13 +165,16 @@ def buck_boost_currents(
         extra_sink = r_sink * i_pre**2 * (rms_ratio(np.maximum(sink_duty, 1e-9)) - 1.0)
         p_out = p_pre - extra_sink
     i_sink = 2.0 * p_out / (emf_sink + np.sqrt(emf_sink**2 + 4.0 * r_sink * p_out))
+    supply_a, supply_cell, gate_power, gate_amps = gate_supply(active, gate_w, ocv_source, forward)
     return StepFlow(
-        cell_current_a=scatter(i_source, i_sink, forward),
-        removed_w=np.einsum("ij,ij->i", ocv_source, i_source),
+        cell_current_a=scatter(i_source, i_sink, forward) + supply_cell,
+        removed_w=np.einsum("ij,ij->i", ocv_source, i_source + supply_a),
         delivered_w=np.einsum("ij,ij->i", ocv_sink, i_sink),
         link_source_a=i_source,
         link_sink_a=i_sink,
         link_forward=forward,
+        gate_drive_w=gate_power,
+        gate_drive_a=gate_amps,
     )
 
 
@@ -172,14 +192,18 @@ def flying_capacitor_currents(
     forward = i_link > 0.0
     magnitude = np.abs(i_link)
     ocv_source, ocv_sink = source_sink(ocv, forward)
+    supply_a, supply_cell, gate_power, gate_amps = gate_supply(
+        magnitude > 0.0, flying_gate_w(magnitude, resistance), ocv_source, forward
+    )
     return StepFlow(
-        cell_current_a=scatter(magnitude, magnitude, forward),
-        removed_w=np.einsum("ij,ij->i", ocv_source, magnitude)
-        + overhead_power_w(magnitude, resistance),
+        cell_current_a=scatter(magnitude, magnitude, forward) + supply_cell,
+        removed_w=np.einsum("ij,ij->i", ocv_source, magnitude + supply_a),
         delivered_w=np.einsum("ij,ij->i", ocv_sink, magnitude),
         link_source_a=magnitude,
         link_sink_a=magnitude,
         link_forward=forward,
+        gate_drive_w=gate_power,
+        gate_drive_a=gate_amps,
     )
 
 
@@ -297,6 +321,8 @@ def simulate(
         trace_soc=np.array(trace_soc).reshape(len(trace_soc), *soc_full.shape),
         final_soc=soc_full,
         element_loss_j=totals["element_loss_j"],
+        gate_drive_j=totals["gate_drive_j"],
+        gate_drive_ah=totals["gate_drive_ah"],
         r0_loss_j=totals["r0_loss_j"],
         r1_loss_j=totals["r1_loss_j"],
         c1_stored_j=0.5 * c1_farad * (v1_full**2).sum(axis=1),
@@ -405,6 +431,7 @@ def buck_boost_parameter(
             inverse,
             maps.buck_boost_current_ratio(component, frequency_hz),
             maps.buck_boost_overhead_w(component, frequency_hz),
+            maps.buck_boost_gate_w(component, frequency_hz),
         )
     )
 

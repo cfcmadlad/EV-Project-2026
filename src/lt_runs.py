@@ -16,7 +16,8 @@ from src.lt_measure import (
 )
 
 WINDOW_S = 5e-3
-STARTUP_WINDOWS = 1
+STARTUP_WINDOWS = 2
+MIN_PERIODS = 20
 STEP_DIVISOR = 200
 RELTOL = 3e-4
 
@@ -37,7 +38,7 @@ class Timing:
 
 
 def timing(frequency_hz: float, step_divisor: int = STEP_DIVISOR, reltol: float = RELTOL) -> Timing:
-    periods = round(WINDOW_S * frequency_hz)
+    periods = max(round(WINDOW_S * frequency_hz), MIN_PERIODS)
     window = periods / frequency_hz
     stop = (STARTUP_WINDOWS + 2) * window
     return Timing(window, stop, Solver(stop, 1.0 / frequency_hz / step_divisor, reltol))

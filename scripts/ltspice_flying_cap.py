@@ -77,7 +77,7 @@ def main() -> int:
             "v_source": cells.v_source,
             "v_sink": cells.v_sink,
             "r0_ohm": cells.r0_ohm,
-            "py_i_series_a": python_current(FlyingCapModel.MIDSEM, capacitance, frequency, cells),
+            "py_i_series_a": python_current(FlyingCapModel.SERIES, capacitance, frequency, cells),
             "py_i_coth_a": python_current(FlyingCapModel.COTH, capacitance, frequency, cells),
             "py_efficiency": cells.v_sink / cells.v_source,
             **measured[tag],

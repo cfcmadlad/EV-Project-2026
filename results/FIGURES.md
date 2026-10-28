@@ -1,8 +1,8 @@
 # Figures
 
-One line per figure: what it shows and its key number (all from `metrics.json`, fitted 25 °C parameters unless stated).
+One line per figure: what it shows and its key number (all from `metrics.json`, fitted 25 °C parameters unless stated). Five figures also have an `.svg` copy with the same stem.
 
-## Balancing at rest (sections f to i)
+## Balancing at rest (sections f to h)
 
 - `soc_passive.png`: per-cell SOC of the baseline 10 % spread pack during passive shunt balancing; the pack balances (spread below 1 %) after 4.19 h.
 - `soc_buck_boost.png`: the same pack with the inductor buck-boost; balanced after 1.09 h.
@@ -15,7 +15,7 @@ One line per figure: what it shows and its key number (all from `metrics.json`, 
 - `ml_importance_balancing_time_s.png`: permutation importance of the model inputs for balancing time.
 - `ml_importance_energy_dissipated_j.png`: permutation importance of the model inputs for dissipated energy.
 
-## Cell model from measured data (section o)
+## Cell model from measured data (section j)
 
 - `hg2_raw_overview.png`: overview of the measured LG HG2 25 °C tests (C/20, HPPC, drive cycles); C/20 capacity 2.78 Ah.
 - `hppc_params_vs_soc.png`: R0 and polarisation parameters fitted from the HPPC pulses against SOC; R0 median in the constant window 11.8 mΩ with a 95 % interval of 11.4 to 12.2 mΩ.
@@ -23,16 +23,16 @@ One line per figure: what it shows and its key number (all from `metrics.json`, 
 - `cell_validation_summary.png`: RMSE per drive cycle and model against the 30 mV and 20 mV limits; 2RC passes (UDDS 28.5, LA92 28.8, US06 29.9 mV), 1RC fails.
 - `baseline_assumed_vs_fitted.png`: baseline time and energy with the assumed and the fitted parameters; passive time ratio 0.90.
 
-## Converter models (section p) and ML evaluation (section q)
+## Converter models and ML evaluation (sections h and k)
 
-- `spice_vs_averaged.png`: averaged-model mean currents against LTspice at six operating points; buck-boost worst current error 2.9 %, two-phase flying-capacitor 0.03 %, midsem flying-capacitor formula 152 %.
+- `spice_vs_averaged.png`: averaged-model mean currents against LTspice at six operating points; buck-boost worst current error 2.9 %, two-phase flying-capacitor 0.03 %, series-form flying-capacitor formula 152 %.
 - `spice_buckboost_waveform.png`: steady-state LTspice waveforms of the buck-boost at the three operating points.
 - `spice_flyingcap_waveform.png`: steady-state LTspice waveforms of the flying capacitor at the three operating points.
 - `ml_cv_comparison.png`: cross-validated MAE of physics formulas, gradient boosting, log-linear regression and the hybrid; the hybrid is best for both targets.
 - `ml_out_of_range.png`: predictions for packs outside the training range (largest 20 % of component values, spread above 8 %).
 - `ml_conformal_coverage.png`: conformal 90 % interval coverage per technique against the 87 to 93 % band; passive balancing-time coverage 88 %.
 
-## Final phase
+## System-level studies (section m)
 
 - `drive_cycle_spread.png`: SOC spread against time while driving (Mixed 1, repeated) and charging at 0.5C; only the flying capacitor reaches 1.0 % while driving, only the buck-boost reaches 0.86 % while charging.
 - `drive_cycle_usable_capacity.png`: pack Ah until the first cell hits a limit in three scenarios; driving 1.232 (none) and 1.232 (passive), 1.324 (buck-boost), 1.358 Ah (flying capacitor), ideal-transfer reference 1.395 Ah.
@@ -47,7 +47,7 @@ One line per figure: what it shows and its key number (all from `metrics.json`, 
 - `voltage_balancing.png`: fraction of 200 packs below 1 % true SOC spread against cell voltage sensor error for passive, buck-boost and flying capacitor at three stop thresholds; 100 % at 1 mV, 94 % and 93 % at 2 mV, 11 % at 10 mV with the 0.5 % stop.
 - `technique_selector.png`: budget violations among feasible packs and mean energy against parking time budget for the surrogate selector, physics selector, oracle and fixed policies; surrogate agreement 91.7 to 100 %, 6.5 % violations at 1 h.
 
-## Circuit-level validation and deep learning (sections ab to ad)
+## Circuit-level validation, deep learning and headroom (sections k, l and n)
 
 - `ltspice_buck_boost_waveform.png`: two switching periods of the LTspice real-part synchronous buck-boost at 55 µH and 30 kHz (inductor current, switch node, cell currents); discontinuous conduction with D + D2 at most 0.961 over the grid.
 - `ltspice_flying_capacitor_waveform.png`: two periods of the flying-capacitor link at 5.5 mF and 5.5 kHz (capacitor current, top plate voltage, cell currents); LTspice sink current 0.3214 A.
@@ -58,3 +58,4 @@ One line per figure: what it shows and its key number (all from `metrics.json`, 
 - `deep_trajectories.png`: simulated against predicted SOC spread trajectories of three held-out packs per technique for the GRU and Transformer decoders; spread RMSE 0.218 and 0.185 percentage points.
 - `deep_soc.png`: nominal SOC RMSE of the 2RC EKF, the augmented GRU and the EKF plus GRU hybrid on Test A and Test B, and the hybrid and GRU RMSE against weight bit width; hybrid 0.89 % and 1.43 %, EKF 2.06 % and 2.11 %.
 - `deep_rl_second_attempt.png`: usable pack capacity per controller (none, rule, greedy, residual PPO, imitation PPO, ideal) on the four test cycles for 4 and 8 cells; the learned controllers stay within 0.0006 reward units of the rule on 4 cells.
+- `controller_headroom.png`: median gap between the rule-based controller and the ideal-transfer reference in delivered Ah against string length (4 to 96 cells, log axis, band 10th to 90th percentile; blue buck-boost, green flying capacitor, red passive); buck-boost 0.88 % at 4 cells and 1.45 % at 96, flying capacitor 0.79 % and 2.57 %.

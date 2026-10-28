@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from src.config import FloatArray
-from src.coupled_links import bb_parameters, overhead_power_w
+from src.coupled_links import bb_parameters
 from src.flow import StepFlow
 from src.params import BuckBoostSpec
 
@@ -29,7 +29,7 @@ def buck_boost_element_loss_w(
     hardware: BuckBoostSpec,
 ) -> FloatArray:
     forward = flow.link_forward
-    _, _, overhead = bb_parameters(inverse_lf)
+    _, _, overhead, _ = bb_parameters(inverse_lf)
     if flow.terminal_v is not None:
         source_terminal_v = np.where(forward, flow.terminal_v[:, :-1], flow.terminal_v[:, 1:])
         emf_sink = np.where(forward, flow.terminal_v[:, 1:], flow.terminal_v[:, :-1])
@@ -60,8 +60,7 @@ def buck_boost_element_loss_w(
 def flying_capacitor_element_loss_w(
     flow: StepFlow, emf: FloatArray, r0: FloatArray, resistance: FloatArray
 ) -> FloatArray:
-    conduction = (flow.link_source_a**2 * resistance[:, 1]).sum(axis=1)
-    return conduction + overhead_power_w(flow.link_source_a, resistance)
+    return (flow.link_source_a**2 * resistance[:, 1]).sum(axis=1)
 
 
 @dataclass(frozen=True, slots=True)

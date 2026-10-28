@@ -108,7 +108,7 @@ def flying_capacitor_audit(config: ProjectConfig) -> dict[str, object]:
     frequency = np.linspace(spec.frequency_hz.low, spec.frequency_hz.high, GRID_POINTS)
     inverse = 1.0 / (capacitance[:, None] * frequency[None, :])
     forms = {
-        "midsem_series": inverse + 2.0 * spec.r_ds_on_ohm + spec.esr_ohm + 2.0 * r0_mean,
+        "series_form": inverse + 2.0 * spec.r_ds_on_ohm + spec.esr_ohm + 2.0 * r0_mean,
         "two_phase": coth_resistance_ohm(inverse, np.full_like(inverse, phase_ohm)),
         "coth": coth_resistance_ohm(inverse, np.full_like(inverse, phase_ohm)),
     }
@@ -138,14 +138,14 @@ def flying_capacitor_audit(config: ProjectConfig) -> dict[str, object]:
             for name, v in forms.items()
         },
         "series_over_coth_at_range_extremes": {
-            "min": float(np.min(forms["midsem_series"] / forms["coth"])),
-            "max": float(np.max(forms["midsem_series"] / forms["coth"])),
+            "min": float(np.min(forms["series_form"] / forms["coth"])),
+            "max": float(np.max(forms["series_form"] / forms["coth"])),
         },
         "baseline": runs,
-        "baseline_time_ratio_coth_over_midsem": runs["coth"]["balancing_time_s"]
-        / runs["midsem"]["balancing_time_s"],
-        "baseline_energy_ratio_coth_over_midsem": runs["coth"]["energy_dissipated_j"]
-        / runs["midsem"]["energy_dissipated_j"],
+        "baseline_time_ratio_coth_over_series": runs["coth"]["balancing_time_s"]
+        / runs["series"]["balancing_time_s"],
+        "baseline_energy_ratio_coth_over_series": runs["coth"]["energy_dissipated_j"]
+        / runs["series"]["energy_dissipated_j"],
         "default_model": config.flying_capacitor.model.value,
     }
 

@@ -6,6 +6,7 @@ import torch
 from stable_baselines3 import PPO
 
 from src.config import CONFIG, PROJECT_ROOT
+from src.deep_report import rl_inputs
 from src.drive_cycle import Mode, charge_equalised, load_profiles
 from src.experiments import random_streams
 from src.rl_env import (
@@ -83,6 +84,7 @@ def main() -> int:
             block[cycle] = {"table": table, "vs_rule": comparisons}
         summary[f"n{n_cells}"] = block
     payload = {
+        "inputs": rl_inputs(),
         "timesteps": log["timesteps"],
         "configurations_per_method": 2,
         "training_time_s": {r["file"]: r["training_time_s"] for r in log["runs"]},

@@ -1,7 +1,8 @@
 {
  "inputs": {
   "soc_splits_sha256": "349a97fe0ec413cbc12f797db81a7d2efc68ecfb99f4a3059731cff9f37a4edc",
-  "hg2_temperature_sha256": "69e3fc78128dc9615bae8533b783821c963b4a8421760e5591e5082dda80ed53"
+  "hg2_temperature_sha256": "69e3fc78128dc9615bae8533b783821c963b4a8421760e5591e5082dda80ed53",
+  "ekf2_reference_sha256": "5abd22bacec7dc7f27a26956834ed561e49f538a5c05a64bf3ccc371434c55a3"
  },
  "ekf2_params": {
   "process_std": 0.0001,

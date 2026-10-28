@@ -9,7 +9,7 @@ CURVE_FIGSIZE = (8.0, 4.8)
 BAR_FIGSIZE = (12.0, 4.8)
 CONTROLLERS = (
     ("none", "No balancing"),
-    ("rule_based", "Rule-based (midsem)"),
+    ("rule_based", "Rule-based"),
     ("greedy", "Greedy max transfer"),
     ("ppo_mean_of_seeds", "PPO (3 seeds)"),
     ("ideal_reference", "Ideal-transfer reference"),

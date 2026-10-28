@@ -144,8 +144,8 @@ def rl_claims() -> list[CheckedClaim]:
         ):
             claims.append(
                 CheckedClaim(
-                    f"The {variant.replace('_', ' ')} PPO policy beats the midsem rule on the "
-                    f"reward on every test cycle ({label}, gain above two standard errors)",
+                    f"The {variant.replace('_', ' ')} PPO policy beats the rule-based controller "
+                    f"on the reward on every test cycle ({label}, gain above two standard errors)",
                     f"{BASE}.rl.{size}.{variant}.beats_rule_on_every_cycle",
                     "true",
                     is_true,

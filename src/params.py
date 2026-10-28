@@ -62,13 +62,13 @@ class BuckBoostSpec:
 
 
 class FlyingCapModel(StrEnum):
-    MIDSEM = "midsem"
+    SERIES = "series"
     TWO_PHASE = "two_phase"
     COTH = "coth"
     CIRCUIT = "circuit"
 
 
-ANALYTIC_FLYING_MODELS = (FlyingCapModel.MIDSEM, FlyingCapModel.TWO_PHASE, FlyingCapModel.COTH)
+ANALYTIC_FLYING_MODELS = (FlyingCapModel.SERIES, FlyingCapModel.TWO_PHASE, FlyingCapModel.COTH)
 
 
 @dataclass(frozen=True, slots=True)
@@ -303,7 +303,7 @@ ASSUMED = ParameterSet(
     pack=PackSpec(),
     passive=PassiveSpec(),
     buck_boost=BuckBoostSpec(),
-    flying_capacitor=FlyingCapSpec(model=FlyingCapModel.MIDSEM),
+    flying_capacitor=FlyingCapSpec(model=FlyingCapModel.SERIES),
 )
 
 

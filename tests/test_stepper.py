@@ -42,7 +42,7 @@ def test_stepping_reproduces_the_rest_simulation() -> None:
         assert np.array_equal(result.energy_removed_j, state.removed_j)
 
 
-def test_midsem_assumed_parameters_still_balance() -> None:
+def test_assumed_parameters_still_balance() -> None:
     assumed = replace(CONFIG, params=ASSUMED)
     result = simulate(
         Technique.BUCK_BOOST, baseline_pack(assumed), np.array([55e-6]), np.array([30e3]), assumed

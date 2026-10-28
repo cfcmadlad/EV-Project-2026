@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from src.balancing import buck_boost_currents
+from src.balancing import buck_boost_currents, buck_boost_parameter
 from src.calibration import LTSPICE_DIR, circuit_maps
 from src.config import CONFIG
 from src.ledger import buck_boost_element_loss_w
@@ -100,16 +100,10 @@ def calibrated_prediction(row: dict, circuit: bool) -> dict[str, float]:
     emf = np.array([[row["v_source"], row["v_sink"]]])
     r0 = np.full((1, 2), row["r0_ohm"])
     inverse = np.array([1.0 / (row["l_h"] * row["f_hz"])])
-    parameter = inverse
-    if circuit:
-        maps = circuit_maps()
-        parameter = np.column_stack(
-            (
-                inverse,
-                maps.buck_boost_current_ratio(row["l_h"], row["f_hz"]),
-                maps.buck_boost_overhead_w(row["l_h"], row["f_hz"]),
-            )
-        )
+    config = replace(CONFIG, params=replace(CONFIG.params, buck_boost=hardware))
+    parameter = buck_boost_parameter(
+        config, inverse, np.array([row["l_h"]]), np.array([row["f_hz"]])
+    )
     flow = buck_boost_currents(np.array([[1.0, 0.0]]), emf, emf, r0, parameter, hardware, 0.0)
     element = buck_boost_element_loss_w(flow, emf, r0, parameter, hardware)
     return {

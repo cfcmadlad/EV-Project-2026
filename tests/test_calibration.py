@@ -32,11 +32,12 @@ def synthetic_directory(tmp_path):
         "i_src_a",
         "py_i_src_mean_a",
         "p_loss_total_w",
+        "p_gate_w",
         "py_loss_mean_w",
         "saturates",
     ]
     buck = [
-        ["real", "sync", "soc55_50", ind, f, 0.18, 0.2, 0.03, 0.02, 0.0]
+        ["real", "sync", "soc55_50", ind, f, 0.18, 0.2, 0.03, 0.005, 0.02, 0.0]
         for ind in (1e-5, 1e-4)
         for f in (1e4, 5e4)
     ]
@@ -59,7 +60,8 @@ def test_circuit_maps_from_csv(tmp_path):
     element = maps.flying_element_ohm(np.array(1e-3), np.array(1e3))
     assert element == pytest.approx(0.2 + 1e-3 * 10 + 1e3 * 1e-5 - 0.02)
     assert maps.buck_boost_current_ratio(np.array(5e-5), np.array(2e4)) == pytest.approx(0.9)
-    assert maps.buck_boost_overhead_w(np.array(5e-5), np.array(2e4)) == pytest.approx(0.01)
+    assert maps.buck_boost_overhead_w(np.array(5e-5), np.array(2e4)) == pytest.approx(0.005)
+    assert maps.buck_boost_gate_w(np.array(5e-5), np.array(2e4)) == pytest.approx(0.005)
 
 
 def test_saturation_rule_scales_with_inverse_root_l():

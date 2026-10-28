@@ -179,19 +179,12 @@ CHECKS: list[Check] = [
         f("scaling.profiles.random.flying_capacitor.fitted_slope_large_n", ".2f"),
     ),
     (
-        "midsem surrogate time R2",
-        f("midsem_consistency.surrogate_midsem_reference.balancing_time_s.r2", ".4f"),
-    ),
-    (
         "HG2 surrogate time R2",
-        f("midsem_consistency.surrogate_trained_on_fitted_hg2_model.balancing_time_s.r2", ".4f"),
+        f("ml.balancing_time_s.overall.r2", ".4f"),
     ),
     (
         "HG2 surrogate energy MAE",
-        f(
-            "midsem_consistency.surrogate_trained_on_fitted_hg2_model.energy_dissipated_j.mae",
-            ".1f",
-        ),
+        f("ml.energy_dissipated_j.overall.mae", ".1f"),
     ),
     (
         "ripple baseline energy",
@@ -226,7 +219,7 @@ CHECKS: list[Check] = [
     ),
     (
         "coth time ratio",
-        f("converter_audit.flying_capacitor.baseline_time_ratio_coth_over_midsem", ".2f"),
+        f("converter_audit.flying_capacitor.baseline_time_ratio_coth_over_series", ".2f"),
     ),
     (
         "selector 1 h agreement",
@@ -251,12 +244,6 @@ CHECKS: list[Check] = [
     (
         "voltage passive 1 mV",
         f(
-            "voltage_balancing.results.passive.stop_0p5pct_sigma_1mv.balancing_time_s_median",
-            ".0f",
-            1 / 3600,
-        )
-        if False
-        else f(
             "voltage_balancing.results.passive.stop_0p5pct_sigma_1mv.energy_dissipated_j_median",
             ".0f",
         ),

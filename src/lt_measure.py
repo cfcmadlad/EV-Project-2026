@@ -9,7 +9,7 @@ from spicelib import RawRead, SimRunner, SpiceEditor
 from spicelib.simulators.ltspice_simulator import LTspice
 
 from src.config import FloatArray
-from src.lt_circuits import GATE_DRIVE_V, Device
+from src.lt_circuits import GATE_DRIVE_V, ROFF_OHM, Device
 
 FULL_ON_FRACTION = 0.9
 CONDUCTION_THRESHOLD = 0.01
@@ -163,7 +163,12 @@ def device_terms(trace: Trace, window: Window, device: Device) -> dict[str, floa
     conduction = mean_product(trace, window, voltage, current, full_on)
     drive = _difference(device.driver_plus, source)
     supplied = -mean_product(trace, window, drive, {device.driver_current: 1.0})
-    return {"conduction": conduction, "transition": total - conduction, "gate": supplied}
+    leakage = mean_product(trace, window, voltage, voltage) / ROFF_OHM
+    return {
+        "conduction": conduction,
+        "transition": total - conduction + leakage,
+        "gate": supplied,
+    }
 
 
 def cell_terms(trace: Trace, window: Window, v_source: float, v_sink: float, r0: float) -> dict:

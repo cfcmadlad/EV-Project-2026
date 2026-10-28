@@ -10,7 +10,7 @@ from src.experiments import baseline_pack, run_baseline
 from src.pack import PackBatch, sample_packs
 from src.params import ASSUMED, LinkCoupling
 
-MIDSEM_PINNED = {
+REFERENCE_PINNED = {
     "passive": {
         "balancing_time_s": (16400.0, 0),
         "energy_dissipated_j": (7680.0, 0),
@@ -113,6 +113,7 @@ def baseline_ledger(results: dict[Technique, BalanceResult]) -> dict[str, Scalar
             "ledger_net_j": float(result.ledger_j[0]),
             "ledger_per_link_j": float(result.per_link_ledger_j[0]),
             "element_loss_j": float(result.element_loss_j[0]),
+            "gate_drive_j": float(result.gate_drive_j[0]),
             "cell_r0_net_loss_j": float(result.r0_loss_j[0]),
             "cell_r0_per_link_loss_j": float(result.r0_per_link_loss_j[0]),
             "r1_branch_loss_j": float(result.r1_loss_j[0]),
@@ -168,7 +169,7 @@ def flying_capacitor_charge_check(
     charge_change_ah = packs.capacity_ah * (packs.soc0 - result.final_soc)
     charge_out_ah = np.clip(charge_change_ah, 0.0, None).sum(axis=1)
     charge_in_ah = np.clip(-charge_change_ah, 0.0, None).sum(axis=1)
-    imbalance = np.abs(charge_out_ah - charge_in_ah) / charge_out_ah
+    imbalance = np.abs(charge_out_ah - charge_in_ah - result.gate_drive_ah) / charge_out_ah
     return {
         "n_packs": checks.packs_per_technique,
         "max_relative_imbalance": float(imbalance.max()),
@@ -177,7 +178,7 @@ def flying_capacitor_charge_check(
     }
 
 
-def midsem_regression_check(config: ProjectConfig) -> dict[str, object]:
+def reference_regression_check(config: ProjectConfig) -> dict[str, object]:
     assumed = replace(config, params=ASSUMED)
     results = run_baseline(baseline_pack(assumed), assumed, trace=False)
     rows: dict[str, ScalarMap] = {}
@@ -187,7 +188,7 @@ def midsem_regression_check(config: ProjectConfig) -> dict[str, object]:
             "energy_dissipated_j": float(result.energy_dissipated_j[0]),
             "efficiency_pct": float(result.efficiency[0] * PERCENT),
         }
-        pinned = MIDSEM_PINNED[technique.key]
+        pinned = REFERENCE_PINNED[technique.key]
         matches = all(
             round(measured[name], decimals) == value for name, (value, decimals) in pinned.items()
         )
@@ -215,7 +216,7 @@ def physics_checks(config: ProjectConfig, rng: np.random.Generator) -> dict[str,
             delayed(baseline_ledger_check)(pack, config),
             delayed(passive_closed_form_check)(config, closed_form_rng, pack),
             delayed(flying_capacitor_charge_check)(config, charge_rng),
-            delayed(midsem_regression_check)(config),
+            delayed(reference_regression_check)(config),
         ]
     )
     ledgers, baseline, closed_form, charge, regression = (
@@ -227,7 +228,7 @@ def physics_checks(config: ProjectConfig, rng: np.random.Generator) -> dict[str,
         "baseline_ledger": baseline,
         "passive_closed_form": closed_form,
         "flying_capacitor_charge": charge,
-        "midsem_regression": regression,
+        "reference_regression": regression,
     }
 
 
