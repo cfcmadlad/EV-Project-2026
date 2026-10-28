@@ -3,6 +3,7 @@ from functools import partial
 
 import numpy as np
 
+from src.calibration import circuit_maps
 from src.cell import (
     build_ocv_curve,
     rc_step_gain,
@@ -16,9 +17,11 @@ from src.config import (
     Technique,
 )
 from src.coupled_links import (
+    bb_parameters,
     buck_boost_currents_net,
     flying_capacitor_currents_net,
     link_state,
+    overhead_power_w,
     scatter,
     source_sink,
 )
@@ -122,11 +125,12 @@ def buck_boost_currents(
     deadband: float,
 ) -> StepFlow:
     active, forward = link_state(soc, deadband)
+    inverse_lf, ratio, overhead = bb_parameters(inverse_lf)
     emf_source, emf_sink = source_sink(emf, forward)
     r_source, r_sink = source_sink(r0, forward)
     ocv_source, ocv_sink = source_sink(ocv, forward)
     conductance = np.where(active, 0.5 * hardware.duty**2 * inverse_lf[:, None], 0.0)
-    i_source = emf_source * conductance / (1.0 + conductance * r_source)
+    i_source = ratio * emf_source * conductance / (1.0 + conductance * r_source)
     v_source = emf_source - i_source * r_source
     i_peak = 2.0 * i_source / hardware.duty
     sink_duty = hardware.duty * v_source / emf_sink
@@ -136,7 +140,7 @@ def buck_boost_currents(
         * (hardware.duty + sink_duty)
         / 3.0
     )
-    p_out = v_source * i_source - conduction_loss
+    p_out = np.maximum(v_source * i_source - conduction_loss - np.where(active, overhead, 0.0), 0.0)
     if hardware.ripple_r0_loss:
         extra_source = r_source * i_source**2 * (rms_ratio(hardware.duty) - 1.0)
         p_pre = p_out - extra_source
@@ -170,7 +174,8 @@ def flying_capacitor_currents(
     ocv_source, ocv_sink = source_sink(ocv, forward)
     return StepFlow(
         cell_current_a=scatter(magnitude, magnitude, forward),
-        removed_w=np.einsum("ij,ij->i", ocv_source, magnitude),
+        removed_w=np.einsum("ij,ij->i", ocv_source, magnitude)
+        + overhead_power_w(magnitude, resistance),
         delivered_w=np.einsum("ij,ij->i", ocv_sink, magnitude),
         link_source_a=magnitude,
         link_sink_a=magnitude,
@@ -385,8 +390,23 @@ def _technique_parameter(
         return component
     inverse = 1.0 / (component * frequency_hz)
     if technique is Technique.FLYING_CAPACITOR:
-        return link_resistances_ohm(inverse, r0_ohm, config.flying_capacitor)
-    return inverse
+        return link_resistances_ohm(inverse, r0_ohm, config.flying_capacitor, frequency_hz)
+    return buck_boost_parameter(config, inverse, component, frequency_hz)
+
+
+def buck_boost_parameter(
+    config: ProjectConfig, inverse: FloatArray, component: FloatArray, frequency_hz: FloatArray
+) -> FloatArray:
+    if not config.buck_boost.circuit_calibrated:
+        return inverse
+    maps = circuit_maps()
+    return np.column_stack(
+        (
+            inverse,
+            maps.buck_boost_current_ratio(component, frequency_hz),
+            maps.buck_boost_overhead_w(component, frequency_hz),
+        )
+    )
 
 
 def _validate_inputs(

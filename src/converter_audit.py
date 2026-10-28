@@ -5,8 +5,8 @@ import numpy as np
 from src.balancing import simulate
 from src.checks import ledger_discrepancy, random_case
 from src.config import ProjectConfig, Technique
-from src.experiments import baseline_pack
-from src.params import SECONDS_PER_HOUR, FlyingCapModel
+from src.experiments import baseline_pack, with_flying_model
+from src.params import ANALYTIC_FLYING_MODELS, SECONDS_PER_HOUR
 from src.switched_cap import coth_resistance_ohm, link_resistance_ohm
 
 CELL_VOLTAGE_RANGE_V = (3.0, 4.2)
@@ -17,11 +17,6 @@ GRID_POINTS = 25
 def with_buck_boost(config: ProjectConfig, **changes) -> ProjectConfig:
     spec = replace(config.buck_boost, **changes)
     return replace(config, params=replace(config.params, buck_boost=spec))
-
-
-def with_flying_model(config: ProjectConfig, model: FlyingCapModel) -> ProjectConfig:
-    spec = replace(config.flying_capacitor, model=model)
-    return replace(config, params=replace(config.params, flying_capacitor=spec))
 
 
 def baseline_run(config: ProjectConfig, technique: Technique) -> tuple[float, float]:
@@ -121,7 +116,7 @@ def flying_capacitor_audit(config: ProjectConfig) -> dict[str, object]:
     r0_row = pack.r0_ohm[:1]
     at_baseline = {}
     runs = {}
-    for model in FlyingCapModel:
+    for model in ANALYTIC_FLYING_MODELS:
         local = replace(spec, model=model)
         at_baseline[model.value] = float(link_resistance_ohm(mid_inverse, r0_row, local)[0, 0])
         time_s, energy_j = baseline_run(

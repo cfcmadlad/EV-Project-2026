@@ -97,6 +97,7 @@ def test_flying_capacitor_solution_matches_a_matrix_exponential() -> None:
         np.array([1.0 / (component[index] * frequency[index])]),
         pack.r0_ohm[index][None],
         CONFIG.flying_capacitor,
+        frequency[index : index + 1],
     )[0]
     diff = np.zeros((3, 4))
     for k in range(3):

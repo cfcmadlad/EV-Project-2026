@@ -1,8 +1,11 @@
+from dataclasses import replace
+
 import numpy as np
 
 from src.balancing import BalanceResult, simulate
 from src.config import ProjectConfig, Technique
 from src.pack import PackBatch, sample_packs
+from src.params import FlyingCapModel
 
 STREAM_NAMES = (
     "baseline",
@@ -18,6 +21,7 @@ STREAM_NAMES = (
     "audit",
     "voltage_balancing",
     "selector",
+    "trajectory",
 )
 
 
@@ -50,3 +54,8 @@ def run_baseline(
         )
         for technique in Technique
     }
+
+
+def with_flying_model(config: ProjectConfig, model: FlyingCapModel) -> ProjectConfig:
+    spec = replace(config.flying_capacitor, model=model)
+    return replace(config, params=replace(config.params, flying_capacitor=spec))

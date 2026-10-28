@@ -43,6 +43,20 @@ def solve_tridiagonal(
     return solution
 
 
+def bb_parameters(
+    parameter: FloatArray,
+) -> tuple[FloatArray, FloatArray | float, FloatArray | float]:
+    if parameter.ndim == 1:
+        return parameter, 1.0, 0.0
+    return parameter[:, 0], parameter[:, 1:2], parameter[:, 2:3]
+
+
+def overhead_power_w(magnitude: FloatArray, resistance: FloatArray) -> FloatArray:
+    if resistance.shape[1] < 3:
+        return np.zeros(magnitude.shape[0])
+    return np.where(magnitude > 0.0, resistance[:, 2], 0.0).sum(axis=1)
+
+
 def buck_boost_currents_net(
     soc: FloatArray,
     ocv: FloatArray,
@@ -53,6 +67,7 @@ def buck_boost_currents_net(
     deadband: float,
 ) -> StepFlow:
     active, forward = link_state(soc, deadband)
+    inverse_lf, ratio, overhead = bb_parameters(inverse_lf)
     ocv_source, ocv_sink = source_sink(ocv, forward)
     conductance = np.where(active, 0.5 * hardware.duty**2 * inverse_lf[:, None], 0.0)
     resistance = hardware.r_inductor_ohm + hardware.r_ds_on_ohm
@@ -60,11 +75,11 @@ def buck_boost_currents_net(
     for _ in range(ITERATIONS):
         terminal = emf - r0 * net
         v_source, v_sink = source_sink(terminal, forward)
-        i_source = conductance * v_source
+        i_source = ratio * conductance * v_source
         i_peak = 2.0 * i_source / hardware.duty
         sink_duty = hardware.duty * v_source / v_sink
         loss = resistance * i_peak**2 * (hardware.duty + sink_duty) / 3.0
-        i_sink = (v_source * i_source - loss) / v_sink
+        i_sink = (v_source * i_source - loss - np.where(active, overhead, 0.0)) / v_sink
         net = scatter(i_source, i_sink, forward)
     return StepFlow(
         cell_current_a=net,
@@ -103,7 +118,8 @@ def flying_capacitor_currents_net(
     net[:, 1:] -= link
     return StepFlow(
         cell_current_a=net,
-        removed_w=np.einsum("ij,ij->i", ocv_source, magnitude),
+        removed_w=np.einsum("ij,ij->i", ocv_source, magnitude)
+        + overhead_power_w(magnitude, resistance),
         delivered_w=np.einsum("ij,ij->i", ocv_sink, magnitude),
         link_source_a=magnitude,
         link_sink_a=magnitude,

@@ -1,9 +1,9 @@
-import hashlib
 import json
 from pathlib import Path
 
 from src.config import ProjectConfig
 from src.drive_cycle import PROFILES_PATH
+from src.fingerprint import binary_sha256, text_sha256
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_PATH = ROOT / "data" / "processed" / "rl_results.json"
@@ -11,17 +11,13 @@ POLICY_DIR = ROOT / "data" / "processed" / "rl_policy"
 BASELINES = ("none", "rule_based", "greedy")
 
 
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def load_rl_results() -> dict | None:
     if not RESULTS_PATH.exists() or not PROFILES_PATH.exists():
         return None
     payload = json.loads(RESULTS_PATH.read_text())
     inputs = payload["inputs"]
-    fresh = inputs["drive_profiles_sha256"] == sha256(PROFILES_PATH) and all(
-        (POLICY_DIR / name).exists() and sha256(POLICY_DIR / name) == value
+    fresh = inputs["drive_profiles_sha256"] == text_sha256(PROFILES_PATH) and all(
+        (POLICY_DIR / name).exists() and binary_sha256(POLICY_DIR / name) == value
         for name, value in inputs["policies_sha256"].items()
     )
     return payload if fresh else {"status": "stale_cache"}

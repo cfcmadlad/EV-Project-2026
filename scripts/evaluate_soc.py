@@ -114,7 +114,7 @@ def run_ekf2_scenario(cell, cycle, scenario, params, spec, rng) -> np.ndarray:
         spec.ekf_initial_std,
         params[2],
         spec.step_s,
-    )
+    )[:, 0]
 
 
 def tune_ekf2(entries: dict, validation: list[Cycle], spec) -> dict[str, object]:

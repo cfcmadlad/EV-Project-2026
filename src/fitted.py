@@ -4,6 +4,7 @@ from pathlib import Path
 from src.params import (
     BuckBoostSpec,
     CellParams,
+    FlyingCapModel,
     FlyingCapSpec,
     OCVTable,
     PackSpec,
@@ -30,8 +31,8 @@ def load_parameter_set(path: Path) -> ParameterSet:
         ),
         pack=PackSpec(),
         passive=PassiveSpec(),
-        buck_boost=BuckBoostSpec(),
-        flying_capacitor=FlyingCapSpec(),
+        buck_boost=BuckBoostSpec(circuit_calibrated=True),
+        flying_capacitor=FlyingCapSpec(model=FlyingCapModel.CIRCUIT),
     )
 
 

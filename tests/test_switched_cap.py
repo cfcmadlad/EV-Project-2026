@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.params import FlyingCapModel, FlyingCapSpec
+from src.params import ANALYTIC_FLYING_MODELS, FlyingCapModel, FlyingCapSpec
 from src.switched_cap import element_resistance_ohm, link_resistance_ohm, two_phase_resistance_ohm
 
 
@@ -62,7 +62,7 @@ def test_phase_order_does_not_matter() -> None:
 def test_element_and_cell_resistance_add_up_to_the_link() -> None:
     r0 = np.array([[0.010, 0.012, 0.014, 0.011]])
     inverse_fc = np.array([0.04])
-    for model in FlyingCapModel:
+    for model in ANALYTIC_FLYING_MODELS:
         hardware = FlyingCapSpec(model=model)
         total = link_resistance_ohm(inverse_fc, r0, hardware)
         element = element_resistance_ohm(inverse_fc, r0, hardware)

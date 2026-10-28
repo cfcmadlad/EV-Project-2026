@@ -2,11 +2,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from src.balancing import buck_boost_currents
+from src.balancing import buck_boost_currents, buck_boost_parameter
 from src.cell import build_ocv_curve, open_circuit_voltage
 from src.config import BoolArray, FloatArray, ProjectConfig, Technique
 from src.params import SECONDS_PER_HOUR, CellParams, SimSpec
-from src.switched_cap import link_resistance_ohm
+from src.switched_cap import gate_power_w, link_resistance_ohm
 
 DIRECTION_SOC = np.array([[1.0, 0.0]])
 SLOPE_WINDOW_SOC = 0.01
@@ -123,7 +123,9 @@ def buck_boost_prediction(
         np.column_stack((voltage, voltage)),
         np.column_stack((voltage, voltage)),
         np.column_stack((r0_mean, r0_mean)),
-        1.0 / (inductance_h * frequency_hz),
+        buck_boost_parameter(
+            config, 1.0 / (inductance_h * frequency_hz), inductance_h, frequency_hz
+        ),
         config.buck_boost,
         sim.link_soc_deadband,
     )
@@ -161,7 +163,7 @@ def flying_capacitor_prediction(
     mean_soc = capacity_weighted_mean_soc(soc0, capacity_ah)
     slope = ocv_slope_v_per_soc(mean_soc, cell)
     r_link = link_resistance_ohm(
-        1.0 / (capacitance_f * frequency_hz), r0_ohm, config.flying_capacitor
+        1.0 / (capacitance_f * frequency_hz), r0_ohm, config.flying_capacitor, frequency_hz
     )
     links = cells - 1
     diff = np.zeros((links, cells))
@@ -199,7 +201,11 @@ def flying_capacitor_prediction(
         low = np.where(below, low, mid)
     time_s = np.where(balanced, high, sim.t_max_s)
     final = state_at(time_s)
-    return PhysicsPrediction(time_s, cell_energy_released_j(soc0, final, capacity_ah, cell))
+    gate_w = gate_power_w(
+        1.0 / (capacitance_f * frequency_hz), config.flying_capacitor, frequency_hz, (n, links)
+    )
+    energy = cell_energy_released_j(soc0, final, capacity_ah, cell)
+    return PhysicsPrediction(time_s, energy + gate_w.sum(axis=1) * time_s)
 
 
 def physics_prediction(

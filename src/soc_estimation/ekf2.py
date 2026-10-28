@@ -61,7 +61,7 @@ def run_ekf2(
     step_s: float,
 ) -> FloatArray:
     n = current_a.size
-    estimate = np.empty(n)
+    estimate = np.empty((n, STATES))
     currents, voltages = current_a.tolist(), voltage_v.tolist()
     x = np.array([soc0, 0.0, 0.0, 0.0])
     p = np.diag([initial_std**2, INITIAL_STD_V1**2, INITIAL_STD_V1**2, INITIAL_STD_HYSTERESIS**2])
@@ -102,5 +102,5 @@ def run_ekf2(
         p = p - np.outer(gain, ph)
         x[0] = min(max(x[0], 0.0), 1.0)
         x[3] = min(max(x[3], -1.0), 1.0)
-        estimate[k] = x[0]
+        estimate[k] = x
     return estimate

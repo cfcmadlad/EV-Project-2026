@@ -1,8 +1,8 @@
-import hashlib
 import json
 from pathlib import Path
 
 from src.config import ProjectConfig
+from src.fingerprint import text_sha256
 from src.soc_estimation.data import SPLITS_PATH, TEMPERATURE_PATH
 
 RESULTS_PATH = (
@@ -41,14 +41,10 @@ COMPARISONS = {
 SETS = ("test_a", "test_b")
 
 
-def file_sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def current_inputs() -> dict[str, str]:
     return {
-        "soc_splits_sha256": file_sha256(SPLITS_PATH),
-        "hg2_temperature_sha256": file_sha256(TEMPERATURE_PATH),
+        "soc_splits_sha256": text_sha256(SPLITS_PATH),
+        "hg2_temperature_sha256": text_sha256(TEMPERATURE_PATH),
     }
 
 
