@@ -5,9 +5,9 @@ One line per figure: what it shows and its key number (all from `metrics.json`, 
 ## Balancing at rest (sections f to h)
 
 - `soc_passive.png`: per-cell SOC of the baseline 10 % spread pack during passive shunt balancing; the pack balances (spread below 1 %) after 4.19 h.
-- `soc_buck_boost.png`: the same pack with the inductor buck-boost; balanced after 1.09 h.
-- `soc_flying_capacitor.png`: the same pack with the flying capacitor; balanced after 2.00 h with a slow tail near the end.
-- `soc_spread_comparison.png`: SOC spread against time for the three techniques on a log axis; energy dissipated 7176 J (passive), 200 J (buck-boost), 29.9 J (flying capacitor).
+- `soc_buck_boost.png`: the same pack with the inductor buck-boost; balanced after 1.08 h.
+- `soc_flying_capacitor.png`: the same pack with the flying capacitor; balanced after 1.99 h with a slow tail near the end.
+- `soc_spread_comparison.png`: SOC spread against time for the three techniques on a log axis; energy dissipated 7176 J (passive), 220.5 J (buck-boost), 39.5 J (flying capacitor).
 - `sweep_passive_r_bleed.png`: passive balancing time against bleed resistance (20 to 100 Ω); 1.40 h to 6.97 h.
 - `sweep_flying_capacitor_frequency.png`: flying-capacitor balancing time against switching frequency; 2.70 h at 1 kHz down to 1.94 h at 10 kHz.
 - `ml_parity_balancing_time_s.png`: predicted against simulated balancing time on the held-out set; test R² 0.989.
@@ -45,7 +45,7 @@ One line per figure: what it shows and its key number (all from `metrics.json`, 
 - `rl_training_curves.png`: PPO mean training return for the three seeds over 300 000 steps; no seed improves clearly.
 - `rl_vs_baselines.png`: delivered Ah and reward on the four test cycles for no balancing, rule-based, greedy, PPO and the ideal-transfer reference; PPO equals or trails no balancing (for example 1.289 against 1.291 Ah on Mixed 7) while the rule gives 1.335 Ah.
 - `voltage_balancing.png`: fraction of 200 packs below 1 % true SOC spread against cell voltage sensor error for passive, buck-boost and flying capacitor at three stop thresholds; 100 % at 1 mV, 94 % and 93 % at 2 mV, 11 % at 10 mV with the 0.5 % stop.
-- `technique_selector.png`: budget violations among feasible packs and mean energy against parking time budget for the surrogate selector, physics selector, oracle and fixed policies; surrogate agreement 91.7 to 100 %, 6.5 % violations at 1 h.
+- `technique_selector.png`: budget violations among feasible packs and mean energy against parking time budget for the surrogate selector, physics selector, oracle and fixed policies; surrogate agreement 92.7 % and 6.8 % budget violations at 1 h.
 
 ## Circuit-level validation, deep learning and headroom (sections k, l and n)
 
@@ -53,7 +53,7 @@ One line per figure: what it shows and its key number (all from `metrics.json`, 
 - `ltspice_flying_capacitor_waveform.png`: two periods of the flying-capacitor link at 5.5 mF and 5.5 kHz (capacitor current, top plate voltage, cell currents); LTspice sink current 0.3214 A.
 - `ltspice_vs_averaged.png`: model against LTspice sink current and link efficiency over the real-part sweeps, averaged flying capacitor and buck-boost and calibrated buck-boost; flying-capacitor worst current error 3.37 %, buck-boost in-range worst 4.88 % averaged and 3.90 % calibrated.
 - `ltspice_loss_breakdown.png`: loss per component at the baseline link (buck-boost 55 µH, 30 kHz, synchronous and Schottky; flying capacitor 5.5 mF, 5.5 kHz); the synchronous buck-boost loses 25.8 mW in total with 1.76 mW of gate drive, the Schottky version 74.8 mW with 52.1 mW in the diode.
-- `baseline_assumed_vs_fitted.png` (regenerated): baseline time and energy with the assumed and the fitted parameters, now with the circuit-calibrated models; buck-boost 1.09 h and flying capacitor 2.00 h.
+- `baseline_assumed_vs_fitted.png` baseline time and energy with the assumed and the fitted parameters and the circuit-calibrated models; buck-boost 1.08 h and flying capacitor 1.99 h.
 - `deep_surrogates.png`: test R² of boosting, MLP, cell GRU, cell Transformer and the physics-residual versions for balancing time (all techniques and flying capacitor) and energy; boosting 0.9818, cell GRU 0.9524, boosting on the physics residual 0.9997, cell GRU on the physics residual 0.9997.
 - `deep_trajectories.png`: simulated against predicted SOC spread trajectories of three held-out packs per technique for the GRU and Transformer decoders; spread RMSE 0.218 and 0.185 percentage points.
 - `deep_soc.png`: nominal SOC RMSE of the 2RC EKF, the augmented GRU and the EKF plus GRU hybrid on Test A and Test B, and the hybrid and GRU RMSE against weight bit width; hybrid 0.89 % and 1.43 %, EKF 2.06 % and 2.11 %.

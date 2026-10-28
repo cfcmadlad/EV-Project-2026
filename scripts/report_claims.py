@@ -783,7 +783,7 @@ UNSUPPORTED = (
     UnsupportedClaim(
         "Flying-capacitor balancing is robust to SOC estimation error in general",
         "in this model the link current follows the true voltage difference while the controller "
-        "stops on the estimate, so 78 % to 98 % of packs never reach the estimated criterion in "
+        "stops on the estimate, so 65 % to 98 % of packs never reach the estimated criterion in "
         "12 h; the result is a property of the model, not a hardware measurement",
     ),
     UnsupportedClaim(
@@ -818,7 +818,7 @@ UNSUPPORTED = (
     ),
     UnsupportedClaim(
         "Converter efficiencies and losses match a built converter",
-        "LTspice with library MOSFET and diode models now covers switching transitions, gate "
+        "LTspice with library MOSFET and diode models covers switching transitions, gate "
         "drive and dead time (section k), but the circuits still use ideal DC cell sources, a "
         "linear inductor without core loss and ideal gate drivers; nothing was built or measured",
     ),

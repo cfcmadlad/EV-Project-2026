@@ -428,7 +428,7 @@ The simulator has one RC branch, so the single-branch equivalent misses the 30 m
 
 **Decision and effect.** The rule was fixed in advance: if the averaged formulas miss the 5 % current or 15 % loss tolerance against the real-part circuits, correction maps built from the LTspice results become the default. They do. The maps (log-grid bilinear interpolation of effective resistance and gate power over C and f for the flying capacitor; current ratio, overhead power and gate power over L and f for the buck-boost) lower the buck-boost loss error to 6.87 % and the flying-capacitor current error to 0.10 % (in sample). On the baseline pack the calibrated models change the buck-boost to 1.08 h and 221 J and the flying capacitor to 39.5 J, against 200 J and 29.9 J for the uncalibrated formulas; the ranking is unchanged. The uncalibrated models are kept as a named option, and the row "The uncalibrated averaged converter models stay inside the 5 % current and 15 % loss tolerances" is a FAIL.
 
-**Earlier ideal-switch check.** A first LTspice check with ideal switches at six operating points (`src/spice*.py`, `scripts/run_spice.py`, `spice/`) passes for all six buck-boost points and for the two-phase flying-capacitor form; the series form passes only 2 of 6. Python converter audits (`src/converter_audit.py`) add that booking the buck-boost loss with the RMS ripple current raises the baseline energy to 236.1 J (a median 6.3 % over the dataset), the worst peak current over the L and f range is 16.8 A and D + D2 reaches 0.96 at most.
+**Ideal-switch check.** A first LTspice check with ideal switches at six operating points (`src/spice*.py`, `scripts/run_spice.py`, `spice/`) passes for all six buck-boost points and for the two-phase flying-capacitor form; the series form passes only 2 of 6. Python converter audits (`src/converter_audit.py`) add that booking the buck-boost loss with the RMS ripple current raises the baseline energy to 236.1 J (a median 6.3 % over the dataset), the worst peak current over the L and f range is 16.8 A and D + D2 reaches 0.96 at most.
 
 ## l. Deep learning against boosting
 
@@ -438,7 +438,7 @@ All models use the same 6000-run dataset, an equal four-trial tuning budget, thr
 
 **Trajectories.** GRU and Transformer decoders predict the whole SOC-spread trajectory of a pack within 0.219 percentage points RMSE and reproduce the three shapes (linear passive, steady buck-boost, exponential-tail flying capacitor), but the absolute time to a 1 % spread is off by 13 to 15 % median (FAIL against 10 %).
 
-**SOC estimation.** On the measured UDDS and LA92 data (Test A at 25 degrees C, Test B at 10 degrees C, unseen): coulomb counting with a 0.5 % full-scale offset ends 25.2 % RMSE off; a 1RC EKF gives 4.96 % and 6.18 %; the 2RC EKF with hysteresis 2.06 % and 2.11 %; a GRU 2.49 % and 2.97 %; and an EKF plus GRU hybrid 0.89 % and 1.43 %. Post-training quantisation keeps the hybrid within 5 % of its float32 RMSE at int8 (4560 bytes of weights; lower widths are in `results/metrics.json`). The 2RC EKF recovers from a 20 % wrong start to 2.39 % error after 300 s (limit 2 %, FAIL). Balancing on an estimated SOC leaves most packs above the 1 % true-spread target (hybrid, passive: 72.5 %); the median final true spread is 2.9 % for passive on the 2RC EKF and 3.6 % for the buck-boost on the GRU.
+**SOC estimation.** On the measured UDDS and LA92 data (Test A at 25 degrees C, Test B at 10 degrees C, unseen): coulomb counting with a 0.5 % full-scale offset ends 25.2 % RMSE off (with a tester-grade 0.1 % offset it gives 5.05 % and 4.03 %, so the 1RC EKF does not beat it on Test B); a 1RC EKF gives 4.96 % and 6.18 %; the 2RC EKF with hysteresis 2.06 % and 2.11 %; a GRU 2.49 % and 2.97 %; and an EKF plus GRU hybrid 0.89 % and 1.43 %. Post-training quantisation keeps the hybrid within 5 % of its float32 RMSE at int8 (4560 bytes of weights; lower widths are in `results/metrics.json`). The 2RC EKF recovers from a 20 % wrong start to 2.39 % error after 300 s (limit 2 %, FAIL). Balancing on an estimated SOC leaves most packs above the 1 % true-spread target (hybrid, passive: 72.5 %; less so for the flying capacitor, whose links follow the true voltage); the median final true spread is 2.9 % for passive on the 2RC EKF and 3.6 % for the buck-boost on the GRU.
 
 **Reinforcement learning.** PPO controllers (residual on the rule and imitation start, each with and without potential-based shaping, 3 seeds, 150 000 steps, 4 and 8 cells) are evaluated on the four held-out cycles against no balancing, the rule, greedy maximum transfer and an ideal-transfer reference. None beats the rule on every cycle (all eight variants FAIL); the best 8-cell imitation policy gains 0.0023 Ah per pack on average, within noise. On Mixed 7 the pack delivers 1.291 Ah with no balancing, 1.335 Ah with the rule and 1.356 Ah in the ideal reference; the first PPO attempt on UDDS reached 1.267 Ah. Learned control improving balancing under load is NOT SUPPORTED.
 
@@ -478,7 +478,7 @@ All models use the same 6000-run dataset, an equal four-trial tuning budget, thr
 
 **Result.** For the active techniques at 4 cells the rule is within 0.88 % (buck-boost) and 0.79 % (flying capacitor) of the ideal reference, so a learned controller has no meaningful room there, which is consistent with the PPO null results in section l. From 8 cells the median gap is above 1 % and the 90th percentile above 2 %, reaching 1.45 % and 2.57 % at 96 cells, so headroom exists for longer strings. SOC estimation error costs the buck-boost an additional 3.29 percentage points at 96 cells and the flying capacitor almost nothing. The passive shunt leaves a median gap of 5.1 % to 8.3 %: it wastes capacity as heat, and an active technique, not a smarter passive controller, is what closes it.
 
-**Implication and caveat.** A learned or model-predictive controller for a 4-cell pack can recover at most the gap in the first rows of the table, which is below 1 % of delivered Ah; the case for RL, MPC or a digital twin therefore rests on long strings, on estimation error and on goals other than usable capacity (loss, temperature), not on the 4-cell capacity result. The reference assumes lossless, instantaneous ideal transfer and is therefore an upper bound that no real controller reaches, so the table over-states the true headroom. We did not find this bound stated in the sources we cite; that is the extent of any novelty claim.
+**Implication and caveat.** A learned or model-predictive controller for a 4-cell pack can recover at most the gap in the first rows of the table, which is below 1 % of delivered Ah in the median (90th percentile 1.48 %, maximum 2.1 % over the random 4-cell packs); the case for RL, MPC or a digital twin therefore rests on long strings, on estimation error and on goals other than usable capacity (loss, temperature), not on the 4-cell capacity result. The reference assumes lossless, instantaneous ideal transfer and is therefore an upper bound that no real controller reaches, so the table over-states the true headroom. We did not find this bound stated in the sources we cite; that is the extent of any novelty claim.
 
 ## o. Model comparison
 
@@ -487,8 +487,8 @@ All models use the same 6000-run dataset, an equal four-trial tuning budget, thr
 | Balancing time and energy (sim to sim) | Physics formula plus a learned residual (boosting or any network) | R2 0.9997 to 0.9998; plain networks and plain boosting are worse |
 | Pack-level trajectory | GRU or Transformer decoder | spread RMSE 0.219 percentage points; absolute time 13 to 15 % off |
 | SOC estimation | EKF plus GRU hybrid | 0.89 % (Test A), 1.43 % (Test B); 2.06 % for the 2RC EKF |
-| Balancing control, 4 to 8 cells | The hand-written rule | no PPO variant beats it on every cycle; headroom bound below 1 % at 4 cells |
-| Technique choice under a time budget | Surrogate selector | 92.7 % agreement at 1 h, budget violated on 6.8 % |
+| Balancing control, 4 to 8 cells | The hand-written rule | no PPO variant beats it on every cycle; median headroom bound below 1 % at 4 cells |
+| Technique choice under a time budget | Surrogate selector | 92.7 % agreement at 1 h, budget violated on 6.8 %; the physics-formula selector is better at 1 h (98.0 % agreement, 2.0 % violations) |
 
 The physics-residual result is the main modelling lesson: the closed form carries nearly all the information, and a learner is useful only for what the closed form misses. Details and every per-model number are in `results/metrics.json` (`deep_models`, `ml_eval`) and `results/claims.md`.
 
@@ -504,6 +504,7 @@ The physics-residual result is the main modelling lesson: the closed form carrie
 - Balancing on an estimated SOC leaves most packs above the 1 % target; rest-voltage balancing needs sensor accuracy better than 2 mV.
 - No PPO variant beats the rule; learned control improving balancing under load is NOT SUPPORTED. The headroom reference is an upper bound.
 - Drive-cycle gains do not extend to other packs, spreads, cycles or temperatures; the 4-cell results do not extend to longer strings except where section m says so.
+- FAIL rows not discussed above: the surrogate selector exceeds its 5 % budget-violation limit (6.8 %), the 2RC EKF recovers from a wrong start to 2.39 % against a 2 % limit, conformal coverage for passive energy is 85.25 % against 87 %, and the 1RC EKF does not beat tester-grade coulomb counting.
 - Nothing here runs on a microcontroller; memory sizes are stated, latency is not claimed.
 - The gate drive is booked from the LTspice gate-power map at the cell open-circuit voltage; a conversion loss from the cell to the 5 V driver rail is not modelled, and the passive shunt books no gate drive. The ledger closure check cannot detect an error in the gate term, because the same term enters both sides; the 15.4 J and 9.6 J rest on the circuit simulation alone.
 - The choice between the 1RC and 2RC cell model used the UDDS and LA92 voltage errors, and those cycles are also in the SOC-estimation Test A; the cell parameters themselves come from the HPPC pulses only.
@@ -593,9 +594,9 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── selector.py                  Technique selector under a parking time budget
 │   ├── selector_plots.py            Technique selector figure
 │   ├── soc_error.py                 SOC-error sensitivity study (fixed bias per cell)
-│   ├── spice.py                     Earlier ideal-switch check: netlist generation, raw reader, period averaging
+│   ├── spice.py                     Ideal-switch check: netlist generation, raw reader, period averaging
 │   ├── spice_check.py               Averaged-vs-SPICE comparison, hypothesis test and datasheet range checks
-│   ├── spice_plots.py               Figures of the earlier ideal-switch check
+│   ├── spice_plots.py               Figures of the ideal-switch check
 │   ├── stepper.py                   Reusable vectorised step(state, pack_current, control) with the loss ledger
 │   ├── switched_cap.py              Series, two-phase, coth and circuit-calibrated flying-capacitor link resistance
 │   ├── table_io.py                  Deterministic CSV writing and reading for results/ltspice
@@ -619,7 +620,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │       ├── plots.py                 SOC estimation figures
 │       └── report.py                Cached SOC results and freshness check
 ├── ltspice/                     One .asc schematic per LTspice circuit (generated)
-├── spice/                       Netlists of the earlier ideal-switch check
+├── spice/                       Netlists of the ideal-switch check
 ├── scripts/
 │   ├── check_readme.py                  Checks README, FIGURES and claims numbers against metrics.json
 │   ├── claims_base.py                   Claim dataclass and threshold helpers
@@ -643,7 +644,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── report_claims.py                 Writes results/claims.md from results/metrics.json
 │   ├── run_headroom.py                  Runs the controller headroom bound and caches it
 │   ├── run_scaling.py                   Runs the string-length study and caches it
-│   ├── run_spice.py                     Earlier ideal-switch check: generates netlists, runs LTspice, caches the measurements
+│   ├── run_spice.py                     Ideal-switch check: generates netlists, runs LTspice, caches the measurements
 │   ├── run_voltage_balancing.py         Voltage-based balancing study
 │   ├── train_deep_surrogates.py         Trains boosting, MLP, cell GRU, cell Transformer and physics-residual versions
 │   ├── train_gru.py                     Trains the plain GRU (3 seeds, two window lengths)
