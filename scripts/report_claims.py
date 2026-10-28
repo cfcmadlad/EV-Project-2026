@@ -486,7 +486,7 @@ def scaling_claims() -> list[CheckedClaim]:
     ):
         claims.append(
             CheckedClaim(
-                f"Phase 3 physics baseline for {label} still predicts balancing time at N = 32 "
+                f"The physics baseline for {label} still predicts balancing time at N = 32 "
                 "(random initial SOCs, median error)",
                 f"scaling.profiles.random.{key}.physics_time_median_abs_pct_error_by_n.32",
                 "<= 10 %",
@@ -539,7 +539,7 @@ def converter_audit_claims() -> list[CheckedClaim]:
             "reported; ratio > 1",
             lambda v: float(v) > 1.0,
             lambda v: f"{float(v):.4f}",
-            "LTspice (section ab) shows the pulsed R0 loss is close to this RMS form; the "
+            "LTspice (section k) shows the pulsed R0 loss is close to this RMS form; the "
             "calibrated default keeps the average-current form and absorbs the difference "
             "in its overhead map",
         ),
@@ -576,8 +576,7 @@ def converter_audit_claims() -> list[CheckedClaim]:
             "<= 1e-9",
             at_most(1e-9),
             scientific,
-            "this form was the default from Phase 2 until the LTspice-calibrated model "
-            "(section ab)",
+            "this form was the default before the LTspice-calibrated model (section k)",
         ),
     ]
 
@@ -820,7 +819,7 @@ UNSUPPORTED = (
     UnsupportedClaim(
         "Converter efficiencies and losses match a built converter",
         "LTspice with library MOSFET and diode models now covers switching transitions, gate "
-        "drive and dead time (section ab), but the circuits still use ideal DC cell sources, a "
+        "drive and dead time (section k), but the circuits still use ideal DC cell sources, a "
         "linear inductor without core loss and ideal gate drivers; nothing was built or measured",
     ),
     UnsupportedClaim(
@@ -857,27 +856,27 @@ UNSUPPORTED = (
     ),
     UnsupportedClaim(
         "Balancing results hold when SOC is estimated rather than known exactly",
-        "SOC estimation and its error are simulated (sections s, t, z and ac) from one cell and "
+        "SOC estimation and its error are simulated (sections l, m and n) from one cell and "
         "assumed error models; no estimator was run on a pack in hardware",
     ),
     UnsupportedClaim(
         "The ML model fits and runs on a microcontroller",
-        "MACs and weight bytes are counted (section ac) but nothing was exported to or timed on "
+        "MACs and weight bytes are counted (section l) but nothing was exported to or timed on "
         "a microcontroller",
     ),
     UnsupportedClaim(
         "Balancing results hold under driving or charging current",
-        "drive-cycle and charging balancing is simulated (section r) from one measured cell at "
+        "drive-cycle and charging balancing is simulated (section m) from one measured cell at "
         "25 C and one baseline pack; no hardware or other packs",
     ),
     UnsupportedClaim(
         "Balancing results hold at temperatures other than the parameter-set temperature",
-        "only the cell parameters and the SOC estimators are fitted per temperature (section s); "
+        "only the cell parameters and the SOC estimators are fitted per temperature (section j); "
         "the balancing simulator stays at 25 C",
     ),
     UnsupportedClaim(
         "Results extend to strings longer than 4 cells",
-        "strings of 4 to 96 cells are simulated with the averaged models (section u) and the RL "
+        "strings of 4 to 96 cells are simulated with the averaged models (section m) and the RL "
         "second attempt covers 4 and 8 cells; no longer string was validated against a circuit",
     ),
 )

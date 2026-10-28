@@ -426,7 +426,7 @@ The simulator has one RC branch, so the single-branch equivalent misses the 30 m
 
 **Buck-boost.** The converter stays in discontinuous conduction over the whole grid (D + D2 at most 0.961). The averaged currents hold within 4.88 % where the peak current stays below an inductor saturation rule (I_sat = sqrt(2 · 50 µJ / L)), which holds for 20 of 48 real-part synchronous points; over the whole grid the sink current error is up to 28%, so 56 of 96 (L, f, operating point) combinations are unrealistic and the dataset range is pruned. The averaged loss error is 16.63 % in range (FAIL against 15 %). At the baseline link LTspice gives 0.1758 A.
 
-**Decision and effect.** The rule was fixed in advance: if the averaged formulas miss the 5 % current or 15 % loss tolerance against the real-part circuits, correction maps built from the LTspice results become the default. They do. The maps (log-grid bilinear interpolation of effective resistance and gate power over C and f for the flying capacitor; current ratio, overhead power and gate power over L and f for the buck-boost) lower the buck-boost loss error to 6.87 % and the flying-capacitor current error to 0.10 % (in sample). On the baseline pack the calibrated models change the buck-boost to 1.08 h and 221 J and the flying capacitor to 39.5 J (39.5 J), against 200 J and 29.9 J for the uncalibrated formulas; the ranking is unchanged. The uncalibrated models are kept as a named option, and the row "The uncalibrated averaged converter models stay inside the 5 % current and 15 % loss tolerances" is a FAIL.
+**Decision and effect.** The rule was fixed in advance: if the averaged formulas miss the 5 % current or 15 % loss tolerance against the real-part circuits, correction maps built from the LTspice results become the default. They do. The maps (log-grid bilinear interpolation of effective resistance and gate power over C and f for the flying capacitor; current ratio, overhead power and gate power over L and f for the buck-boost) lower the buck-boost loss error to 6.87 % and the flying-capacitor current error to 0.10 % (in sample). On the baseline pack the calibrated models change the buck-boost to 1.08 h and 221 J and the flying capacitor to 39.5 J, against 200 J and 29.9 J for the uncalibrated formulas; the ranking is unchanged. The uncalibrated models are kept as a named option, and the row "The uncalibrated averaged converter models stay inside the 5 % current and 15 % loss tolerances" is a FAIL.
 
 **Earlier ideal-switch check.** A first LTspice check with ideal switches at six operating points (`src/spice*.py`, `scripts/run_spice.py`, `spice/`) passes for all six buck-boost points and for the two-phase flying-capacitor form; the series form passes only 2 of 6. Python converter audits (`src/converter_audit.py`) add that booking the buck-boost loss with the RMS ripple current raises the baseline energy to 236.1 J (a median 6.3 % over the dataset), the worst peak current over the L and f range is 16.8 A and D + D2 reaches 0.96 at most.
 
@@ -434,7 +434,7 @@ The simulator has one RC branch, so the single-branch equivalent misses the 30 m
 
 All models use the same 6000-run dataset, an equal four-trial tuning budget, three seeds and a held-out test set that tuning never touches.
 
-**Surrogates.** Plain MLP, cell-sequence GRU and cell-token Transformer models lose to gradient boosting: balancing-time R2 0.9530 for the cell GRU against 0.9825 for boosting (flying capacitor is the hard case). Learning only the log residual over the closed-form physics lifts every model to 0.9997 or better (0.9998 for the GRU); on the residual, boosting is as good as the networks to within 1e-4, so the value is in the physics, not in the architecture. Plain boosting reaches 0.9825, short of the 0.99 target (FAIL).
+**Surrogates.** Plain MLP, cell-sequence GRU and cell-token Transformer models lose to gradient boosting: balancing-time R2 0.9530 for the cell GRU against 0.9825 for boosting (mean of three seeds on the 70/15/15 split; section h reports 0.9836 for one seed on its 80/20 split) (flying capacitor is the hard case). Learning only the log residual over the closed-form physics lifts every model to 0.9997 or better (0.9998 for the GRU); on the residual, boosting is as good as the networks to within 1e-4, so the value is in the physics, not in the architecture. Plain boosting reaches 0.9825, short of the 0.99 target (FAIL).
 
 **Trajectories.** GRU and Transformer decoders predict the whole SOC-spread trajectory of a pack within 0.219 percentage points RMSE and reproduce the three shapes (linear passive, steady buck-boost, exponential-tail flying capacitor), but the absolute time to a 1 % spread is off by 13 to 15 % median (FAIL against 10 %).
 
@@ -505,6 +505,10 @@ The physics-residual result is the main modelling lesson: the closed form carrie
 - No PPO variant beats the rule; learned control improving balancing under load is NOT SUPPORTED. The headroom reference is an upper bound.
 - Drive-cycle gains do not extend to other packs, spreads, cycles or temperatures; the 4-cell results do not extend to longer strings except where section m says so.
 - Nothing here runs on a microcontroller; memory sizes are stated, latency is not claimed.
+- The gate drive is booked from the LTspice gate-power map at the cell open-circuit voltage; a conversion loss from the cell to the 5 V driver rail is not modelled, and the passive shunt books no gate drive. The ledger closure check cannot detect an error in the gate term, because the same term enters both sides; the 15.4 J and 9.6 J rest on the circuit simulation alone.
+- The choice between the 1RC and 2RC cell model used the UDDS and LA92 voltage errors, and those cycles are also in the SOC-estimation Test A; the cell parameters themselves come from the HPPC pulses only.
+- The scaling and rest-voltage caches are bound to their configuration but not to the circuit maps or the fitted-parameter file, and the trajectory and surrogate caches to the maps and the dataset only; after rebuilding either input the matching script in `scripts/` must be rerun.
+- Besides the simulation seed (2026) and seeds 0 to 2, some studies use derived streams (imitation episodes, augmentation and sensor noise); each is a fixed function of the seed, none was chosen by outcome. The best 8-cell imitation policy was picked on the test cycles and is reported as such.
 
 All 102 FAIL and 24 NOT SUPPORTED rows are in `results/claims.md` with their evidence keys.
 
@@ -516,7 +520,7 @@ All 102 FAIL and 24 NOT SUPPORTED rows are in `results/claims.md` with their evi
 | `python scripts/fetch_datasheets.py` | Downloads the vendor datasheets used for range checks | network |
 | `python run_all.py` | Regenerates `results/` from the committed caches | CPU |
 | `python -m scripts.report_claims` | Rebuilds `results/claims.md` from `metrics.json` | CPU |
-| `python -m scripts.check_readme` | Checks every number in this README and the repo map against the metrics | CPU |
+| `python -m scripts.check_readme` | Checks 79 curated numbers in this README against the metrics, and the src, scripts and ltspice entries of the repo map against `git ls-files` | CPU |
 | `python -m scripts.ltspice_flying_cap`, `ltspice_buck_boost`, `ltspice_shunt`, `ltspice_checks` | LTspice sweeps, run sequentially | LTspice 26.1.1 |
 | `python -m scripts.ltspice_schematics` | Writes the `.asc` files | CPU |
 | `python -m scripts.identify_hg2`, `identify_temperature` | Refit the cell model | HG2 files |
@@ -613,7 +617,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │       ├── gru.py                   Plain GRU estimator
 │       ├── hybrid.py                EKF plus GRU hybrid and augmented GRU sequences
 │       ├── plots.py                 SOC estimation figures
-│       ├── report.py                Cached SOC results and freshness check
+│       └── report.py                Cached SOC results and freshness check
 ├── ltspice/                     One .asc schematic per LTspice circuit (generated)
 ├── spice/                       Netlists of the earlier ideal-switch check
 ├── scripts/
@@ -646,11 +650,11 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── train_rl.py                      Trains the first PPO policies
 │   ├── train_rl2.py                     Trains residual and imitation PPO for 4 and 8 cells (2 configurations each)
 │   ├── train_soc_hybrid.py              Trains the EKF plus GRU hybrid and the augmented GRU, evaluates, quantises
-│   ├── train_trajectory.py              Trains the GRU and Transformer trajectory decoders
+│   └── train_trajectory.py              Trains the GRU and Transformer trajectory decoders
 ├── data/
 │   ├── raw/                     Downloaded dataset files and LTspice scratch (git-ignored)
 │   └── processed/               Provenance, fitted parameters, result caches, small checkpoints
-├── tests/                       pytest suite (ledger, closed form, charge, LTspice harness, calibration, deep models, freshness, headroom)
+├── tests/                       30 pytest files (ledger, closed form, charge, LTspice harness, calibration, deep models, freshness, headroom)
 └── results/
     ├── ltspice/                 CSV results of every LTspice sweep and the waveforms
     ├── metrics.json             All deterministic numeric results
@@ -659,6 +663,8 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
     ├── FIGURES.md               One line per figure
     ├── dataset.csv              Simulated training data
     ├── baseline_table.csv       Baseline comparison table
+    ├── baseline_assumed_vs_fitted.csv   Baseline under the generic and the fitted cell parameters
+    ├── spice_vs_averaged.csv    Averaged models against the ideal-switch circuit check
     └── *.png / *.svg            Figures
 ```
 

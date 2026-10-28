@@ -1,5 +1,4 @@
 import json
-from dataclasses import replace
 
 import numpy as np
 
@@ -146,7 +145,3 @@ def load_cache(config: ProjectConfig) -> dict[str, object]:
             "headroom cache is stale; rerun python -m scripts.run_headroom before run_all.py"
         )
     return {"status": "ok", **payload}
-
-
-def headroom_config(config: ProjectConfig) -> ProjectConfig:
-    return replace(config)
