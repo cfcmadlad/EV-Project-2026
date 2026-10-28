@@ -13,6 +13,7 @@ ZCD_THRESHOLD_A = 0.02
 ROFF_OHM = 1e7
 BODY_DIODE_RON_OHM = 1.0
 SHUNT_OPTION = "cshunt=1e-12"
+GEAR_OPTION = "method=gear"
 LIBRARIES = (".lib standard.mos", ".lib standard.dio")
 
 
@@ -71,7 +72,7 @@ def pulse(delay: float, width: float, period: float, level: float = GATE_DRIVE_V
 
 
 def _finish(
-    lines: list[str], title: str, solver: Solver, extra: list[str], uic: bool, shunt: bool = False
+    lines: list[str], title: str, solver: Solver, extra: list[str], uic: bool, option: str = ""
 ) -> str:
     body = "\n".join([f"* {title}", *lines])
     extra = [item for item in dict.fromkeys(extra) if item != "V(0)"]
@@ -79,8 +80,8 @@ def _finish(
         f".options plotwinsize=0 numdgt=15 reltol={num(solver.reltol)} "
         f"abstol={num(solver.abstol)} vntol={num(solver.vntol)}"
     )
-    if shunt:
-        options += f" {SHUNT_OPTION}"
+    if option:
+        options += f" {option}"
     tail = [
         *LIBRARIES,
         options,
@@ -156,7 +157,8 @@ def flying_capacitor_netlist(
         devices.append(device)
         saves += extra
     title = f"flying capacitor {switch} C={num(capacitance_f)} f={num(frequency_hz)}"
-    return Built(_finish(lines, title, solver, saves, True, True), tuple(devices))
+    option = SHUNT_OPTION if switch is Switch.REAL else GEAR_OPTION
+    return Built(_finish(lines, title, solver, saves, True, option), tuple(devices))
 
 
 def buck_boost_netlist(

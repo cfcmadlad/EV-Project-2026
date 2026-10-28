@@ -12,7 +12,6 @@ CACHES = {
     "soc": "soc_deep_results.json",
     "rl": "rl2_results.json",
 }
-TIMING_KEYS = ("training_time_s", "runs")
 
 
 def _load(name: str) -> dict | None:

@@ -1,5 +1,5 @@
 {
- "maps_sha256": "5b7fff543e93d3368faf56bb641deabb9d13c941ce6d1af7a59804f12ba8dd2f",
+ "maps_sha256": "5a8a281fdea1478f5354acfe9a384e09e4eb3b84f9872baa5e994a2eab194886",
  "n_trajectories": 3000,
  "grid_points": 64,
  "split": {
@@ -175,8 +175,8 @@
     2
    ],
    "timing": {
-    "inference_s_per_pack": 7.543699999890425e-05,
-    "train_s_per_seed": 13.964912999999797
+    "inference_s_per_pack": 4.525891666768681e-05,
+    "train_s_per_seed": 8.397053799999412
    }
   },
   "transformer_decoder": {
@@ -346,8 +346,8 @@
     2
    ],
    "timing": {
-    "inference_s_per_pack": 0.00013151324999853388,
-    "train_s_per_seed": 68.02453463333222
+    "inference_s_per_pack": 7.434116666445334e-05,
+    "train_s_per_seed": 48.47611003333319
    }
   }
  },

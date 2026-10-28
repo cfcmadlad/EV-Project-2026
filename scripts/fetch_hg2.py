@@ -19,7 +19,6 @@ DATASET_VERSION = 2
 DOI = "10.17632/b5mj79w5w9.2"
 LICENCE = "CC BY 4.0"
 TITLE = "LG 18650HG2 Li-ion Battery Data"
-INSTITUTION = "McMaster University"
 TEMPERATURE_FOLDER = "25degC"
 ROOT_FILES = (
     "Readme file - Description of Experimental Tests.txt",
@@ -243,7 +242,6 @@ def main() -> int:
             "doi": DOI,
             "version": DATASET_VERSION,
             "licence": LICENCE,
-            "institution": INSTITUTION,
             "landing_page": f"https://data.mendeley.com/datasets/{DATASET_ID}/{DATASET_VERSION}",
             "api_root": API_ROOT,
         },

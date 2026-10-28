@@ -27,6 +27,7 @@ class LogGrid:
     def __init__(self, x: FloatArray, y: FloatArray, values: FloatArray) -> None:
         self.low = np.array([x.min(), y.min()])
         self.high = np.array([x.max(), y.max()])
+        self.values = values
         self.interpolator = RegularGridInterpolator((np.log(x), np.log(y)), values)
 
     def __call__(self, x: FloatArray, y: FloatArray) -> FloatArray:
