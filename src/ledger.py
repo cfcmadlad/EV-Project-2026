@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from src.config import FloatArray
+from src.coupled_links import bb_parameters
 from src.flow import StepFlow
 from src.params import BuckBoostSpec
 
@@ -28,6 +29,7 @@ def buck_boost_element_loss_w(
     hardware: BuckBoostSpec,
 ) -> FloatArray:
     forward = flow.link_forward
+    _, _, overhead, _ = bb_parameters(inverse_lf)
     if flow.terminal_v is not None:
         source_terminal_v = np.where(forward, flow.terminal_v[:, :-1], flow.terminal_v[:, 1:])
         emf_sink = np.where(forward, flow.terminal_v[:, 1:], flow.terminal_v[:, :-1])
@@ -36,13 +38,13 @@ def buck_boost_element_loss_w(
         emf_sink = np.where(forward, emf[:, 1:], emf[:, :-1])
         r0_source = np.where(forward, r0[:, :-1], r0[:, 1:])
         source_terminal_v = emf_source - flow.link_source_a * r0_source
-    peak_a = source_terminal_v * hardware.duty * inverse_lf[:, None]
-    demagnetising_duty = peak_a / (emf_sink * inverse_lf[:, None])
+    peak_a = 2.0 * flow.link_source_a / hardware.duty
+    demagnetising_duty = hardware.duty * source_terminal_v / emf_sink
     on_interval_loss = (hardware.r_inductor_ohm + hardware.r_ds_on_ohm) * peak_a**2 * hardware.duty
     off_interval_loss = (
         (hardware.r_inductor_ohm + hardware.r_ds_on_ohm) * peak_a**2 * demagnetising_duty
     )
-    link_loss = (on_interval_loss + off_interval_loss) / 3.0
+    link_loss = (on_interval_loss + off_interval_loss) / 3.0 + overhead
     if hardware.ripple_r0_loss:
         r0_source = np.where(forward, r0[:, :-1], r0[:, 1:])
         r0_sink = np.where(forward, r0[:, 1:], r0[:, :-1])

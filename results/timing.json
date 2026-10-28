@@ -1,40 +1,82 @@
 {
   "speedup": {
-    "simulation_time_per_pack_s": 0.0034145153023333328,
-    "prediction_time_per_pack_s": 3.2756047500015487e-05,
-    "speedup": 104.24076049870543
+    "simulation_time_per_pack_s": 0.005794959283331991,
+    "prediction_time_per_pack_s": 3.702891666762298e-05,
+    "speedup": 156.49821287909666
   },
   "ml_eval": {
     "label": "host CPU, not target hardware",
     "batch_1": {
       "per_pack_s": {
-        "simulator": 0.4352848809999917,
-        "physics": 0.0015571733333672455,
-        "hgb": 0.004157736333278687,
-        "hybrid": 0.005901991999962775
+        "simulator": 0.7118908666670904,
+        "physics": 0.0030681000013525286,
+        "hgb": 0.009473633333982434,
+        "hybrid": 0.0099248000018027
       },
       "speedup_over_simulator": {
         "simulator": 1.0,
-        "physics": 279.5352782331096,
-        "hgb": 104.69275733431054,
-        "hybrid": 73.75219773302592
+        "physics": 232.02987723778998,
+        "hgb": 75.14443947429329,
+        "hybrid": 71.72848485992519
       },
       "n_packs": 3
     },
     "batch_1000": {
       "per_pack_s": {
-        "simulator": 0.005193110728728757,
-        "physics": 1.828661961954313e-05,
-        "hgb": 4.3799118118074294e-05,
-        "hybrid": 8.222256756753823e-05
+        "simulator": 0.010643231831829518,
+        "physics": 2.5468868870547766e-05,
+        "hgb": 5.245835835283559e-05,
+        "hybrid": 8.563593594164861e-05
       },
       "speedup_over_simulator": {
         "simulator": 1.0,
-        "physics": 283.9841827944415,
-        "hgb": 118.56655914233465,
-        "hybrid": 63.159189531062715
+        "physics": 417.8918147455447,
+        "hgb": 202.88915181529327,
+        "hybrid": 124.2846442302178
       },
       "n_packs": 999
+    }
+  },
+  "deep_models": {
+    "surrogates": {
+      "hgb": {
+        "inference_s_per_pack": 3.931091666648475e-05,
+        "train_s_per_seed": 3.01613616666873
+      },
+      "hgb_physics": {
+        "inference_s_per_pack": 6.703916666689717e-05,
+        "train_s_per_seed": 3.056362833332969
+      },
+      "mlp": {
+        "inference_s_per_pack": 4.2175000392793056e-07,
+        "train_s_per_seed": 8.942299566668225
+      },
+      "cell_gru": {
+        "inference_s_per_pack": 5.65479166956114e-06,
+        "train_s_per_seed": 15.844715400002315
+      },
+      "cell_transformer": {
+        "inference_s_per_pack": 7.0685833331178095e-06,
+        "train_s_per_seed": 39.15721980000186
+      },
+      "mlp_physics": {
+        "inference_s_per_pack": 3.0019541663932615e-05,
+        "train_s_per_seed": 8.76817969999926
+      },
+      "cell_gru_physics": {
+        "inference_s_per_pack": 4.076458333353609e-05,
+        "train_s_per_seed": 23.202705900000485
+      }
+    },
+    "trajectory": {
+      "gru_decoder": {
+        "inference_s_per_pack": 5.9738499997668746e-05,
+        "train_s_per_seed": 9.886080466666803
+      },
+      "transformer_decoder": {
+        "inference_s_per_pack": 9.971175000221895e-05,
+        "train_s_per_seed": 85.81020829999761
+      }
     }
   },
   "soc_estimation": {
@@ -56,6 +98,6 @@
       "2": 747.5338469900003
     }
   },
-  "physics_checks_s": 13.4248978239998,
-  "run_all_s": 142.3061606140002
+  "physics_checks_s": 25.73713300000236,
+  "run_all_s": 246.71112379999977
 }

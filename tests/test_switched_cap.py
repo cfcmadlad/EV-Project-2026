@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.params import FlyingCapModel, FlyingCapSpec
+from src.params import ANALYTIC_FLYING_MODELS, FlyingCapModel, FlyingCapSpec
 from src.switched_cap import element_resistance_ohm, link_resistance_ohm, two_phase_resistance_ohm
 
 
@@ -62,7 +62,7 @@ def test_phase_order_does_not_matter() -> None:
 def test_element_and_cell_resistance_add_up_to_the_link() -> None:
     r0 = np.array([[0.010, 0.012, 0.014, 0.011]])
     inverse_fc = np.array([0.04])
-    for model in FlyingCapModel:
+    for model in ANALYTIC_FLYING_MODELS:
         hardware = FlyingCapSpec(model=model)
         total = link_resistance_ohm(inverse_fc, r0, hardware)
         element = element_resistance_ohm(inverse_fc, r0, hardware)
@@ -70,17 +70,17 @@ def test_element_and_cell_resistance_add_up_to_the_link() -> None:
         assert np.all(element > 0.0)
 
 
-def test_midsem_option_keeps_the_original_formula() -> None:
+def test_series_option_keeps_the_original_formula() -> None:
     r0 = np.array([[0.030, 0.033]])
     inverse_fc = np.array([0.0333])
-    hardware = FlyingCapSpec(model=FlyingCapModel.MIDSEM)
+    hardware = FlyingCapSpec(model=FlyingCapModel.SERIES)
     expected = 0.0333 + 2.0 * 0.01 + 0.005 + 0.030 + 0.033
     assert link_resistance_ohm(inverse_fc, r0, hardware)[0, 0] == pytest.approx(expected, rel=1e-14)
 
 
-def test_fast_switching_resistance_exceeds_the_midsem_value_at_baseline() -> None:
+def test_fast_switching_resistance_exceeds_the_series_value_at_baseline() -> None:
     r0 = np.array([[0.01158, 0.01158]])
     inverse_fc = np.array([1.0 / (5.5e3 * 5.5e-3)])
-    midsem = link_resistance_ohm(inverse_fc, r0, FlyingCapSpec(model=FlyingCapModel.MIDSEM))
+    series = link_resistance_ohm(inverse_fc, r0, FlyingCapSpec(model=FlyingCapModel.SERIES))
     two_phase = link_resistance_ohm(inverse_fc, r0, FlyingCapSpec(model=FlyingCapModel.TWO_PHASE))
-    assert 1.5 < two_phase[0, 0] / midsem[0, 0] < 2.0
+    assert 1.5 < two_phase[0, 0] / series[0, 0] < 2.0

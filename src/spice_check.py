@@ -249,7 +249,7 @@ def two_phase_closed_form_ohm(case: SpiceCase, config: ProjectConfig) -> float:
     return float(two_phase_resistance_ohm(parameter, np.array([r_phase]), np.array([r_other]))[0])
 
 
-def midsem_link_resistance_ohm(case: SpiceCase, config: ProjectConfig) -> float:
+def series_link_resistance_ohm(case: SpiceCase, config: ProjectConfig) -> float:
     hardware = config.flying_capacitor
     return (
         1.0 / (case.component * case.frequency_hz)
@@ -273,7 +273,7 @@ def load_measurements(config: ProjectConfig) -> dict | None:
 def _models_for(case: SpiceCase) -> tuple[tuple[str, FlyingCapModel], ...]:
     if case.converter == "buck_boost":
         return (("averaged", FlyingCapModel.TWO_PHASE),)
-    return (("midsem", FlyingCapModel.MIDSEM), ("two_phase", FlyingCapModel.TWO_PHASE))
+    return (("series", FlyingCapModel.SERIES), ("two_phase", FlyingCapModel.TWO_PHASE))
 
 
 def comparison_rows(config: ProjectConfig, payload: dict) -> list[dict[str, object]]:
@@ -364,7 +364,7 @@ def hypothesis_block(
         r_phase = case.cells.r0_source_ohm + 2.0 * hardware.r_ds_on_ohm + hardware.esr_ohm
         delta_v = case.cells.ocv_source_v - case.cells.ocv_sink_v
         spice_ohm = delta_v / float(record["sink_current_a"])
-        midsem_ohm = midsem_link_resistance_ohm(case, config)
+        series_ohm = series_link_resistance_ohm(case, config)
         closed_ohm = two_phase_closed_form_ohm(case, config)
         points.append(
             {
@@ -379,10 +379,10 @@ def hypothesis_block(
                 "fast_limit_ohm": 4.0 * r_phase,
                 "spice_ohm": spice_ohm,
                 "two_phase_closed_form_ohm": closed_ohm,
-                "midsem_ohm": midsem_ohm,
-                "spice_over_midsem": spice_ohm / midsem_ohm,
+                "series_ohm": series_ohm,
+                "spice_over_series": spice_ohm / series_ohm,
                 "spice_over_closed_form": spice_ohm / closed_ohm,
-                "midsem_current_error": by_model["midsem"]["sink_error"],
+                "series_current_error": by_model["series"]["sink_error"],
                 "two_phase_current_error": by_model["two_phase"]["sink_error"],
             }
         )
@@ -391,9 +391,9 @@ def hypothesis_block(
     return {
         "points": points,
         "baseline_point": baseline,
-        "baseline_midsem_current_overstatement_factor": 1.0 + baseline["midsem_current_error"],
+        "baseline_series_current_overstatement_factor": 1.0 + baseline["series_current_error"],
         "supported": bool(
-            abs(baseline["midsem_current_error"]) > tolerance
+            abs(baseline["series_current_error"]) > tolerance
             and abs(baseline["two_phase_current_error"]) <= tolerance
             and baseline["regime"] == "fast"
         ),
@@ -481,9 +481,9 @@ def converter_check(
     rows = comparison_rows(config, payload)
     quality = measurement_quality(payload, rows, spec)
     buck = _summarise_model(rows, "buck_boost", "averaged")
-    midsem = _summarise_model(rows, "flying_capacitor", "midsem")
+    series_form = _summarise_model(rows, "flying_capacitor", "series")
     two_phase = _summarise_model(rows, "flying_capacitor", "two_phase")
-    active = midsem if config.flying_capacitor.model is FlyingCapModel.MIDSEM else two_phase
+    active = series_form if config.flying_capacitor.model is FlyingCapModel.SERIES else two_phase
     block: dict[str, object] = {
         "status": "ok",
         "tool": payload["tool"],
@@ -494,7 +494,7 @@ def converter_check(
         },
         "measurement_quality": quality,
         "buck_boost": buck,
-        "flying_capacitor": {"midsem": midsem, "two_phase": two_phase},
+        "flying_capacitor": {"series": series_form, "two_phase": two_phase},
         "flying_capacitor_active_model": config.flying_capacitor.model.value,
         "hypothesis": hypothesis_block(config, payload, rows),
         "datasheet_checks": datasheet_checks(config, rows),

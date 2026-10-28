@@ -1,28 +1,36 @@
-# Cell Balancing in EV Battery Packs: Simulation and Machine Learning Surrogate
+# Cell Balancing in EV Battery Packs: Simulation, LTspice Validation and Learned Models
 
-**Summary.** Passive shunt, inductor buck-boost and flying-capacitor balancing on a 4-cell series pack, with a cell model fitted to measured LG HG2 data (Mendeley dataset, DOI 10.17632/b5mj79w5w9.2, CC BY 4.0), an ML surrogate, SOC estimation and an RL controller. Everything is deterministic from one seed. Run `python run_all.py` (about 2 minutes on 4 cores), then `python -m scripts.report_claims`, `pytest`, `ruff check .`. Every claim, with evidence key, threshold and PASS, FAIL or NOT SUPPORTED, is in `results/claims.md`; figures are described in `results/FIGURES.md`.
+**Summary.** Passive shunt, inductor buck-boost and flying-capacitor balancing of a 4-cell series pack, with a cell model fitted to measured LG HG2 data (Mendeley dataset, DOI 10.17632/b5mj79w5w9.2, licence CC BY 4.0), checked against switching-level LTspice circuits with real MOSFETs, gate drive and dead time, and compared with learned surrogates, SOC estimators and RL controllers. Everything is deterministic: one simulation seed (2026) and seeds 0 to 2 for the learned models.
 
-**Repo map.** `src/` library code; `scripts/` downloads, training and long jobs (outputs cached as small JSON in `data/processed/`); `tests/` pytest suite; `results/` metrics.json, claims.md and figures; `spice/` LTspice netlists; section m has the full tree.
+- **Baseline** (10 % SOC spread, mid-range components, circuit-calibrated models; the gate drive is powered from the cell pack and booked separately): passive 4.19 h and 7176 J; buck-boost 1.08 h and 221 J (205 J cell side plus 15.4 J gate drive), 96.2 % efficient; flying capacitor 1.99 h and 39.5 J (29.9 J cell side plus 9.6 J gate drive), 99.3 % efficient.
+- **LTspice validation:** the series formula for a flying-capacitor link is wrong by up to 160.48 % and the exact switched-capacitor (coth) form holds within 3.37 %; the averaged buck-boost currents hold within 4.88 % where an inductor saturation rule is met, but the averaged losses miss gate drive and switching by up to 16.63 %, so circuit-calibrated models are the default and the calibrated loss error is 6.87 %.
+- **Learned models:** plain neural surrogates lose to gradient boosting (balancing-time R2 0.9530 for the cell GRU against 0.9825); learning only the residual over the closed-form physics lifts every model to 0.9997 or better; an EKF plus GRU hybrid cuts SOC error from 2.06 % to 0.89 % on Test A and keeps it at int8 weights; PPO controllers do not beat the hand-written rule on every cycle.
+- **Controller headroom bound:** a rule-based controller already sits within 0.88 % (buck-boost) and 0.79 % (flying capacitor) of an ideal-transfer reference in delivered Ah at 4 cells, so there is no meaningful room for a learned controller there; the median gap grows with string length to 1.45 % and 2.57 % at 96 cells, where room exists, and SOC estimation error widens it further for the buck-boost (4.74 %).
+- **Claims:** 289 rows in `results/claims.md`: 163 PASS, 102 FAIL, 24 NOT SUPPORTED. FAIL rows are findings and are kept; section p lists them.
 
-**Changelog.** Midsem: assumed cell parameters and the three techniques. Endsem phases 0 to 3: verification checks, fitted cell model, LTspice comparison, ML against physics baselines. Final phase (sections r to v): drive cycles, temperature, SOC estimation, scaling, RL. Closing work (sections w to aa): net-current link model, 2RC EKF, midsem consistency, converter audit, voltage-based rest balancing, technique selector.
+## Contents
+
+A. Background (sections a to f): motivation, glossary, architecture, cell model, the three techniques.
+B. Results (sections g to o): baseline comparison, ML predictor, verification, fitted cell model, LTspice validation and calibrated models, deep learning, system-level studies, controller headroom bound, model comparison.
+C. Limitations (section p), how to run (section q), project structure (section r), data and licence (section s).
+
+## Reproduce
+
+```bash
+pip install -r requirements-dev.txt         # requirements.txt runs run_all.py; the dev file adds pytest, ruff, PyTorch and stable-baselines3
+python scripts/fetch_hg2.py --group all     # downloads the measured data files that the training scripts need
+python run_all.py                           # about 5 minutes on 16 threads, no LTspice needed
+python -m scripts.report_claims
+python -m scripts.check_readme
+python -m pytest
+ruff check .
+```
+
+`run_all.py` never calls a simulator or trains a network: it reads the committed caches (`results/ltspice/*.csv`, `data/processed/*.json`) and stops with an error naming any cache that was built from different inputs. With LTspice 26.1.1 installed, run `python -m scripts.ltspice_flying_cap`, `scripts.ltspice_buck_boost`, `scripts.ltspice_shunt` and `scripts.ltspice_checks` one after the other (about 15 minutes) to rebuild the circuit results, and `python -m scripts.ltspice_schematics` for the `.asc` files. Section q lists the training and long jobs.
 
 ## a. Overview
 
-A battery pack is only as good as its weakest cell. When cells in a series string drift to different charge levels, usable capacity shrinks and some cells get stressed. This project simulates three ways of pulling cells back into line (passive shunt, inductor buck-boost and flying capacitor balancing) on a 4-cell pack of 18650 lithium-ion cells. It compares how fast each one balances and how much energy it wastes. It then trains a machine learning model that predicts those results about 100 times faster than running the simulation.
-
-> **Parameter sets.** The midsem results used assumed cell parameters (`ASSUMED`). Since endsem Phase 1 the default is `FITTED_HG2_25C`, fitted to measured data from one LG HG2 cell at 25 °C (section o). Sections a, e, g and i below were written for the midsem run: where they quote numbers, those are the `ASSUMED` values, kept in `results/midsem_reference/` and in `results/baseline_assumed_vs_fitted.csv`. The figures in `results/` are regenerated with the fitted set. A full rewrite of those sections is planned for the final phase.
-
-> **ML evaluation.** Since endsem Phase 3 the surrogate is compared with physics formulas, a log-linear regression and a hybrid model (section q). The plain gradient-boosting model of section h is the weakest of the four; physics formulas match the simulator closely, and a hybrid that learns a correction on top of physics is the best model where the physics is imperfect.
-
-> **Converter models.** Since endsem Phase 2 the averaged buck-boost and flying-capacitor current equations are checked against switching-level LTspice runs (section p). The buck-boost equations pass unchanged. The midsem flying-capacitor formula fails at the fast-switching points and is replaced by an exact two-phase formula; the midsem one stays available as `FlyingCapModel.MIDSEM`. The numbers below use the corrected formula.
-
-> **Final phase.** The last phase (sections r to v) adds balancing under measured drive-cycle and charging current (r), cell fits at four temperatures and the effect of SOC estimation error (s), SOC estimation with a GRU, an EKF and coulomb counting and what its errors do to balancing (t), scaling to strings of up to 96 cells (u) and a reinforcement-learning controller (v). Headline results, all limited to the one measured cell and the stated pack: under the measured Mixed 1 current the flying capacitor adds 0.148 Ah of usable pack capacity and the buck-boost 0.092 Ah on the maximum-spread baseline pack (medians over 200 random packs: 0.074 and 0.072 Ah), the passive shunt none; the fitted cell model fails the 30 mV validation limit at 0 and 10 °C; the GRU estimates SOC with 2.5 % RMSE (4.96 % for the EKF) yet balancing on either estimate leaves most packs above the 1 % true-spread target; balancing time follows the derived N and N² laws only for a step initial profile; and a PPO policy did not beat the simple rule (null result). `results/claims.md` lists every claim with its evidence, including the failed and unsupported ones, and `results/FIGURES.md` describes each figure.
-
-Baseline from a 10 % charge imbalance (fitted parameters, with the midsem `ASSUMED` value in brackets):
-
-- **Speed:** the inductor buck-boost balances in **1.07 h** (1.17 h), the flying capacitor in **1.96 h** (2.54 h) and the passive shunt in **4.19 h** (4.56 h).
-- **Energy:** passive balancing burns **7176 J** (7680 J) as heat. The buck-boost loses **200 J** (221 J), 96.5 % efficient, and the flying capacitor **29.9 J** (20.5 J), 99.4 % efficient.
-- **Prediction:** the machine learning model, trained on 6000 simulated runs, predicts balancing time with **R² = 0.989** (0.973) and wasted energy with **R² = 0.995** (0.995) on unseen packs. It is about **127x** faster than simulating them: about 26 µs per prediction vs 3.3 ms per simulated pack. Section q shows that it is not more accurate than closed-form physics formulas. The factor depends on the machine and is not a supported claim; timings live in `results/timing.json` and `results/claims.md` lists what is and is not supported.
+A battery pack is only as good as its weakest cell. When cells in a series string drift to different charge levels, usable capacity shrinks and some cells are stressed. This project simulates three ways of pulling cells back into line (passive shunt, inductor buck-boost and flying-capacitor balancing) on a 4-cell pack of 18650 lithium-ion cells, compares how fast each balances and how much energy it wastes, validates the averaged models against circuit simulation, and trains learned models that predict the results, estimate SOC and try to control the balancing.
 
 ## b. Motivation
 
@@ -175,7 +183,7 @@ $$
 | $\text{SOC}$ | State of charge | fraction, 0 to 1 | starts near 0.5 |
 | $i$ | Cell current, positive when discharging | A | |
 | $R_0$ | Series (ohmic) resistance | Ω | 11.6 mΩ, ± 10 % cell to cell (assumed) |
-| $R_1$ | Polarisation resistance | Ω | 35.2 mΩ (two measured branches combined, section o) |
+| $R_1$ | Polarisation resistance | Ω | 35.2 mΩ (two measured branches combined, section j) |
 | $C_1$ | Polarisation capacitance | F | 919 F |
 | $V_1$ | Voltage across the RC pair | V | starts at 0 V (cell at rest) |
 | $\tau$ | Time constant of the RC pair | s | 32 s |
@@ -199,7 +207,7 @@ E_\text{dissipated} = E_\text{removed} - E_\text{delivered}, \qquad
 \eta = \frac{E_\text{delivered}}{E_\text{removed}}
 $$
 
-Here $\text{OCV}_s$, $I_s$ are the open circuit voltage (V) and current (A) of each cell giving up charge. $\text{OCV}_k$, $I_k$ are the same quantities for each cell receiving charge. $E$ is energy in joules and $\eta$ is efficiency (dimensionless). Because the bookkeeping uses chemical energy, the dissipated energy includes both the balancing circuit losses and the cells' own resistive losses.
+Here $\text{OCV}_s$, $I_s$ are the open circuit voltage (V) and current (A) of each cell giving up charge. $\text{OCV}_k$, $I_k$ are the same quantities for each cell receiving charge. $E$ is energy in joules and $\eta$ is efficiency (dimensionless). Because the bookkeeping uses chemical energy, the dissipated energy includes both the balancing circuit losses and the cells' own resistive losses. For the active circuits the current drawn from a source cell also includes the current that powers the gate drivers of its links, so gate-drive energy is part of $E_\text{removed}$ and is reported as a separate loss line next to the cell-side losses.
 
 ### Passive shunt balancing
 
@@ -282,14 +290,14 @@ $$
 
 **Advantages:**
 - Fast, because currents of hundreds of milliamps to amps are possible.
-- High efficiency, 96.4 % at mid-range values.
+- High efficiency, 96.2 % at mid-range values.
 - Transfer does not depend on the voltage difference, so it stays fast right to the end.
 
 **Drawbacks:**
 - The most components and the highest cost: inductors, MOSFETs and gate drivers.
 - The most complex control: PWM, direction selection and current limits.
 - Magnetic components are bulky.
-- At small L·f products the peak currents become large and efficiency drops sharply (47 % in the worst dataset case).
+- At small L·f products the peak currents become large and efficiency drops (89.7 % in the worst dataset case, after the saturation rule of section k has pruned the range).
 
 **Ranges used:** L from 10 µH to 100 µH, f from 10 kHz to 50 kHz and D fixed at 0.4. The inductor resistance is 80 mΩ and the MOSFET on resistance 20 mΩ.
 
@@ -304,14 +312,14 @@ flowchart LR
     CAP -->|"switching loss"| HEAT["Heat in switches, ESR and cells"]
 ```
 
-The average current is the charge moved per cycle times the number of cycles per second. The midsem model treated the capacitor as settling to the full voltage difference in every phase, with the loop resistances simply added in series:
+The average current is the charge moved per cycle times the number of cycles per second. The simplest model treats the capacitor as settling to the full voltage difference in every phase, with the loop resistances simply added in series:
 
 $$
 I = \frac{\Delta E}{\dfrac{1}{f C} + R_s}, \qquad R_s = 2 R_\text{ds,on} + R_\text{ESR} + R_{0,a} + R_{0,b}
-\qquad \text{(midsem formula, `FlyingCapModel.MIDSEM`)}
+\qquad \text{(series form, `FlyingCapModel.SERIES`)}
 $$
 
-Phase 2 showed that this is only right when the capacitor settles completely in each half period (the slow-switching limit). At the baseline point (5.5 mF, 5.5 kHz) the phase resistance $R = R_0 + 2R_\text{ds,on} + R_\text{ESR} = 36.6$ mΩ gives a time constant $RC = 0.20$ ms, which is longer than the half period of 0.091 ms. The link is in the fast-switching limit, where the capacitor never settles and the resistance in the loop limits the current much more than $1/(fC)$ does.
+The circuit simulations (section k) show that this is only right when the capacitor settles completely in each half period (the slow-switching limit). At the baseline point (5.5 mF, 5.5 kHz) the phase resistance $R = R_0 + 2R_\text{ds,on} + R_\text{ESR} = 36.6$ mΩ gives a time constant $RC = 0.20$ ms, which is longer than the half period of 0.091 ms. The link is in the fast-switching limit, where the capacitor never settles and the resistance in the loop limits the current much more than $1/(fC)$ does.
 
 **Two-phase derivation.** Let the capacitor be connected to cell a (voltage $V_a$, phase resistance $R_1 = R_{0,a} + 2R_\text{ds,on} + R_\text{ESR}$) for half a period $T/2 = 1/(2f)$, then to cell b ($V_b$, $R_2 = R_{0,b} + 2R_\text{ds,on} + R_\text{ESR}$) for the other half. In each phase the capacitor voltage relaxes exponentially towards the connected cell, so with $a_i = e^{-1/(2 f R_i C)}$:
 
@@ -341,14 +349,14 @@ $$
 | $C$ | Flying capacitance | F | 1 mF to 10 mF |
 | $\Delta V_c$ | Voltage swing on the capacitor per cycle | V | |
 | $\Delta E$ | Difference in internal cell voltage between cells a and b | V | about 60 mV at 10 % SOC difference |
-| $R_s$ | Series resistance of the midsem formula | Ω | about 0.048 Ω |
+| $R_s$ | Series resistance of the series form | Ω | about 0.038 Ω |
 | $R_\text{eq}$ | Equivalent link resistance of the two-phase formula | Ω | 0.149 Ω at 5.5 mF and 5.5 kHz |
 | $R_\text{ds,on}$ | MOSFET on resistance | Ω | 10 mΩ |
 | $R_\text{ESR}$ | Capacitor equivalent series resistance | Ω | 5 mΩ |
 | $R_{0,a}$, $R_{0,b}$ | Series resistance of the two cells | Ω | about 11.6 mΩ each |
 
 **Advantages:**
-- Highest efficiency (99.4 % at mid-range values), because losses scale with the square of a small voltage difference.
+- Highest efficiency (99.3 % at mid-range values), because losses scale with the square of a small voltage difference.
 - No magnetics and simple fixed-clock control.
 - Self-regulating, because current automatically stops when the cells are equal.
 
@@ -358,914 +366,309 @@ $$
 - Large capacitors are needed.
 
 **Ranges used:** C from 1 mF to 10 mF and f from 1 kHz to 10 kHz. The MOSFET on resistance is 10 mΩ and the capacitor ESR 5 mΩ.
+## g. Baseline comparison
 
-## g. Comparison
-
-Baseline results for the same pack, which starts with a 10 % SOC spread, using mid-range component values. Component counts are for a 4-cell pack in the adjacent-cell layouts simulated here. Cost and control complexity are qualitative engineering judgements.
+Baseline results for the same pack, which starts with a 10 % SOC spread, using mid-range component values and the circuit-calibrated models. Component counts are for a 4-cell pack in the adjacent-cell layouts simulated here. Cost and control complexity are qualitative engineering judgements.
 
 | Property | Passive shunt | Inductor buck-boost | Flying capacitor |
 | --- | --- | --- | --- |
 | Component values | R_b = 60 Ω | L = 55 µH, f = 30 kHz | C = 5.5 mF, f = 5.5 kHz |
-| Balancing time | 4.19 h (15068 s) | **1.07 h** (3845 s) | 1.96 h (7069 s) |
-| Energy dissipated | 7176 J | 199.9 J | **29.9 J** |
-| Efficiency | 0 % | 96.5 % | **99.4 %** |
-| Time for last 2 % vs first 2 % of spread | 1.0x | 2.7x | 7.5x |
+| Balancing time | 4.19 h (15068 s) | **1.08 h** (3897 s) | 1.99 h (7174 s) |
+| Energy dissipated, total | 7176 J | 220.5 J | **39.5 J** |
+| of which cell side (conduction, R0 heating, switching) | 7176 J | 205.1 J | 29.9 J |
+| of which gate drive (drawn from the pack) | 0 J | 15.4 J | 9.6 J |
+| Efficiency | 0 % | 96.2 % | **99.3 %** |
 | Component count | 4 resistors, 4 MOSFETs | 3 inductors, 6 MOSFETs | 3 capacitors, 8 MOSFETs |
 | Cost | Low | High | Medium |
 | Control complexity | Low: on or off per cell | High: PWM, direction and current limits per link | Low to medium: fixed complementary clock |
 
-Across all 6000 dataset runs, the median balancing time was 1.92 h for passive, 0.30 h for buck-boost and 0.89 h for flying capacitor. The median dissipated energy was 3516 J, 88.0 J and 10.0 J respectively. These numbers and the table above use the fitted parameters; the midsem table is in `results/midsem_reference/baseline_table.csv`.
+The ranking is buck-boost fastest, flying capacitor lowest loss, passive slowest and wasteful. The gate drivers are powered from the source cell of each active link, so their energy leaves the pack as extra source current and appears as its own loss line; the charge balance of the flying capacitor and the energy ledger both include it. Sweeping the passive bleed resistor from 20 Ω to 100 Ω moves the passive time from 5031 s to 25106 s; the flying-capacitor frequency sweep is in `results/sweep_flying_capacitor_frequency.png`. Across the 6000 dataset runs the techniques rank the same way.
 
 ## h. ML predictor
 
-**What it predicts and why.** Given a pack's state and a candidate balancing circuit, the model predicts how long balancing will take and how much energy it will waste. A real BMS could use this to choose, schedule or tune balancing in real time without running a physics simulation. For example, it could decide whether there is enough parking time to finish balancing, or which of several balancing modes costs the least energy.
+**What it predicts and why.** Given a pack's initial state and a candidate balancing circuit, the model predicts how long balancing will take and how much energy it will waste, so a BMS could choose or tune a technique without running the simulation. The dataset is 6000 random packs (2000 per technique): each has random capacities, resistances and initial SOCs as in section e, and a component value and switching frequency drawn uniformly from the technique's range. The buck-boost range is pruned by the inductor saturation rule (section k). There are 19 features (spread, SOC standard deviation, the four initial SOCs, capacities and R0s, three technique flags, component value, frequency) and two targets (`balancing_time_s`, `energy_dissipated_j`). Model: histogram gradient boosting on the log of each target, 500 trees, learning rate 0.05, 80/20 split, one seed.
 
-```mermaid
-flowchart LR
-    SIM["Physics simulator"] -->|"6000 runs"| DS["Dataset: 19 features, 2 targets"]
-    DS --> TR["Training set, 80 percent"]
-    DS --> TE["Test set, 20 percent"]
-    TR --> GB["Gradient boosting models"]
-    GB --> PRED["Predicted time and energy"]
-    TE --> PRED
-    PRED --> CMP["Compare techniques for a given pack"]
-    CMP --> REC["Recommended technique"]
-```
+| Target | Overall R2 | Overall MAE | Passive R2 | Buck-boost R2 | Flying-capacitor R2 |
+| --- | --- | --- | --- | --- | --- |
+| Balancing time | 0.9836 | 310.8 s | 0.9947 | 0.9523 | 0.8691 |
+| Energy dissipated | 0.9952 | 62.1 J | 0.9850 | 0.9697 | 0.9894 |
 
-**How the dataset is generated.** For each technique, 2000 random packs are created. Each pack's capacities, resistances and initial SOCs are sampled as described in section e. A component value and switching frequency are drawn uniformly from that technique's range. All 2000 packs are simulated together in one vectorized batch, and each pack drops out of the batch as soon as it balances. This takes about 3.6 ms per pack, while the trained model predicts both targets for a pack in about 38 µs (the best of 20 timed repeats).
+The surrogate is far faster than simulating (timings are machine dependent and live in `results/timing.json`; they are not a claim). Closed-form physics formulas written for the same simulator match it closely, so the useful comparison is against them (section o): plain boosting does not beat the physics formula for passive, buck-boost or flying-capacitor balancing time, and a hybrid that learns a correction on top of physics is the better design. Out-of-range packs (largest 20 % of component values, smallest spread) raise the error for every technique, and 90 % conformal intervals reach nominal coverage for most targets (`results/ml_conformal_coverage.png`; the passive-energy interval undercovers at 85.25 %).
 
-**Features (model inputs):**
+## i. Verification
 
-| Feature | Meaning | Unit |
+Before anything is built on the simulator it is checked against closed forms and conservation laws; the checks run on every `run_all.py` and are rows in `results/claims.md`.
+
+- Passive balancing time follows t = max_i 3600 Q_i (R_b + R0_i + R1) times the OCV integral to 0.06486 % over 200 random packs.
+- Flying-capacitor charge is conserved, with a worst relative imbalance of 5.06e-13 once the gate-drive charge is counted separately.
+- An independent element-by-element energy ledger (`src/ledger.py`) closes within 1 % of the energy removed from the source cells for all three techniques, and within 0.1 % per link; time-step halving reduces the passive residual in proportion.
+- Two consecutive runs of `run_all.py` give byte-identical `metrics.json`, CSV files and figures (`tests/test_determinism.py`).
+- A strict diagnostic books the cell resistance with the net current of each cell instead of per link. With the per-link model, which sums the squared link currents, the energy dissipated differs from that net-current ledger by 1.967 % (buck-boost) and 7.276 % (flying capacitor) in the worst of 200 packs: these two rows FAIL. The cause is an approximation, not a bug: a middle cell that feeds both neighbours carries the net current, but the per-link model books R0 once per link. The optional net-current link model (`src/coupled_links.py`) removes the difference, and its own ledger gap is 0.11 % (buck-boost) and 0.09 % (flying capacitor); the per-link ledger of the flying capacitor against the mean-current form of R0 heating is off by 5.1 % at the baseline.
+
+## j. Fitted cell model
+
+The simulator's cell is fitted to one measured LG HG2 18650 cell (C/20 discharge, HPPC pulses, UDDS and LA92 drive cycles, 25 degrees C). The C/20 discharge gives the OCV curve (2.88 V at 0 % to 4.19 V at 100 %) and a capacity of 2.781 Ah. The HPPC pulses give R0 (11.6 mΩ at 50 % SOC) and one or two RC branches; the 1RC and 2RC models are compared by replaying UDDS and LA92 current, which are held out of the fit, with limits of 30 mV RMSE over the whole cycle and 20 mV in the 20 to 80 % SOC window.
+
+| Model | UDDS whole | UDDS window | LA92 whole |
+| --- | --- | --- | --- |
+| Assumed generic cell (pre-fit) | 92.9 mV | 56.6 mV | 106.7 mV |
+| 1RC | 37.8 mV (FAIL) | 28.1 mV | 42.5 mV |
+| 2RC (kept) | **28.5 mV** | **16.63 mV** | **28.8 mV** |
+| Single-branch equivalent of the 2RC (what the simulator uses) | 31.5 mV (FAIL) | | 35.0 mV (FAIL) |
+
+The simulator has one RC branch, so the single-branch equivalent misses the 30 mV limit by 1.5 mV (UDDS) and 5 mV (LA92); this is reported as FAIL. Cell-to-cell spreads (capacity plus or minus 5 %, R0 plus or minus 10 %) are assumptions because the data set has one cell. Fits at 0, 10, 25 and 40 degrees C follow an Arrhenius law for R0 with an activation energy of 0.201 eV, but the largest relative deviation of that single law is 13.48 %, above the 10 % limit (FAIL; the form comparison gives a residual of 12.5 %), and a log-quadratic form does better (0.7 % leave-one-temperature-out). The kept model fails the 30 mV and 20 mV limits at 0 and 10 degrees C; a nonlinear calibrated model reduces the error (UDDS whole cycle at 0 degrees C: 21.3 mV, LA92: 32.4 mV; 10 degrees C UDDS window: 20.03 mV; 25 degrees C: 16.6 mV; 40 degrees C: 13.1 mV). Balancing results at 0, 10 and 40 degrees C are NOT SUPPORTED.
+
+## k. Circuit-level validation with LTspice and the calibrated converter models
+
+**Circuits.** Each converter link is built in LTspice (`src/lt_circuits.py`) with each cell as a DC source at the fitted OCV in series with R0. Flying capacitor: four BSZ100N03LS MOSFETs per link with floating gate drivers (5 V, 2.2 Ω), 0.25 µs dead time, 5 mΩ ESR; C from 1 to 10 mF, f from 1 to 10 kHz, SOC spread 1 to 10 %, real and ideal switches. Buck-boost: FDS4410 high-side switch and either a synchronous FDS4410 with zero-current turn-off or an MBRS340 Schottky diode, 80 mΩ inductor, L from 10 to 100 µH, f from 10 to 50 kHz, three operating points including 4.2 V into 3.0 V. Passive: resistor and MOSFET. In total 434 runs; each is measured over whole switching periods after two start-up windows, V times I is integrated exactly per device for piecewise-linear signals, and MOSFET loss is split into conduction, transition (including off-state leakage) and gate drive. The measurement quality checks (stationarity over 60 periods, step independence, energy balance, DCM idle fraction, no phase overlap) all pass; the worst energy balance residual of any run is 0.89% of the removed power. Schematics are in `ltspice/*.asc`, one net label per pin.
+
+**Flying capacitor.** The series formula 1/(f C) + series resistances is refuted: with real parts it is off by up to 160.48 % (median 75%). The exact switched-capacitor form R_eq = (1/(f C)) coth(1/(4 f R C)) of Seeman and Sanders, with R = R0 + 2 Rds,on + ESR, holds within 3.37 % on real parts and 1.01 % on ideal switches. At the baseline point the series form gives 152 % more link resistance than the exact form and a balancing time ratio of 1.66. The averaged loss still misses the 15 % tolerance with real parts (worst 56.6%) because of gate drive and switching, and booking the R0 heating with the mean link current is wrong by up to 1245% (current ripple). At the baseline link LTspice gives 0.3214 A.
+
+**Buck-boost.** The converter stays in discontinuous conduction over the whole grid (D + D2 at most 0.961). The averaged currents hold within 4.88 % where the peak current stays below an inductor saturation rule (I_sat = sqrt(2 · 50 µJ / L)), which holds for 20 of 48 real-part synchronous points; over the whole grid the sink current error is up to 28%, so 56 of 96 (L, f, operating point) combinations are unrealistic and the dataset range is pruned. The averaged loss error is 16.63 % in range (FAIL against 15 %). At the baseline link LTspice gives 0.1758 A.
+
+**Decision and effect.** The rule was fixed in advance: if the averaged formulas miss the 5 % current or 15 % loss tolerance against the real-part circuits, correction maps built from the LTspice results become the default. They do. The maps (log-grid bilinear interpolation of effective resistance and gate power over C and f for the flying capacitor; current ratio, overhead power and gate power over L and f for the buck-boost) lower the buck-boost loss error to 6.87 % and the flying-capacitor current error to 0.10 % (in sample). On the baseline pack the calibrated models change the buck-boost to 1.08 h and 221 J and the flying capacitor to 39.5 J, against 200 J and 29.9 J for the uncalibrated formulas; the ranking is unchanged. The uncalibrated models are kept as a named option, and the row "The uncalibrated averaged converter models stay inside the 5 % current and 15 % loss tolerances" is a FAIL.
+
+**Ideal-switch check.** A first LTspice check with ideal switches at six operating points (`src/spice*.py`, `scripts/run_spice.py`, `spice/`) passes for all six buck-boost points and for the two-phase flying-capacitor form; the series form passes only 2 of 6. Python converter audits (`src/converter_audit.py`) add that booking the buck-boost loss with the RMS ripple current raises the baseline energy to 236.1 J (a median 6.3 % over the dataset), the worst peak current over the L and f range is 16.8 A and D + D2 reaches 0.96 at most.
+
+## l. Deep learning against boosting
+
+All models use the same 6000-run dataset, an equal four-trial tuning budget, three seeds and a held-out test set that tuning never touches.
+
+**Surrogates.** Plain MLP, cell-sequence GRU and cell-token Transformer models lose to gradient boosting: balancing-time R2 0.9530 for the cell GRU against 0.9825 for boosting (mean of three seeds on the 70/15/15 split; section h reports 0.9836 for one seed on its 80/20 split) (flying capacitor is the hard case). Learning only the log residual over the closed-form physics lifts every model to 0.9997 or better (0.9998 for the GRU); on the residual, boosting is as good as the networks to within 1e-4, so the value is in the physics, not in the architecture. Plain boosting reaches 0.9825, short of the 0.99 target (FAIL).
+
+**Trajectories.** GRU and Transformer decoders predict the whole SOC-spread trajectory of a pack within 0.219 percentage points RMSE and reproduce the three shapes (linear passive, steady buck-boost, exponential-tail flying capacitor), but the absolute time to a 1 % spread is off by 13 to 15 % median (FAIL against 10 %).
+
+**SOC estimation.** On the measured UDDS and LA92 data (Test A at 25 degrees C, Test B at 10 degrees C, unseen): coulomb counting with a 0.5 % full-scale offset ends 25.2 % RMSE off (with a tester-grade 0.1 % offset it gives 5.05 % and 4.03 %, so the 1RC EKF does not beat it on Test B); a 1RC EKF gives 4.96 % and 6.18 %; the 2RC EKF with hysteresis 2.06 % and 2.11 %; a GRU 2.49 % and 2.97 %; and an EKF plus GRU hybrid 0.89 % and 1.43 %. Post-training quantisation keeps the hybrid within 5 % of its float32 RMSE at int8 (4560 bytes of weights; lower widths are in `results/metrics.json`). The 2RC EKF recovers from a 20 % wrong start to 2.39 % error after 300 s (limit 2 %, FAIL). Balancing on an estimated SOC leaves most packs above the 1 % true-spread target (hybrid, passive: 72.5 %; less so for the flying capacitor, whose links follow the true voltage); the median final true spread is 2.9 % for passive on the 2RC EKF and 3.6 % for the buck-boost on the GRU.
+
+**Reinforcement learning.** PPO controllers (residual on the rule and imitation start, each with and without potential-based shaping, 3 seeds, 150 000 steps, 4 and 8 cells) are evaluated on the four held-out cycles against no balancing, the rule, greedy maximum transfer and an ideal-transfer reference. None beats the rule on every cycle (all eight variants FAIL); the best 8-cell imitation policy gains 0.0023 Ah per pack on average, within noise. On Mixed 7 the pack delivers 1.291 Ah with no balancing, 1.335 Ah with the rule and 1.356 Ah in the ideal reference; the first PPO attempt on UDDS reached 1.267 Ah. Learned control improving balancing under load is NOT SUPPORTED.
+
+## m. System-level studies
+
+**Drive cycles.** Balancing during the measured Mixed 1 driving current (repeated until a cell hits a limit) and 0.5C charging, on the baseline pack: usable capacity is 1.232 Ah with no balancing and 1.324 Ah (buck-boost, gain 0.092 Ah) or 1.358 Ah (flying capacitor, gain 0.126 Ah) with balancing; a charge-equalised pack reaches 1.395 Ah. Over 200 random packs the median driving gain is 0.072 Ah (buck-boost) and 0.074 Ah (flying capacitor); during charging the median gain is 0.068 Ah for passive and 0.078 Ah for the buck-boost. Passive balancing does not help while driving.
+
+**Scaling to longer strings.** For 4 to 96 cells with a step-shaped initial profile the balancing time follows the derived laws: flying capacitor with slope 1.87 (theory 2) and buck-boost with slope 0.90 (theory 1). With random initial SOCs the buck-boost slope is 0.22 against a theory of 0.5 (outside the 0.25 tolerance, FAIL) and the flying-capacitor slope 0.90; the flying-capacitor N-squared law for random cells is NOT SUPPORTED. The 4-cell surrogate does not extend to other N.
+
+**Rest-voltage balancing.** Balancing on cell rest voltage with sensor error stops when the voltage-implied spread falls below a threshold. With a 0.5 % stopping threshold, the largest sensor error that still brings 95 % of packs to the 1 % true spread is about 1.7 mV (passive) and 1.6 mV (buck-boost), and 2.1 mV with a 0.25 % threshold; stopping at the 1 % target itself never reaches 95 %. At 2, 5 and 10 mV sensor error the 95 % requirement fails (FAIL rows); at 1 mV the median energy dissipated by passive balancing is 4043 J.
+
+**Technique selector.** A selector that picks the technique with the surrogate under a parking-time budget agrees with simulation on 92.7 % of packs at a 1 h budget, misses the budget on 6.8 % of the packs where some technique meets it (FAIL against 5 %), and spends 59.5 J on average at 1 h and 85.6 J at 0.5 h.
+
+## n. Controller headroom bound
+
+**Question.** How much usable capacity could any controller (rule, RL, MPC or a digital twin) still add over the rule-based controller, and does SOC estimation error change that? The thresholds were fixed before the run: "no meaningful headroom" means the median relative gap (reference minus rule) / reference in delivered Ah is below 1 %; "headroom exists" means the 90th percentile gap exceeds 2 %.
+
+**Method.** Strings of N = 4, 8, 16, 32 and 96 cells, 50 random packs per N, the Mixed 1 and Mixed 7 measured currents, all three techniques, with the pooled gap over both cycles. The reference is the charge-equalised pack with no balancing, an upper bound on what lossless ideal transfer could deliver. Strategies: none, the rule (balancing active only while the SOC spread exceeds the 1 % tolerance), greedy (always transfer maximum), and the rule fed with an SOC estimate whose error has the standard deviation of the best estimator (hybrid, Test A RMSE 0.89 %). Code: `src/headroom.py`, `scripts/run_headroom.py`.
+
+| Technique | N | Rule median gap | Rule 90th percentile | Greedy median | Rule with estimation error, median | Verdict |
+| --- | --- | --- | --- | --- | --- | --- |
+| Passive | 4 | 5.07 % | 10.04 % | 5.07 % | 5.25 % | headroom exists |
+| Passive | 8 | 6.38 % | 10.40 % | 6.38 % | 6.74 % | headroom exists |
+| Passive | 16 | 7.19 % | 10.44 % | 7.19 % | 7.19 % | headroom exists |
+| Passive | 32 | 8.05 % | 11.57 % | 8.05 % | 8.05 % | headroom exists |
+| Passive | 96 | 8.25 % | 11.77 % | 8.25 % | 8.25 % | headroom exists |
+| Buck-boost | 4 | 0.88 % | 1.48 % | 0.45 % | 1.60 % | no meaningful headroom |
+| Buck-boost | 8 | 1.11 % | 2.40 % | 0.73 % | 2.44 % | headroom exists |
+| Buck-boost | 16 | 1.30 % | 2.31 % | 0.79 % | 3.16 % | headroom exists |
+| Buck-boost | 32 | 1.33 % | 2.52 % | 1.00 % | 3.82 % | headroom exists |
+| Buck-boost | 96 | 1.45 % | 3.21 % | 1.33 % | 4.74 % | headroom exists |
+| Flying capacitor | 4 | 0.79 % | 1.34 % | 0.31 % | 0.49 % | no meaningful headroom |
+| Flying capacitor | 8 | 1.15 % | 2.64 % | 1.02 % | 1.27 % | headroom exists |
+| Flying capacitor | 16 | 1.69 % | 3.36 % | 1.69 % | 1.80 % | headroom exists |
+| Flying capacitor | 32 | 2.16 % | 3.73 % | 2.16 % | 2.22 % | headroom exists |
+| Flying capacitor | 96 | 2.57 % | 4.36 % | 2.57 % | 2.76 % | headroom exists |
+
+**Result.** For the active techniques at 4 cells the rule is within 0.88 % (buck-boost) and 0.79 % (flying capacitor) of the ideal reference, so a learned controller has no meaningful room there, which is consistent with the PPO null results in section l. From 8 cells the median gap is above 1 % and the 90th percentile above 2 %, reaching 1.45 % and 2.57 % at 96 cells, so headroom exists for longer strings. SOC estimation error costs the buck-boost an additional 3.29 percentage points at 96 cells and the flying capacitor almost nothing. The passive shunt leaves a median gap of 5.1 % to 8.3 %: it wastes capacity as heat, and an active technique, not a smarter passive controller, is what closes it.
+
+**Implication and caveat.** A learned or model-predictive controller for a 4-cell pack can recover at most the gap in the first rows of the table, which is below 1 % of delivered Ah in the median (90th percentile 1.48 %, maximum 2.1 % over the random 4-cell packs); the case for RL, MPC or a digital twin therefore rests on long strings, on estimation error and on goals other than usable capacity (loss, temperature), not on the 4-cell capacity result. The reference assumes lossless, instantaneous ideal transfer and is therefore an upper bound that no real controller reaches, so the table over-states the true headroom. We did not find this bound stated in the sources we cite; that is the extent of any novelty claim.
+
+## o. Model comparison
+
+| Task | Best model | Notes |
 | --- | --- | --- |
-| `soc_spread` | Highest minus lowest initial SOC | fraction |
-| `soc_std` | Standard deviation of the four initial SOCs | fraction |
-| `soc0_1` to `soc0_4` | Initial SOC of each cell, which tells the model where the high and low cells sit in the string | fraction |
-| `capacity_1_ah` to `capacity_4_ah` | Capacity of each cell | Ah |
-| `r0_1_ohm` to `r0_4_ohm` | Series resistance of each cell | Ω |
-| `is_passive`, `is_buck_boost`, `is_flying_capacitor` | One-hot technique flags | 0 or 1 |
-| `component_value` | R_b in Ω, L in H or C in F, depending on technique | SI unit |
-| `switching_frequency_hz` | Converter switching frequency, 0 for passive | Hz |
+| Balancing time and energy (sim to sim) | Physics formula plus a learned residual (boosting or any network) | R2 0.9997 to 0.9998; plain networks and plain boosting are worse |
+| Pack-level trajectory | GRU or Transformer decoder | spread RMSE 0.219 percentage points; absolute time 13 to 15 % off |
+| SOC estimation | EKF plus GRU hybrid | 0.89 % (Test A), 1.43 % (Test B); 2.06 % for the 2RC EKF |
+| Balancing control, 4 to 8 cells | The hand-written rule | no PPO variant beats it on every cycle; median headroom bound below 1 % at 4 cells |
+| Technique choice under a time budget | Surrogate selector | 92.7 % agreement at 1 h, budget violated on 6.8 %; the physics-formula selector is better at 1 h (98.0 % agreement, 2.0 % violations) |
 
-**Targets (model outputs):** `balancing_time_s` (seconds until the SOC spread falls below 1 %) and `energy_dissipated_j` (joules turned into heat).
+The physics-residual result is the main modelling lesson: the closed form carries nearly all the information, and a learner is useful only for what the closed form misses. Details and every per-model number are in `results/metrics.json` (`deep_models`, `ml_eval`) and `results/claims.md`.
 
-**How gradient boosting works.** The first small decision tree makes a rough guess. The next tree is trained to predict what the first one got wrong, and its correction is added on with a small weight (the learning rate, 0.05). This repeats 500 times. Each tree is simple, but together they model complex, non-linear relationships. The project uses scikit-learn's `HistGradientBoostingRegressor`, one model per target. Because balancing time and energy span several orders of magnitude (from under 1 J to over 10 kJ), each model learns the logarithm of its target. That way small and large values are fitted with equal care.
+## p. Limitations (from the FAIL and NOT SUPPORTED rows)
 
-**Why R² and MAE.**
-- **R²** is scale-free and answers "how much of the variation does the model explain?" This makes it comparable across targets with different units.
-- **MAE** is in physical units (seconds or joules) and answers "how far off is a typical prediction?" This is what an engineer needs to judge usefulness.
+- One measured cell at 25 degrees C plus per-temperature fits; the fitted parameters do not describe other cells, lots or aged cells, and the model fails its voltage limit at 0 and 10 degrees C. Cell-to-cell spreads are assumed.
+- The simulator uses a single-branch equivalent of the 2RC fit, which misses its 30 mV limit by up to 5 mV.
+- The converters are validated against circuit simulation, not hardware. Efficiency, loss and component values are NOT SUPPORTED as measurements of a built converter. The inductor is linear with no core loss; the saturation rule prunes the range instead.
+- The averaged buck-boost loss misses its 15 % tolerance in range (16.63 %) and over the whole grid the sink current error reaches 28%; the calibrated maps are fitted in sample.
+- The default per-link model differs from the net-current ledger by up to 1.967 % (buck-boost) and 7.276 % (flying capacitor); the reported dissipated energy is therefore not exact.
+- Plain boosting does not beat the physics formula, and the plain surrogate degrades outside its training range and for strings other than 4 cells.
+- Trajectory decoders give the absolute time to a 1 % spread only within 13 to 15 %.
+- Balancing on an estimated SOC leaves most packs above the 1 % target; rest-voltage balancing needs sensor accuracy better than 2 mV.
+- No PPO variant beats the rule; learned control improving balancing under load is NOT SUPPORTED. The headroom reference is an upper bound.
+- Drive-cycle gains do not extend to other packs, spreads, cycles or temperatures; the 4-cell results do not extend to longer strings except where section m says so.
+- FAIL rows not discussed above: the surrogate selector exceeds its 5 % budget-violation limit (6.8 %), the 2RC EKF recovers from a wrong start to 2.39 % against a 2 % limit, conformal coverage for passive energy is 85.25 % against 87 %, and the 1RC EKF does not beat tester-grade coulomb counting.
+- Nothing here runs on a microcontroller; memory sizes are stated, latency is not claimed.
+- The gate drive is booked from the LTspice gate-power map at the cell open-circuit voltage; a conversion loss from the cell to the 5 V driver rail is not modelled, and the passive shunt books no gate drive. The ledger closure check cannot detect an error in the gate term, because the same term enters both sides; the 15.4 J and 9.6 J rest on the circuit simulation alone.
+- The choice between the 1RC and 2RC cell model used the UDDS and LA92 voltage errors, and those cycles are also in the SOC-estimation Test A; the cell parameters themselves come from the HPPC pulses only.
+- The scaling and rest-voltage caches are bound to their configuration but not to the circuit maps or the fitted-parameter file, and the trajectory and surrogate caches to the maps and the dataset only; after rebuilding either input the matching script in `scripts/` must be rerun.
+- Besides the simulation seed (2026) and seeds 0 to 2, some studies use derived streams (imitation episodes, augmentation and sensor noise); each is a fixed function of the seed, none was chosen by outcome. The best 8-cell imitation policy was picked on the test cycles and is reported as such.
 
-Reporting both, overall and per technique, shows whether a high overall score hides a weak technique.
+All 102 FAIL and 24 NOT SUPPORTED rows are in `results/claims.md` with their evidence keys.
 
-| Target | Overall | Passive | Buck-boost | Flying capacitor |
-| --- | --- | --- | --- | --- |
-| Balancing time R² | 0.973 | 0.994 | 0.959 | 0.888 |
-| Balancing time MAE | 415 s | 292 s | 181 s | 771 s |
-| Energy dissipated R² | 0.995 | 0.984 | 0.954 | 0.996 |
-| Energy dissipated MAE | 72.9 J | 201 J | 17.4 J | 0.1 J |
+## q. How to run
 
-**How to read the feature importance plot.** Each bar shows how much the test R² drops when that one input is randomly shuffled, which breaks its link to the target. A long bar means the model depends heavily on that input. A bar near zero means the model barely uses it. The black whisker shows the variation over 10 shuffles. Importance reflects what *this model* relies on, not physical causation. When two inputs carry overlapping information, such as SOC spread and SOC standard deviation, the credit is shared between them.
+| Command | What it does | Needs |
+| --- | --- | --- |
+| `python scripts/fetch_hg2.py --group all` | Downloads the measured HG2 files (`--group base` fetches the 25 degrees C files, `--group all` every group; the script prints the total size) and verifies checksums | network |
+| `python scripts/fetch_datasheets.py` | Downloads the vendor datasheets used for range checks | network |
+| `python run_all.py` | Regenerates `results/` from the committed caches | CPU |
+| `python -m scripts.report_claims` | Rebuilds `results/claims.md` from `metrics.json` | CPU |
+| `python -m scripts.check_readme` | Checks 79 curated numbers in this README against the metrics, and the src, scripts and ltspice entries of the repo map against `git ls-files` | CPU |
+| `python -m scripts.ltspice_flying_cap`, `ltspice_buck_boost`, `ltspice_shunt`, `ltspice_checks` | LTspice sweeps, run sequentially | LTspice 26.1.1 |
+| `python -m scripts.ltspice_schematics` | Writes the `.asc` files | CPU |
+| `python -m scripts.identify_hg2`, `identify_temperature` | Refit the cell model | HG2 files |
+| `python -m scripts.run_scaling`, `run_voltage_balancing`, `run_headroom` | Long system studies, cached | CPU, up to 1 h |
+| `python -m scripts.train_deep_surrogates`, `train_trajectory`, `train_soc_hybrid`, `train_rl`, `train_rl2`, `evaluate_rl2`, `train_gru` | Learned-model training and evaluation | GPU optional |
+| `python -m pytest`, `ruff check .` | Tests and lint | CPU |
 
-## i. Results
+Each cache stores a hash of its inputs. `run_all.py` raises an error naming any cache whose inputs changed instead of reporting stale numbers, and the tests cover that check.
 
-The narrative below was written for the midsem `ASSUMED` run. The qualitative behaviour is unchanged with the fitted parameters; the quoted times and ratios are the midsem ones (fitted values are in section g and `results/metrics.json`).
-
-![Passive shunt cell SOC vs time](results/soc_passive.png)
-
-The fuller cells (3 and 4) bleed down at a nearly constant rate while the emptiest cell (1) stays still. Cell 2 joins in once the falling pack average passes it. Passive balancing works by lowering everyone to the weakest cell's level, and it takes 4.56 h to reach the shaded 1 % band.
-
-![Inductor buck-boost cell SOC vs time](results/soc_buck_boost.png)
-
-Charge flows from cells 3 and 4 into cells 1 and 2 at a steady rate. The kinks show neighbouring links switching on or off as cells cross each other. All cells meet near the pack average in 1.17 h, the fastest of the three, because the transfer current does not depend on how close the cells already are.
-
-![Flying capacitor cell SOC vs time](results/soc_flying_capacitor.png)
-
-The curves bend like exponential decays. They move fast at first, then flatten as the voltage differences driving the current shrink. The cells converge toward the average without charge being thrown away, balancing in 2.54 h.
-
-![SOC spread comparison](results/soc_spread_comparison.png)
-
-On a logarithmic scale the flying capacitor is a straight line, which confirms exponential decay: its last 2 % of spread takes 8.3 times longer than its first 2 % in the midsem run (7.5 times with the fitted parameters and the two-phase formula). Passive and buck-boost curves bend downward instead, because their current stays roughly constant. The buck-boost is fastest overall and passive is slowest.
-
-![Passive balancing time vs bleed resistance](results/sweep_passive_r_bleed.png)
-
-Balancing time rises linearly with bleed resistance, from 1.52 h at 20 Ω to 7.59 h at 100 Ω, because bleed current is inversely proportional to R_b. A smaller resistor balances faster but must dissipate more power as heat at any one moment.
-
-![Flying capacitor balancing time vs switching frequency](results/sweep_flying_capacitor_frequency.png)
-
-In the midsem run, raising the frequency from 1 kHz to 10 kHz cut balancing time from 5.44 h to 2.25 h, with diminishing returns. With the fitted parameters and the two-phase formula the time falls from 2.70 h at 1 kHz to 1.94 h at 10 kHz (the plot in `results/` is the current one). Above a few kHz the link is in the fast-switching limit, where the equivalent resistance tends to the constant 4R and further frequency increases barely help.
-
-![Predicted vs simulated balancing time](results/ml_parity_balancing_time_s.png)
-
-Each point is one test pack the model never saw during training. Points on the dashed line are perfect predictions. Passive and buck-boost points hug the line, while flying capacitor points scatter more, because their exponential tail makes the time sensitive to small differences.
-
-![Predicted vs simulated energy dissipated](results/ml_parity_energy_dissipated_j.png)
-
-Energy is predicted almost perfectly (R² = 0.995) across four orders of magnitude, from under 1 J to about 10 kJ. The three techniques form separate clusters: flying capacitor at the bottom, buck-boost in the middle and passive at the top.
-
-![Feature importance for balancing time](results/ml_importance_balancing_time_s.png)
-
-The component value (R_b, L or C) matters most for balancing time, followed by the SOC spread, the technique and the switching frequency. The individual cell SOCs, especially of the end cells 1 and 4, add useful information about how far charge has to travel along the chain. Cell capacities and resistances barely matter within their ± 5 % and ± 10 % tolerances.
-
-![Feature importance for energy dissipated](results/ml_importance_energy_dissipated_j.png)
-
-Whether the technique is passive dominates energy, because in the dataset passive wastes a median of about 40 times more than the buck-boost and about 550 times more than the flying capacitor. The SOC spread and the individual cell SOCs come next, since together they set how much charge has to be removed or moved.
-
-## j. Limitations
-
-- **Measured cell, simulated balancers.** Cell parameters, the SOC-estimation data and the drive-cycle currents come from one measured LG HG2 cell (sections o, r, s, t); every balancing result is a simulation of averaged converter models checked against LTspice (section p), not against built hardware. The ML model is only as accurate as the simulator it imitates.
-- **Averaged models.** Converters are represented by their average current and simplified conduction losses, not switching-level waveforms. Gate drive losses, switching transition losses, core losses, dead time and EMI are not modelled.
-- **Load.** Balancing under load was simulated for one baseline pack and measured 25 °C Mixed currents (section r) and for the RL study (section v). There is no constant-voltage charge phase, no thermal model and no ageing.
-- **Temperature.** The simulator runs at 25 °C. Cell fits at 0, 10, 25 and 40 °C exist (section s); the low-temperature fits fail validation and there is no balancing-versus-temperature study.
-- **Other simplifications:**
-  - SOC errors are a fixed bias per cell (section s) or drawn from the measured estimator errors (section t); the balancing controllers themselves still act on SOC.
-  - Cell parameters do not change with SOC or age.
-  - Only adjacent-cell topologies are compared.
-  - Strings of 4 to 96 cells are simulated, but the ML surrogate is 4-cell only.
-- **Shared cell resistance in the active links (found in endsem Phase 0).** The averaged buck-boost and flying-capacitor link equations each use the cell's R0 as if that link were the only current through the cell. A middle cell that feeds both neighbours, or passes charge through, really carries the net current, so the R0 loss the model books (R0 times the sum of the squared link currents) differs from the physical loss (R0 times the squared net current). The reported dissipated energy is therefore only as good as this approximation: at the time of the Phase 0 finding it was 220.8 J vs 212.3 J from a net-current ledger for the buck-boost (3.9 %), and 20.5 J vs 15.3 J for the flying capacitor (25 %); the current baseline gives 199.9 J vs 196.9 J (1.5 %) and 29.9 J vs 27.7 J (7.4 %). See section n. Phase 2 did not change this: with the two-phase flying-capacitor formula the per-link ledger of that technique closes to 0.055 % of the dissipated energy, but the net-current ledger still differs from the reported dissipation by 9.5 % (flying capacitor) and 2.1 % (buck-boost) in the worst of 200 random packs, because the shared cell resistance is still booked per link.
-
-### Claims we do not make
-
-- The fitted parameters, the SOC estimators or the balancing gains describe other cells, cell lots, aged cells, chemistries or temperatures other than those measured.
-- The balancing gains under load hold for other packs, spreads or cycles than the baseline pack and the measured Mixed, UDDS and US06 cycles used here, or in a vehicle.
-- Efficiencies and energy losses match a built converter (switching, gate-drive, dead-time and core losses are absent).
-- The GRU or EKF would reach the quoted errors on another cell or in a vehicle: labels come from integrated tester current and one cell was measured.
-- A real BMS using these estimators would reach the 1 % true spread: in this model it does not.
-- The flying capacitor is robust to SOC error in general: its behaviour in section s is a property of the model.
-- The N² law holds for random strings, or the 4-cell surrogate works for N != 4.
-- Learned control improves balancing: the PPO policy did not beat the simple rule.
-
-## k. Future work
-
-- **Closed-loop technique selection:** connect the surrogate model to the BMS so that it predicts time and energy for each available balancing mode in real time and picks the best one for the current pack state and available time.
-- **Better learned control:** the PPO study of section v is a null result; reward shaping, a model-based method or imitation of the rule might do better.
-- **Temperature-dependent balancing:** bring the 0 to 40 °C fits into the simulator once a model that passes validation in the cold exists (for example SOC-dependent branches).
-- **Ageing and thermal models, other cells:** out of scope here; needed before any vehicle-level claim.
-
-## l. How to run
-
-Requires Python 3.13 or newer. It's best to install into a virtual environment:
-
-```bash
-pip install -r requirements.txt
-```
-
-```bash
-python run_all.py
-```
-
-To run the tests, the linter and the claims report, install the development requirements:
-
-```bash
-pip install -r requirements-dev.txt
-```
-
-```bash
-python -m pytest
-```
-
-```bash
-ruff check . && ruff format --check .
-```
-
-```bash
-python scripts/report_claims.py
-```
-
-To re-download and re-fit the measured cell data of section o (needs network access, about 47 MB; the raw files go to the git-ignored `data/raw/hg2/`):
-
-```bash
-python scripts/fetch_hg2.py
-```
-
-```bash
-python -m scripts.identify_hg2
-```
-
-To re-run the converter check of section p (needs LTspice or another SPICE; the driver looks for LTspice in its default install folders and prints install steps if it finds nothing), and to verify the vendor datasheet files used for the range checks (needs network access for a missing file; the TI file downloads from a script, the Analog Devices server did not respond, so save that PDF from the vendor page into `data/raw/datasheets/` yourself):
-
-```bash
-python -m scripts.run_spice
-```
-
-```bash
-python scripts/fetch_datasheets.py
-```
-
-To re-run the final-phase caches (needs the raw data of the groups below; each script writes a small committed file in `data/processed/`):
-
-```bash
-python scripts/fetch_hg2.py --group mixed25
-python scripts/fetch_hg2.py --group temperature_fits
-python scripts/fetch_hg2.py --group soc_cycles
-python -m scripts.prepare_drive_profiles
-python -m scripts.identify_temperature
-python -m scripts.make_soc_splits
-python -m scripts.train_gru
-python -m scripts.evaluate_soc
-python -m scripts.run_scaling
-python -m scripts.train_rl
-python -m scripts.evaluate_rl
-```
-
-The PyTorch (CPU), gymnasium and stable-baselines3 packages are pinned in `requirements-dev.txt` (`pip install -r requirements-dev.txt` uses the CPU wheel index). `run_all.py` only reads the caches and never imports them for training.
-
-`run_all.py` never downloads anything and never calls a circuit simulator. It reads the small committed files in `data/processed/` written by those scripts (`spice_measurements.json` holds the LTspice results), and marks the stages that need them `"status": "not_run"` if they are missing, or `"stale_cache"` if the parameters changed since the SPICE run.
-
-The run reproduces every result from the committed inputs and takes about 1.5 to 2 minutes (104 s measured on a 4-core cloud machine; about 1.5 minutes on a 16-thread laptop) (it uses several worker processes: the physics checks of section n run in a second process while the main process generates the dataset, trains the models and runs the evaluation of section q). Results do not depend on the number of workers. It prints a short summary and writes everything into `results/`, creating the folder if needed. The seed is fixed, so two consecutive runs give a byte-identical `metrics.json`, identical CSV files and identical figures. All wall-clock measurements go to `timing.json`, which is the only output that changes between runs.
-
-| Output file | Content |
-| --- | --- |
-| `soc_passive.png`, `soc_buck_boost.png`, `soc_flying_capacitor.png` | Baseline per-cell SOC vs time for each technique |
-| `soc_spread_comparison.png` / `.svg` | SOC spread vs time for all three techniques |
-| `sweep_passive_r_bleed.png` / `.svg` | Passive balancing time vs bleed resistance |
-| `sweep_flying_capacitor_frequency.png` / `.svg` | Flying capacitor balancing time vs switching frequency |
-| `ml_parity_balancing_time_s.png` / `.svg` | Predicted vs simulated balancing time |
-| `ml_parity_energy_dissipated_j.png` / `.svg` | Predicted vs simulated energy dissipated |
-| `ml_importance_balancing_time_s.png` | Permutation feature importance for balancing time |
-| `ml_importance_energy_dissipated_j.png` | Permutation feature importance for energy dissipated |
-| `baseline_table.csv` | Balancing time, energy dissipated and efficiency per technique |
-| `dataset.csv` | 6000 simulated runs: features, targets, technique code, efficiency and a balanced flag |
-| `metrics.json` | Baseline table, sanity checks, sweep data, ML metrics per technique and physics checks (deterministic; no timings) |
-| `timing.json` | Simulation and prediction time per pack, speedup, per-method latency at batch 1 and 1000, physics-check and total runtime (machine dependent) |
-| `baseline_assumed_vs_fitted.csv` / `.png` | Baseline time, energy and efficiency with the assumed and the fitted parameters |
-| `hg2_raw_overview.png`, `hppc_params_vs_soc.png`, `cell_validation_udds.png`, `cell_validation_summary.png` | Measured-data overview, fitted parameters vs SOC, UDDS validation trace and RMSE per drive cycle (written by `scripts/identify_hg2.py`) |
-| `ml_cv_comparison.png`, `ml_out_of_range.png`, `ml_conformal_coverage.png` | Cross-validated MAE of the four models, out-of-range predictions, conformal coverage (section q) |
-| `spice_vs_averaged.csv` / `.png` | LTspice vs averaged-model currents and losses at every operating point, parity plot of the mean currents |
-| `spice_buckboost_waveform.png`, `spice_flyingcap_waveform.png` | Steady-state LTspice waveforms at the three operating points (written by `scripts/run_spice.py`) |
-| `drive_cycle_*.png`, `params_vs_temperature.png`, `soc_error_true_spread.png`, `soc_est_*.png`, `scaling_time_vs_n.png`, `rl_*.png` | Final-phase figures (sections r to v); `FIGURES.md` has one line per figure |
-| `claims.md` | Each claim with its evidence key in `metrics.json`, value, threshold and PASS/FAIL/NOT RUN/NOT SUPPORTED (written by `scripts/report_claims.py`) |
-| `midsem_reference/` | Read-only copy of the midsem outputs for before/after comparison |
-
-All PNG figures are 300 dpi, and all figures are saved with empty metadata.
-
-## m. Project structure
+## r. Project structure
 
 ```text
 .
 ├── .gitattributes               Line ending normalisation for text files
-├── .gitignore                   Excludes Python caches and virtual environments
+├── .gitignore                   Excludes caches, virtual environments, raw data and LTspice raw files
 ├── README.md                    This document
 ├── pyproject.toml               ruff and pytest configuration
-├── requirements.txt             Pinned versions of the four libraries used
-├── requirements-dev.txt         Adds pinned pytest, ruff, PyTorch (CPU), gymnasium and stable-baselines3
+├── requirements.txt             Pinned versions of the libraries run_all.py needs
+├── requirements-dev.txt         Adds pinned pytest, ruff, PyTorch, gymnasium, stable-baselines3
 ├── run_all.py                   Runs the full pipeline and writes every output
 ├── src/
-│   ├── __init__.py              Marks src as a Python package
-│   ├── params.py                Frozen parameter dataclasses and the ASSUMED parameter set
-│   ├── fitted.py                Loads FITTED_HG2_25C from data/processed/hg2_25c_params.json
-│   ├── hg2.py                   Parser for the measured HG2 cycler CSV files
-│   ├── identify.py              OCV extraction, HPPC 1RC and 2RC fits, bootstrap
-│   ├── identification.py        Identification pipeline, model selection and validation
-│   ├── validate.py              Replay of measured current through a fitted cell model
-│   ├── uncertainty.py           Propagation of parameter intervals through the baseline
-│   ├── cell_plots.py            Figures for the measured data, fits and validation
-│   ├── config.py                Project config (seed, parameter set, specs), constants and plot style
-│   ├── cell.py                  1RC Thevenin cell model: OCV curve, RC update, coulomb counting
-│   ├── pack.py                  Random 4-cell series pack generation
-│   ├── balancing.py             Averaged balancing models and the batched simulator
-│   ├── flow.py                  Per-step currents and powers returned by each balancing model
-│   ├── ledger.py                Independent element-by-element loss ledger
-│   ├── ml_eval.py               Cross-validation, out-of-range, conformal and ablation protocols and timing
-│   ├── ml_plots.py              Figures for the ML evaluation
-│   ├── switched_cap.py          Midsem and two-phase flying-capacitor link resistance
-│   ├── spice.py                 Netlist generation, LTspice raw-file reader and period averaging
-│   ├── spice_check.py           Averaged-vs-SPICE comparison, hypothesis test and datasheet range checks
-│   ├── spice_plots.py           SPICE waveform and parity figures
-│   ├── baselines.py             Closed-form physics baselines (passive balancing time)
-│   ├── stepper.py               Reusable vectorised step(state, pack_current, control) with the loss ledger
-│   ├── drive_cycle.py           Balancing under measured drive and charge current (block A)
-│   ├── drive_plots.py           Drive-cycle figures
-│   ├── resample.py              Charge-preserving averaging of the 0.1 s cycler data
-│   ├── temperature.py           Cached per-temperature fits, Arrhenius fit and block builder
-│   ├── temperature_plots.py     Temperature and SOC-error figures
-│   ├── soc_error.py             SOC-error sensitivity study (fixed bias per cell)
-│   ├── soc_estimation/          Coulomb counting, EKF, GRU, evaluation, feed-through, report, plots
-│   ├── scaling.py               Strings of 4 to 96 cells, theory slopes and block builder
-│   ├── scaling_plots.py         Scaling figure
-│   ├── rl_sim.py                Vectorised pack simulator with commanded buck-boost links
-│   ├── rl_env.py                Gymnasium environment, rule-based and greedy controllers
-│   ├── rl_report.py             Cached RL results and verdicts
-│   ├── rl_plots.py              RL figures
-│   ├── checks.py                Physics checks written to metrics.json
-│   ├── experiments.py           Seeded random streams, baseline pack and baseline runs
-│   ├── dataset.py               Randomized dataset generation with features and targets
-│   ├── predictor.py             Gradient boosting training, metrics, importance and timing
-│   └── plots.py                 Shared figure style and every chart
-├── spice/                       Generated LTspice netlists, one per checked operating point
+│   ├── __init__.py                  Marks src as a Python package
+│   ├── balancing.py                 Averaged balancing models, the calibrated parameter stack and the batched simulator
+│   ├── baselines.py                 Closed-form physics baselines (time and energy per technique)
+│   ├── calibration.py               Correction maps built from results/ltspice, saturation rule and range pruning
+│   ├── cell.py                      1RC Thevenin cell model: OCV curve, RC update, coulomb counting
+│   ├── cell_plots.py                Figures for the measured data, fits and validation
+│   ├── checks.py                    Physics checks written to metrics.json
+│   ├── cold_model.py                Cell model at 0, 10 and 40 degrees C
+│   ├── config.py                    Project config (seed, parameter set, specs), constants and plot style
+│   ├── converter_audit.py           Converter model audit in Python (RMS current flag, peak current, coth form)
+│   ├── coupled_links.py             Net-current link model, overhead booking and calibration parameter unpacking
+│   ├── dataset.py                   Randomized dataset generation with features, targets and the pruned buck-boost range
+│   ├── deep_plots.py                Figures for the surrogates, trajectories, SOC hybrid and second RL attempt
+│   ├── deep_report.py               Reads the deep-learning caches into metrics.json with verdicts
+│   ├── deep_surrogate.py            MLP, cell GRU and cell Transformer surrogates, splits, training loop and scores
+│   ├── drive_cycle.py               Balancing under measured drive and charge current
+│   ├── drive_plots.py               Drive-cycle figures
+│   ├── experiments.py               Seeded random streams, baseline pack and baseline runs
+│   ├── fingerprint.py               Newline-normalised file hashes for cache freshness
+│   ├── fitted.py                    Loads FITTED_HG2_25C (circuit-calibrated converter models) from data/processed
+│   ├── flow.py                      Per-step currents and powers returned by each balancing model
+│   ├── headroom.py                  Gap between rule, greedy, estimated-SOC control and the ideal-transfer reference
+│   ├── headroom_plots.py            Headroom figure
+│   ├── hg2.py                       Parser for the measured HG2 cycler CSV files
+│   ├── identification.py            Identification pipeline, model selection and validation
+│   ├── identify.py                  OCV extraction, HPPC 1RC and 2RC fits, bootstrap
+│   ├── ledger.py                    Independent element-by-element loss ledger
+│   ├── lt_asc.py                    Writes one .asc schematic per netlist, one net label per pin
+│   ├── lt_circuits.py               LTspice netlists: flying capacitor, buck-boost (sync and diode), shunt
+│   ├── lt_measure.py                spicelib runner, raw parsing, windowed means, per-device losses
+│   ├── lt_plots.py                  LTspice waveform, parity and loss-breakdown figures
+│   ├── lt_report.py                 ltspice_validation block of metrics.json and the default-model decision
+│   ├── lt_runs.py                   Run timing, steady-state windows and result rows for each converter
+│   ├── ml_eval.py                   Cross-validation, out-of-range, conformal and ablation protocols and timing
+│   ├── ml_plots.py                  Figures for the ML evaluation
+│   ├── pack.py                      Random 4-cell series pack generation
+│   ├── params.py                    Frozen parameter dataclasses and the ASSUMED parameter set
+│   ├── plots.py                     Shared figure style and every chart
+│   ├── predictor.py                 Gradient boosting training, metrics, importance and timing
+│   ├── quantize.py                  Post-training weight quantisation to 8, 4 and 1 bits
+│   ├── resample.py                  Charge-preserving averaging of the 0.1 s cycler data
+│   ├── rl_env.py                    Gymnasium environment, rule-based and greedy controllers
+│   ├── rl_plots.py                  RL figures
+│   ├── rl_report.py                 Cached RL results and verdicts
+│   ├── rl_residual.py               Residual and imitation PPO environments with potential-based shaping
+│   ├── rl_sim.py                    Vectorised pack simulator with commanded buck-boost links
+│   ├── scaling.py                   Strings of 4 to 96 cells, theory slopes and block builder
+│   ├── scaling_plots.py             Scaling figure
+│   ├── selector.py                  Technique selector under a parking time budget
+│   ├── selector_plots.py            Technique selector figure
+│   ├── soc_error.py                 SOC-error sensitivity study (fixed bias per cell)
+│   ├── spice.py                     Ideal-switch check: netlist generation, raw reader, period averaging
+│   ├── spice_check.py               Averaged-vs-SPICE comparison, hypothesis test and datasheet range checks
+│   ├── spice_plots.py               Figures of the ideal-switch check
+│   ├── stepper.py                   Reusable vectorised step(state, pack_current, control) with the loss ledger
+│   ├── switched_cap.py              Series, two-phase, coth and circuit-calibrated flying-capacitor link resistance
+│   ├── table_io.py                  Deterministic CSV writing and reading for results/ltspice
+│   ├── temperature.py               Cached per-temperature fits, Arrhenius fit and block builder
+│   ├── temperature_plots.py         Temperature and SOC-error figures
+│   ├── trajectory.py                Trajectory dataset and the GRU and Transformer decoders
+│   ├── uncertainty.py               Propagation of parameter intervals through the baseline
+│   ├── validate.py                  Replay of measured current through a fitted cell model
+│   ├── voltage_balancing.py         Voltage-based rest balancing with sensor error
+│   ├── voltage_plots.py             Voltage-balancing figure
+│   └── soc_estimation/          EKF, GRU, hybrid, evaluation and reports:
+│       ├── __init__.py              Marks the package
+│       ├── coulomb.py               Coulomb counting
+│       ├── data.py                  Cycle loading from the HG2 recordings
+│       ├── ekf.py                   1RC extended Kalman filter
+│       ├── ekf2.py                  2RC extended Kalman filter with hysteresis, returns all four states
+│       ├── evaluate.py              Scenarios, error sums and EKF runs
+│       ├── feedthrough.py           Effect of SOC error on balancing
+│       ├── gru.py                   Plain GRU estimator
+│       ├── hybrid.py                EKF plus GRU hybrid and augmented GRU sequences
+│       ├── plots.py                 SOC estimation figures
+│       └── report.py                Cached SOC results and freshness check
+├── ltspice/                     One .asc schematic per LTspice circuit (generated)
+├── spice/                       Netlists of the ideal-switch check
 ├── scripts/
-│   ├── fetch_datasheets.py      Verifies the vendor datasheet files and records them in provenance.json
-│   ├── run_spice.py             Generates netlists, runs LTspice and caches the measurements
-│   ├── fetch_hg2.py             Verified download of HG2 file groups into data/raw/hg2
-│   ├── identify_hg2.py          Fits and validates the cell model, writes data/processed and figures
-│   ├── prepare_drive_profiles.py  1 s measured current profiles (Mixed, UDDS, US06) cached in data/processed
-│   ├── identify_temperature.py  Fits the cell at 0, 10, 25, 40 °C, Arrhenius fit, bootstrap
-│   ├── make_soc_splits.py       Writes the fixed SOC-estimation splits before any training
-│   ├── train_gru.py             Trains the GRU (3 seeds, two window lengths)
-│   ├── evaluate_soc.py          EKF tuning, all estimator metrics, feed-through, caches results
-│   ├── run_scaling.py           Runs the string-length study and caches it
-│   ├── train_rl.py              Trains the PPO policies
-│   ├── evaluate_rl.py           Evaluates all controllers on the test episodes
-│   └── report_claims.py         Writes results/claims.md from results/metrics.json
+│   ├── check_readme.py                  Checks README, FIGURES and claims numbers against metrics.json
+│   ├── claims_base.py                   Claim dataclass and threshold helpers
+│   ├── claims_deep.py                   Claims about the deep-learning comparison
+│   ├── claims_headroom.py               Claims about the controller headroom bound
+│   ├── claims_ltspice.py                Claims about the LTspice validation
+│   ├── evaluate_rl.py                   Evaluates the first controllers on the test episodes
+│   ├── evaluate_rl2.py                  Evaluates the second-attempt controllers against the rule
+│   ├── evaluate_soc.py                  EKF tuning, all estimator metrics, feed-through, caches results
+│   ├── fetch_datasheets.py              Verifies the vendor datasheet files and records them in provenance.json
+│   ├── fetch_hg2.py                     Verified download of HG2 file groups into data/raw/hg2
+│   ├── identify_hg2.py                  Fits and validates the cell model, writes data/processed and figures
+│   ├── identify_temperature.py          Fits the cell at 0, 10, 25, 40 degrees C, Arrhenius fit, bootstrap
+│   ├── ltspice_buck_boost.py            Buck-boost sweep (L, f, operating point, 4 variants) to results/ltspice/buck_boost.csv
+│   ├── ltspice_checks.py                Timestep and tolerance sensitivity, hand checks, waveforms, schematic netlist check
+│   ├── ltspice_flying_cap.py            Flying-capacitor sweep (C, f, dV, real and ideal) to results/ltspice/flying_cap.csv
+│   ├── ltspice_schematics.py            Writes ltspice/*.asc from the generated netlists
+│   ├── ltspice_shunt.py                 Passive shunt check at 20, 60 and 100 ohm to results/ltspice/shunt.csv
+│   ├── make_soc_splits.py               Writes the fixed SOC-estimation splits before any training
+│   ├── prepare_drive_profiles.py        1 s measured current profiles cached in data/processed
+│   ├── report_claims.py                 Writes results/claims.md from results/metrics.json
+│   ├── run_headroom.py                  Runs the controller headroom bound and caches it
+│   ├── run_scaling.py                   Runs the string-length study and caches it
+│   ├── run_spice.py                     Ideal-switch check: generates netlists, runs LTspice, caches the measurements
+│   ├── run_voltage_balancing.py         Voltage-based balancing study
+│   ├── train_deep_surrogates.py         Trains boosting, MLP, cell GRU, cell Transformer and physics-residual versions
+│   ├── train_gru.py                     Trains the plain GRU (3 seeds, two window lengths)
+│   ├── train_rl.py                      Trains the first PPO policies
+│   ├── train_rl2.py                     Trains residual and imitation PPO for 4 and 8 cells (2 configurations each)
+│   ├── train_soc_hybrid.py              Trains the EKF plus GRU hybrid and the augmented GRU, evaluates, quantises
+│   └── train_trajectory.py              Trains the GRU and Transformer trajectory decoders
 ├── data/
-│   ├── raw/                     Downloaded dataset files (git-ignored)
-│   └── processed/               provenance.json, fitted parameters, identification summary, bootstrap samples, SPICE measurements, datasheet values
-├── tests/                       pytest suite (ledger, closed form, charge, regression, determinism)
+│   ├── raw/                     Downloaded dataset files and LTspice scratch (git-ignored)
+│   └── processed/               Provenance, fitted parameters, result caches, small checkpoints
+├── tests/                       30 pytest files (ledger, closed form, charge, LTspice harness, calibration, deep models, freshness, headroom)
 └── results/
-    ├── baseline_table.csv       Baseline comparison table
-    ├── dataset.csv              Simulated training data
+    ├── ltspice/                 CSV results of every LTspice sweep and the waveforms
     ├── metrics.json             All deterministic numeric results
     ├── timing.json              Wall-clock timings (not deterministic)
     ├── claims.md                Generated claims table
-    ├── midsem_reference/        Read-only midsem outputs
-    ├── soc_*.png                Baseline SOC traces and spread comparison
-    ├── sweep_*.png / .svg       Sensitivity sweeps
-    └── ml_*.png / .svg          Model parity and feature importance charts
+    ├── FIGURES.md               One line per figure
+    ├── dataset.csv              Simulated training data
+    ├── baseline_table.csv       Baseline comparison table
+    ├── baseline_assumed_vs_fitted.csv   Baseline under the generic and the fitted cell parameters
+    ├── spice_vs_averaged.csv    Averaged models against the ideal-switch circuit check
+    └── *.png / *.svg            Figures
 ```
 
-## n. Verification checks (endsem Phase 0)
+## s. Data and licence
 
-The numbers in this section were measured in Phase 0 under the `ASSUMED` parameter set (with the midsem flying-capacitor formula). The checks are re-run on every `run_all.py` under whichever set is active (now the fitted one); current values are in `results/metrics.json` and `results/claims.md`.
-
-Phase 0 freezes the midsem behaviour and adds automated physics checks before any physics is changed. No model equation was changed: under the `ASSUMED` parameter set every baseline time, energy and efficiency, every sweep point and every ML metric equals the midsem values exactly (`results/midsem_reference/`, test `test_midsem_regression`).
-
-**Parameters.** All physical and numerical parameters now live in frozen dataclasses in `src/params.py` (`CellParams`, `OCVTable`, `PackSpec`, `PassiveSpec`, `BuckBoostSpec`, `FlyingCapSpec`, `SimSpec`, `MLSpec`, `CheckSpec`), grouped into a named `ParameterSet`. `ASSUMED` holds the midsem values; since Phase 1 the default is `FITTED_HG2_25C` (section o).
-
-**Control rules as implemented.**
-
-- Passive: at every step each cell whose SOC is strictly above the pack mean bleeds through R_b, with I = (OCV - V1) / (R_b + R0), which is the terminal voltage over R_b. The lowest cell is never above the mean, so it never bleeds, and the highest cell always bleeds. Cells that start below the mean join in once the falling mean passes them. In effect every cell drains to within 1 % of the lowest cell.
-- Buck-boost and flying capacitor: each adjacent link is on when its two cells differ by more than 0.2 % SOC (the deadband applies to both active schemes) and moves charge from the higher-SOC cell to the lower one.
-- Stop: when max SOC minus min SOC is below 1 %, checked at the start of each 1 s step, or at the 48 h cap.
-
-**Independent loss ledger.** Alongside the existing E_dissipated = E_removed - E_delivered, the simulator now integrates I²R over every resistive element the model contains: the bleed resistor, the inductor resistance and switch on-resistance over the on and demagnetising intervals, the switch on-resistance, ESR and 1/(fC) term of the flying capacitor, each cell's R0 on its net current, and the R1 branch as V1²/R1 (integrated exactly over each step for the zero-order-hold current). It adds the energy left in each C1 (½·C1·V1²) at the end.
-
-| Baseline (J) | Removed - delivered | Net-current ledger | Converter or bleed elements | Cell R0, net current | Cell R0, booked per link | R1 branch | C1 stored |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Passive | 7679.87 | 7679.87 | 7674.09 | 4.06 | 4.06 | 1.72 | 0.001 |
-| Buck-boost | 220.85 | 212.30 | 199.46 | 9.75 | 18.33 | 3.08 | 0.007 |
-| Flying capacitor | 20.50 | 15.35 | 8.82 | 4.45 | 9.60 | 2.08 | 0.000 |
-
-Over 200 seeded random packs per technique (random component values and frequencies in range):
-
-| Technique | max discrepancy / E_removed (threshold 1 %) | max discrepancy / E_dissipated | median / E_dissipated | per-link ledger, max / E_dissipated |
-| --- | --- | --- | --- | --- |
-| Passive | 0.0002 % (PASS) | 0.0002 % | 0.00005 % | 0.0002 % |
-| Buck-boost | 0.70 % (PASS) | 5.4 % | 2.2 % | 0.038 % |
-| Flying capacitor | 0.19 % (PASS) | 34 % | 8.4 % | 0.030 % |
-
-The specified check (relative to E_removed) passes for all three techniques. Measured relative to the much smaller dissipated energy, the active schemes do not close. The cause is identified exactly: when R0 is booked per link, as the averaged link equations do, the ledger matches removed minus delivered to 0.04 % or better. The gap is therefore not numerical. Each link equation treats the cell's R0 as carrying only that link's current, while a middle cell carries the net current of both links. The flying capacitor is hit hardest because the two cell R0 values are more than half of its link resistance. A coupled solution of the link currents through the shared R0 would remove the inconsistency; it is a physics change and was not made in Phase 2 either (see section p).
-
-Time-step dependence (20 packs per technique; max discrepancy relative to E_removed):
-
-| Technique | Ledger | dt = 1 s | dt = 0.5 s | dt = 0.25 s |
-| --- | --- | --- | --- | --- |
-| Passive | net = per link | 2.1e-6 | 1.1e-6 | 5.3e-7 |
-| Buck-boost | per link | 9.5e-5 | 4.7e-5 | 2.4e-5 |
-| Buck-boost | net | 6.2e-3 | 6.2e-3 | 6.3e-3 |
-| Flying capacitor | per link | 1.3e-6 | 6.3e-7 | 3.1e-7 |
-| Flying capacitor | net | 1.4e-3 | 1.4e-3 | 1.4e-3 |
-
-The numerical part halves each time dt halves (first order, from evaluating OCV and V1 at the start of each step), while the shared-R0 part does not depend on dt.
-
-**Passive closed form.** The highest cell bleeds without interruption, and a cell that starts below the mean has less to drain. So the balancing time is set by the slowest cell draining continuously from SOC_i to SOC_min + 1 %. With dSOC/dt = -OCV(SOC) / (3600·Q_i·(R_b + R0_i + R1)) once the RC branch has settled (τ = 30 s):
-
-t = max over cells of 3600·Q_i·(R_b + R0_i + R1) · ∫ dSOC / OCV(SOC), from SOC_min + 0.01 to SOC_i
-
-evaluated with the simulator's own OCV curve (`src/baselines.py`). Baseline: 16399.1 s vs 16400 s simulated (0.005 %). Over 200 random packs and random R_b the maximum error is 0.088 % and the median 0.005 % (threshold 3 %). The largest errors are underestimates, which fits cells that start below the mean pausing before they begin to bleed.
-
-**Charge conservation.** For the flying capacitor, charge leaving source cells equals charge entering sink cells, computed from each cell's Q_i·ΔSOC_i, to 5.0e-13 relative over 200 random packs (threshold 1e-9).
-
-**Determinism.** `metrics.json` no longer contains wall-clock values. The midsem `speedup` block holds a pointer to `timing.json`; the key itself is kept so existing keys are never removed. Two consecutive runs give byte-identical `metrics.json`, CSV files and figures (`test_determinism` checks this on a reduced configuration).
-
-**Effect on runtime.** The ledger adds work to every simulation step. Mean simulation time per pack in the dataset rose from about 3.6 ms to about 4.9 ms on the same laptop, so the midsem speedup figure is not comparable with the current timing file and is listed as not supported in `results/claims.md`.
-
-## o. Fitted cell model (endsem Phase 1)
-
-The tables and the explanation of the flying-capacitor numbers in this section are the Phase 1 results, which used the midsem flying-capacitor link formula. Phase 2 (section p) replaced that formula, so the current flying-capacitor baseline is 7069 s, not 4251 s; the other two techniques are unchanged.
-
-Phase 1 replaces the assumed cell parameters with values fitted to measured data and checks the result against drive cycles that were not used in the fit.
-
-**Data.** "LG 18650HG2 Li-ion Battery Data", McMaster University, Mendeley Data, version 2, DOI 10.17632/b5mj79w5w9.2, licence CC BY 4.0 (Kollmeyer, Naguib and Skells). One new 3 Ah LG HG2 cell, tested on a Digatron cycler with 0.1 % of full scale voltage and current accuracy. `scripts/fetch_hg2.py` lists the folders through the public Mendeley API, downloads the 25 °C files that this project uses plus the readme and technical PDF, and checks HTTP status, size and sha256 against the API listing for all 13 files (47 MB). Results are recorded in `data/processed/provenance.json`. The `Mixed1` to `Mixed8` cycles and the charge files were not downloaded.
-
-**What the files contain.** Discharge current is negative in the cycler CSV files (found from the C/20 discharge). Two things differ from the readme:
-
-- The 25 °C HPPC file holds 12 SOC points, not 15. It ends before the 5 %, 2.5 % and 0 % points; the last block sits at 3 % true SOC. The 5 % SOC steps are defined against 3 Ah, so the measured SOC values (from ampere-hour counting against 2.78 Ah) are 100, 94.6, 89.2, 78.4, 67.6, 56.8, 46.0, 35.2, 24.4, 13.6, 8.2 and 2.8 %.
-- `551_HWFET.csv` has zero current for its entire 600 s (voltage constant at 4.185 V). It cannot be replayed, so HWFET is excluded and reported as such in `results/claims.md` and `metrics.json`. The matching `.mat` file (37 kB, sha256 equal to the API listing) was downloaded once for a one-off check and also has current, Ah and power identically zero over its 6002 samples; it is not kept in `data/raw/`.
-
-**Capacity.** C/20 discharge 2.781 Ah (the cycler counter; 2.779 Ah by integrating the current), C/20 charge 2.968 Ah, 1C discharges 2.726 Ah and 2.693 Ah. SOC uses the C/20 discharge capacity. The 6.7 % gap between C/20 discharge and charge throughput is larger than expected for a healthy cell, and the two 1C discharges differ by 1.2 %. The data cannot say whether this is current-measurement offset or cell behaviour, so capacity is treated as uncertain; it is not included in the parameter intervals below.
-
-**OCV.** The C/20 discharge and charge curves are corrected for the R0 drop (one iteration: R0 from the HPPC fit, then OCV, then refit; the table moved by at most 0.7 mV), averaged at equal SOC and resampled to 101 points. The measured endpoints are kept: 2.879 V at 0 % and 4.189 V at 100 %. The charge curve is placed on the SOC axis with its own total charge as denominator. Dividing the charge Ah by the discharge capacity instead, as the method note reads literally, puts the charge curve below the discharge curve between 60 and 90 % SOC (negative hysteresis), which is not physical; that variant gives 2.6 mV at 50 % SOC and is stored in `metrics.json` as a diagnostic. Hysteresis (half the charge-minus-discharge gap) at 50 % SOC is **17.0 mV**. The OCV slope at 50 % SOC is **9.35 mV per % SOC**, against **5.93 mV per % SOC** in the assumed table. The HPPC rest voltages before each 1C pulse differ from the OCV table by at most 40.1 mV and 16.1 mV RMS over the 12 points. This is large, because the HPPC and C/20 tests were counted from separate full charges and rest only one hour per step.
-
-**HPPC fit.** For each SOC point the 1C discharge pulse (3 A, 10 s) and its 40 s rest are isolated. R0 is the voltage step across the current step, using the samples 0.10 s apart (the limit on R0 accuracy: a fast branch with a time constant of about 0.2 s has already started to respond). R1 and C1 are fitted with `scipy.optimize.least_squares` on the exact discrete 1RC response to the measured current, in log space, with the time constant bounded to 1 to 300 s. No 1RC fit ends on a bound. Constants are the median over 30 to 70 % SOC (4 points).
-
-| SOC (%) | R0 (mΩ) | 1RC R1 (mΩ) | 1RC τ (s) | 1RC RMSE (mV) | 2RC fast | 2RC slow | 2RC RMSE (mV) |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 100.0 | 13.12 | 16.9 | 2.5 | 8.1 | 11.2 mΩ, 0.21 s | 22.7 mΩ, 35.7 s | 1.6 |
-| 94.6 | 12.40 | 14.7 | 1.9 | 6.2 | 10.5 mΩ, 0.26 s | 15.7 mΩ, 30.0 s (at bound) | 1.3 |
-| 89.2 | 11.95 | 16.2 | 2.9 | 7.0 | 10.2 mΩ, 0.29 s | 18.8 mΩ, 30.0 s (at bound) | 1.4 |
-| 78.4 | 11.61 | 22.1 | 7.0 | 8.7 | 9.9 mΩ, 0.28 s | 27.8 mΩ, 34.5 s | 1.4 |
-| 67.6 | 11.55 | 26.2 | 10.6 | 9.4 | 10.0 mΩ, 0.32 s | 36.9 mΩ, 47.3 s | 1.3 |
-| 56.8 | 12.22 | 13.7 | 2.9 | 6.6 | 8.7 mΩ, 0.23 s | 18.8 mΩ, 36.6 s | 1.2 |
-| 46.0 | 11.55 | 15.6 | 3.7 | 7.7 | 9.3 mΩ, 0.23 s | 23.3 mΩ, 40.2 s | 1.0 |
-| 35.2 | 11.60 | 16.9 | 5.0 | 8.4 | 9.2 mΩ, 0.20 s | 28.6 mΩ, 49.6 s | 1.3 |
-| 24.4 | 11.77 | 14.7 | 3.1 | 7.8 | 9.3 mΩ, 0.19 s | 25.6 mΩ, 49.5 s | 1.3 |
-| 13.6 | 12.55 | 41.9 | 19.4 | 10.8 | 10.8 mΩ, 0.36 s | 74.6 mΩ, 79.3 s | 2.7 |
-| 8.2 | 13.62 | 57.9 | 23.1 | 13.0 | 13.1 mΩ, 0.49 s | 123.5 mΩ, 107.4 s | 3.5 |
-| 2.8 | 15.06 | 72.6 | 20.8 | 18.6 | 18.7 mΩ, 0.54 s | 171.7 mΩ, 118.7 s | 4.0 |
-
-![Fitted parameters vs SOC](results/hppc_params_vs_soc.png)
-
-A single RC branch leaves 6 to 19 mV of fit error because the voltage response has a fast part (about 0.2 s) and a slow part (30 to 120 s). Open markers in the figure and "at bound" in the table mark 2RC fits where the slow time constant sits on its lower bound of 30 s (the bounds for the 2RC fit, 0.1 to 30 s and 30 to 3000 s, were chosen before looking at validation results).
-
-**Validation (external check).** The measured current of each drive cycle at 25 °C is replayed through the model with no retuning. The initial SOC comes from inverting the OCV table at the rest voltage before the cycle, and SOC then follows coulomb counting with the fitted capacity. The cycles were not used in any fit. RMSE is over the whole cycle and over the part of the cycle where the model SOC is between 20 and 80 % (57 to 64 % of the samples).
-
-| Cycle | Assumed: whole / window (mV) | Fitted 1RC | Fitted 2RC | 2RC single branch |
-| --- | --- | --- | --- | --- |
-| UDDS | 92.9 / 56.6 | 37.8 / 28.1 | 28.5 / 16.6 | 31.5 / 21.1 |
-| LA92 | 106.7 / 62.0 | 42.5 / 33.7 | 28.8 / 14.4 | 35.0 / 24.7 |
-| US06 | 129.3 / 72.6 | 63.5 / 59.5 | 29.9 / 16.6 | 42.6 / 35.1 |
-
-- **Pass limits:** at most 30 mV over the whole cycle and at most 20 mV in the 20 to 80 % window, on UDDS and LA92. US06 is reported without a limit; HWFET cannot be replayed.
-- **Result:** the 1RC model fails (UDDS 37.8 mV whole cycle, LA92 42.5 mV). The 2RC model fitted on the same HPPC data passes (UDDS 28.5 / 16.6 mV, LA92 28.8 / 14.4 mV) and is kept. The margin on the whole-cycle limit is small (1.5 and 1.2 mV). Fitted parameters cut the error by a factor of 3 to 4 against the assumed values (93 to 129 mV whole cycle).
-- **Systematic errors remain:** the model voltage sits about 10 to 30 mV above the measurement for most of UDDS and drifts up to 100 mV and more below 10 % SOC, where the constant R0 and polarisation values (taken from 30 to 70 % SOC) are too low (see `results/cell_validation_udds.png`). Temperature, hysteresis and diffusion are not modelled.
-
-![UDDS validation](results/cell_validation_udds.png)
-
-![Validation summary](results/cell_validation_summary.png)
-
-**What the simulator uses.** The balancing simulator has one RC branch, so the 2RC model cannot be used as it is. `FITTED_HG2_25C` takes the fitted R0 and replaces the two branches by one with the same DC resistance (R1 = 35.2 mΩ, the sum of both) and the resistance-weighted time constant (32 s, C1 = 919 F). Replayed through the drive cycles this single-branch form gives 31.5 mV on UDDS and 35.0 mV on LA92 over the whole cycle, so it does not meet the 30 mV limit by itself. `claims.md` lists that as FAIL. The balancing currents are tens of milliamps and change over hours, so the time constants have little effect there; the DC resistance and OCV slope matter. The simulator's R0, R1, C1 and OCV are constant in SOC. The SOC-dependent tables are stored in `data/processed/hg2_25c_params.json` behind a flag (`enabled`, false) and the loader refuses to enable it.
-
-**What is still assumed.** The dataset has one cell, so the cell-to-cell spreads (capacity ± 5 %, R0 ± 10 %) and the balancing hardware values (inductor, MOSFET, capacitor, bleed resistor ranges) remain assumed. This is labelled in `claims.md`.
-
-**Uncertainty.** The HPPC residuals were bootstrapped 500 times with a fixed seed (moving blocks of 50 samples, so that autocorrelated misfit is kept together; R0 also gets noise drawn from the voltage scatter during the preceding rest). Each resample re-fits the blocks in the 30 to 70 % window and takes the median. The OCV slope at 50 % SOC is bootstrapped from the dense C/20 data between 45 and 55 % SOC. The 500 resampled parameter sets were pushed through the baseline simulation as one batch of 500 packs per technique:
-
-| Quantity | Median | 95 % interval |
-| --- | --- | --- |
-| R0 (mΩ) | 11.78 | 11.37 to 12.20 |
-| R1, both branches (mΩ) | 36.6 | 34.9 to 38.6 |
-| C1, equivalent (F) | 937 | 864 to 997 |
-| OCV slope at 50 % SOC (mV per %) | 9.28 | 9.17 to 9.38 |
-
-| Baseline | Balancing time (h) | Energy dissipated (J) |
-| --- | --- | --- |
-| Passive shunt | 4.186 (4.186 to 4.186) | 7175.8 (7175.4 to 7176.0) |
-| Inductor buck-boost | 1.068 (1.068 to 1.069) | 200.3 (199.9 to 200.7) |
-| Flying capacitor | 1.195 (1.174 to 1.217) | 30.0 (29.6 to 30.3) |
-
-These intervals are narrow because they contain only the scatter of the HPPC fit and of the OCV slope. They do not include the 6.7 % capacity question above, instrument accuracy (0.1 % of full scale), temperature or cell-to-cell spread. They are not a measure of how well the model predicts a different cell.
-
-**Baseline with assumed and fitted parameters.** `results/baseline_assumed_vs_fitted.csv` and the figure below hold the numbers.
-
-![Assumed vs fitted baseline](results/baseline_assumed_vs_fitted.png)
-
-| | Passive | Buck-boost | Flying capacitor |
-| --- | --- | --- | --- |
-| Time, assumed to fitted | 16400 s to 15068 s (0.92x) | 4203 s to 3845 s (0.91x) | 9140 s to 4251 s (0.47x) |
-| Energy dissipated, assumed to fitted | 7680 J to 7176 J (0.93x) | 220.8 J to 199.9 J (0.91x) | 20.5 J to 29.9 J (1.46x) |
-
-Why each number moved:
-
-- **Capacity (3.0 to 2.78 Ah)** shrinks every SOC difference per ampere-hour moved, so each technique is about 7 % faster. It explains most of the passive change: bleed current is set by the absolute cell voltage and R_b, not by R0 or the OCV slope, so passive time follows capacity and the slightly lower mid-SOC voltage (3.74 V is the measured value at 50 % SOC against the assumed 3.71 V, so bleed current is a little higher).
-- **Buck-boost** also tracks capacity. Its source current depends on the source cell's own voltage and the inductor, not on the voltage difference between cells. Lower R0 (11.6 against 30 mΩ) makes the source terminal voltage a little higher, which adds to the speedup.
-- **Flying capacitor** is the only technique whose current depends on the voltage difference between neighbouring cells. Two things raise its current: the OCV slope at 50 % SOC is 1.58 times steeper (9.35 against 5.93 mV per %), so the same SOC gap gives a bigger voltage gap, and the loop resistance falls from 0.118 Ω to about 0.081 Ω because the two cell resistances drop by 37 mΩ together. Together these raise the link current about 2.3x, and the smaller capacity adds 1.08x to the rate of SOC change; the deadband and the slow tail reduce the net effect to the observed 2.15x speedup.
-- **Flying-capacitor energy** rises by 1.46x. The energy lost moving charge dq across a voltage difference ΔE is the integral of ΔE dq. The charge moved scales with capacity (0.93x) and ΔE with the slope (1.58x), and 0.93 x 1.58 = 1.46. A steeper OCV curve makes the same charge transfer cost more energy; lower resistance does not offset it, because the loss depends only weakly on resistance.
-- **Buck-boost energy** falls by 0.91x, in line with the smaller capacity (less charge to move) and the lower cell-resistance loss.
-
-The machine learning surrogate is retrained on the new simulations. Its R² for balancing time rose from 0.973 to 0.989, and for energy stayed at 0.995 (MAE 250 s and 67 J).
-
-**Re-run checks under the fitted set (Phase 1, with the midsem flying-capacitor formula).** The ledger discrepancy against the energy removed was 0.0005 % (passive), 0.27 % (buck-boost) and 0.10 % (flying capacitor), all within 1 %. The passive closed form was within 0.065 % over 200 packs and the midsem regression under `ASSUMED` was unchanged. One diagnostic that passed in Phase 0 failed in Phase 1: the per-link ledger of the flying capacitor differed from the reported dissipation by 0.156 % against a 0.1 % limit, which was reported and not tuned away. Phase 2 replaced the flying-capacitor formula (section p) and that diagnostic now passes at 0.055 %.
-
-## p. Converter models checked against LTspice (endsem Phase 2)
-
-**Tool.** LTspice 26.1.1 in batch mode (`LTspice -b`). ngspice was not installed, so LTspice was used. It is a switching-level simulator: the switches open and close in time and the inductor and capacitor currents are solved at every step. `scripts/run_spice.py` writes one netlist per operating point into `spice/`, runs it and stores the averaged results in `data/processed/spice_measurements.json`. `run_all.py` reads that file and never calls the simulator.
-
-**Circuits.** Two cells are DC sources at the fitted OCV for 55 % and 50 % SOC (second case 51 % and 50 %), each with the fitted series R0 (11.58 mΩ); the cell RC branch is slow (32 s) and is not part of a microsecond-scale switching circuit.
-
-- *Buck-boost link:* the source cell charges the 80 mΩ inductor through a voltage-controlled switch (Ron 20 mΩ, Roff 1 MΩ) for D·Ts with D = 0.4, and the inductor then discharges into the sink cell through a freewheel path. The freewheel path is an **ideal-diode approximation** (an LTspice diode with Ron 20 mΩ, Roff 1 MΩ and zero forward voltage), not a synchronous switch, so its conduction interval is set by the circuit rather than by the averaged equations.
-- *Flying-capacitor link:* the capacitor (5 mΩ ESR) sits across the source cell in phase 1 and across the sink cell in phase 2, through four switches with Ron 10 mΩ, on two complementary 50 % phases. No dead time was needed or added; the two phase signals are exact complements and the measured overlap is 0.
-- *Measurement:* maximum step Ts/400, 60 periods averaged after a settling run, results compared at the same OCV difference as the averaged equations.
-
-**Quality of the SPICE runs** (all pass): cycle-to-cycle change in mean current at most 3.8e-04 (limit 1e-3); halving the maximum step changes the means by at most 3.1e-06; the power balance (OCV power out minus power in, against the I²R of every resistor) closes to 0.10 % of the removed power (diagnostic limit 0.5 %, chosen after the first runs and not part of the plan; the residual is largest at the 10 µH point and was not traced to a single cause); the buck-boost is in discontinuous conduction, with the inductor current idle for at least 21 % of every period.
-
-**Results at the 55 % / 50 % SOC link.** Currents are the mean current into the sink cell (the source-cell current is checked in `metrics.json` too). Loss is the total power dissipated in the link (cell R0, switches, inductor, ESR) as measured from I²R in SPICE and as `removed − delivered` in the averaged model. The pass rule from the plan is 5 % on the current and 15 % on the loss at all three points.
-
-| Link | SPICE (A) | Averaged (A) | Current error | SPICE loss (mW) | Averaged loss (mW) | Loss error | Verdict |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Buck-boost, 10 µH, 50 kHz | 0.5306 | 0.5454 | +2.79 % | 241.25 | 253.23 | +5.0 % | PASS |
-| Buck-boost, 55 µH, 30 kHz | 0.1778 | 0.1798 | +1.14 % | 24.23 | 23.39 | -3.5 % | PASS |
-| Buck-boost, 100 µH, 10 kHz | 0.2852 | 0.2899 | +1.63 % | 64.38 | 63.56 | -1.3 % | PASS |
-| Flying capacitor (midsem), 1 mF, 1 kHz | 0.0491 | 0.0468 | -4.59 % | 2.41 | 2.30 | -4.6 % | PASS |
-| Flying capacitor (two-phase), 1 mF, 1 kHz | 0.0491 | 0.0491 | +0.01 % | 2.41 | 2.41 | -0.0 % | PASS |
-| Flying capacitor (midsem), 5.5 mF, 5.5 kHz | 0.3300 | 0.6046 | +83.21 % | 16.20 | 29.69 | +83.2 % | FAIL |
-| Flying capacitor (two-phase), 5.5 mF, 5.5 kHz | 0.3300 | 0.3300 | +0.00 % | 16.20 | 16.20 | +0.0 % | PASS |
-| Flying capacitor (midsem), 10 mF, 10 kHz | 0.3351 | 0.8443 | +151.98 % | 16.45 | 41.46 | +152.0 % | FAIL |
-| Flying capacitor (two-phase), 10 mF, 10 kHz | 0.3351 | 0.3351 | +0.00 % | 16.45 | 16.45 | +0.0 % | PASS |
-
-At the 51 % / 50 % link the results are the same in kind (buck-boost within 2.9 % and the two-phase flying capacitor within 0.04 % on the mean currents, total loss within 4.9 % and 0.0 %); all 18 rows are in `results/spice_vs_averaged.csv`.
-
-![Parity of averaged and SPICE currents](results/spice_vs_averaged.png)
-
-![Buck-boost waveforms](results/spice_buckboost_waveform.png)
-
-![Flying capacitor waveforms](results/spice_flyingcap_waveform.png)
-
-**Buck-boost: passes unchanged.** The averaged equations are within 2.9 % of SPICE on the mean currents and 5.0 % on the total loss. The waveforms confirm discontinuous conduction. The measured freewheel interval is a little shorter than the averaged D·V_source/V_sink (for example 0.371 against 0.405 of the period at 10 µH and 50 kHz), because the averaged equations neglect the resistive voltage drops in the volt-second balance; the mean currents still agree within the limit. The split of the loss between cells and converter differs by up to 14 % at the 10 µH point, which is not part of the pass rule.
-
-**Flying capacitor: the midsem formula fails, the two-phase formula passes.** The hypothesis was tested, not assumed. At the baseline point the phase time constant (0.201 ms) exceeds the half period (0.091 ms), so the link is in the fast-switching limit and the midsem formula should overstate the current. SPICE agrees: the midsem formula is +83 % off at the baseline point and +152 % off at 10 mF and 10 kHz, so it overstates the current by a factor of 1.83 at the baseline. It passes only in the slow-switching case (1 mF, 1 kHz, -4.6 %). The two-phase formula of section f is within 0.04 % of SPICE at all six points. It is an exact solution of the ideal circuit, so agreement to the SPICE solver tolerance is expected; the agreement also confirms that the netlists and the averaging are correct.
-
-| Point | Phase RC vs half period | Regime | Midsem R (Ω) | Two-phase R_eq (Ω) | SPICE ΔV/I (Ω) |
-| --- | --- | --- | --- | --- | --- |
-| 1 mF, 1 kHz | 0.037 ms vs 0.500 ms | slow | 1.0482 | 1.0000 | 1.0001 |
-| 5.5 mF, 5.5 kHz | 0.201 ms vs 0.091 ms | fast | 0.0812 | 0.1488 | 0.1488 |
-| 10 mF, 10 kHz | 0.366 ms vs 0.050 ms | fast | 0.0582 | 0.1465 | 0.1465 |
-
-The 0.22 Ω against 0.118 Ω in the plan were estimated with the midsem assumed R0; with the fitted R0 the corresponding numbers are 0.149 Ω and 0.081 Ω.
-
-**Effect on the baseline and sweep.** The corrected formula is the default; the midsem formula is `FlyingCapModel.MIDSEM` and is used by `ASSUMED` so that the midsem regression test is unchanged. Under the fitted parameters:
-
-| Flying capacitor baseline | Midsem formula | Two-phase formula | Ratio |
-| --- | --- | --- | --- |
-| Balancing time (s) | 4251 | 7069 | 1.66x |
-| Energy dissipated (J) | 29.94 | 29.94 | 0.9999x |
-
-The time is 1.66 times longer, a little less than the 1.83 times lower current because the SOC deadband and the slow tail do not scale with the current. As predicted, the energy dissipated does not change: the energy lost moving charge dq across a voltage difference ΔE is the integral of ΔE dq, which does not depend on how long it takes. The frequency sweep flattens, because in the fast-switching limit the resistance no longer falls with frequency:
-
-| Frequency (kHz) | Balancing time, midsem (s) | Balancing time, two-phase (s) | Ratio |
-| --- | --- | --- | --- |
-| 1 | 10343 | 9736 | 0.94x |
-| 3.25 | 5188 | 7253 | 1.40x |
-| 5.5 | 4251 | 7069 | 1.66x |
-| 7.75 | 3857 | 7019 | 1.82x |
-| 10 | 3641 | 6999 | 1.92x |
-
-The dataset (6000 runs) and the surrogate were regenerated. The surrogate's R² is 0.989 for balancing time and 0.995 for energy. The per-link ledger diagnostic of the flying capacitor that failed in Phase 1 now passes (0.055 % against 0.1 %). The shared-R0 coupling described in section n is not fixed: the net-current ledger still differs from the reported dissipation (stricter diagnostic in `claims.md`).
-
-**Datasheet range checks.** These are range checks only; the topologies differ. Values quoted from the documents (page numbers are the printed page numbers, the same as the PDF page index); they are transcribed in `data/processed/datasheet_values.json`, and the files are recorded in `data/processed/provenance.json`.
-
-- *TI BQ76952* (SLUSE13B, January 2020, revised November 2021, `https://www.ti.com/lit/ds/symlink/bq76952.pdf`). Section 7.20 Cell Balancing, page 18: internal cell balancing resistance R(CB) = 15 Ω (min), 28 Ω (typ), 46 Ω (max), measured as the RDS(ON) of the internal FET at V(VC(n)) − V(VC(n−1)) = 1.5 V. Absolute maximum ratings, page 8: maximum cell balancing current through a single cell 100 mA. Page 18 also states that the balancing current must be limited by sizing the off-chip cell input resistors. Our passive bleed range of 20 to 100 Ω gives 37 to 187 mA at 50 % SOC (up to 209 mA at 100 % SOC). Only the part of the range with a total resistance above 37.4 Ω (78 % of it) stays within the 100 mA limit. Through the internal FET alone at 50 % SOC the current would be 249, 134 and 81 mA at 15, 28 and 46 Ω, so the shunt designs above about 100 mA need an external resistor or an external bypass FET. The application note "Cell Balancing With BQ769x2 Battery Monitors" is listed in the datasheet (page 79) and was not downloaded.
-- *ADI LTC3300-1* (Rev. C, `https://www.analog.com/media/en/technical-documentation/data-sheets/LTC3300-1.pdf`). Page 1 (features): "Up to 10A Balancing Current (Set by Externals)" and "Up to 92% Charge Transfer Efficiency"; page 10 has a "Balancer Efficiency vs Cell Voltage" figure for the DC2064A demo board at 2.5 A whose efficiency axis runs from 89 % to 93 %. The curve values were not read. It is a transformer-based bidirectional flyback balancer, a different topology from ours. The SPICE efficiency of our buck-boost is 89.1 % at 0.53 A; 96.4 % at 0.18 A; 94.3 % at 0.29 A at the three operating points. The two operating points above 92 % exceed the vendor's best figure. This is expected, because the averaged model and the SPICE circuit omit switching-transition, gate-drive and core losses, so our efficiency is an upper bound; it should not be read as better than the commercial part. Our currents (0.18 to 0.53 A) are far below the 10 A the part supports.
-
-**Limits of this check.** The six points per converter do not cover continuous-conduction operation, other duty ratios, other voltage differences or other capacitors; the SPICE circuits use ideal DC sources and ideal-threshold switches, so the check validates the averaged equations against a switching circuit, not against hardware. The split of the flying-capacitor loss between cell R0 heating and converter heating differs by 23 to 43 % from SPICE, because the averaged model books R0 loss with the mean current while the real current is pulsed; the total dissipated power agrees to 0.03 %. The converter component values themselves (inductor and switch resistances, ESR, duty) remain assumed.
-
-## q. ML against physics baselines (endsem Phase 3)
-
-The midsem reported that the gradient-boosting model predicts balancing time and wasted energy with R² of 0.97 to 0.995, but never compared it with a simple formula that uses the same inputs. Phase 3 adds physics baselines, trains three more predictors and evaluates all four honestly: cross-validation, extrapolation, calibrated intervals, timing and a feature ablation. The dataset is the 6000 simulated runs of section h, regenerated with the fitted parameters and the two-phase flying-capacitor formula. Code: `src/baselines.py`, `src/ml_eval.py`, `src/ml_plots.py`.
-
-### Physics baselines
-
-All three are vectorised over packs and use the same inputs as the simulator (initial SOCs, capacities, R0, component value, frequency). Two identities carry most of the derivations.
-
-*Energy identity.* Every technique moves charge between cells, and the energy dissipated (energy removed from the cells at their OCV minus energy delivered at their OCV, the quantity the simulator reports) is exactly the energy that left the cells: $E = 3600\sum_j Q_j\,[G(x_{0,j}) - G(x_{T,j})]$, where $G(s) = \int_0^s \text{OCV}(u)\,du$, $Q_j$ is in Ah and $x_{0}, x_{T}$ are the initial and final SOCs. Each baseline therefore only has to predict the final SOCs and the time. (For the flying capacitor this equals $\sum_\text{links} \int \Delta E\, dq$ from the linear solution; the form above uses the actual OCV curve instead of its tangent.)
-
-*Passive.* Time is the closed form of section n. The bleed rule drives every cell above the running mean down to that mean, so at the stop the last cell (the initial maximum) sits at min + 1 % and the other bleeding cells at the mean, min + 0.5 %; the energy follows from the identity. With "all cells at min + 1 %" the median energy error was 8 %; with this final state it is 0.01 %.
-
-*Buck-boost.* In discontinuous conduction the source cell supplies $I_s = V G/(1 + G R_0)$ with $G = D^2/(2 L f)$, the leading-order $I = V D^2 T_s / (2 L)$. The link delivers $I_\text{sink} < I_s$ (the efficiency correction), taken from the averaged equations at the pack's mean OCV. The charge that must cross each link comes from the capacity-weighted SOC excess, $C_k = \sum_{i \le k} Q_i (x_{0,i} - x_{T,i})$, where $x_T$ is the minimal-transport end state that puts every cell inside a 1 % band: each cell is clipped to $[L, L + 0.01]$ with $L$ fixed by charge conservation. The time is $\max_k 3600\,|C_k| / I_\text{sink}$. The energy uses the same identity, with the source cells drawing $I_s/I_\text{sink}$ times the charge the sink cells receive. It sees only the net charge across each link, so where neighbouring cells exchange charge in opposite directions (those flows cancel in the net) it under-predicts.
-
-*Flying capacitor.* Linearise the OCV at the capacity-weighted mean SOC with slope $m$. With the link resistances $R_k$ of section f and the cell RC branch at its steady state ($v_1 = R_1 i_\text{cell}$), the link currents satisfy $A\,i = m\,\Delta x$ with $A = \text{diag}(R_k) + R_1 \Delta\Delta^\top$, and the SOCs obey $Q\,\dot x = -K x$ with $K = (m/3600)\,\Delta^\top A^{-1} \Delta$ symmetric. Symmetrising with the capacity matrix, $S = Q^{-1/2} K Q^{-1/2} = U \Lambda U^\top$, gives $x(t) = Q^{-1/2} U e^{-\Lambda t} U^\top Q^{1/2} x_0$ exactly (a batched `eigh`). The balancing time is the first time the SOC spread falls below 1 %, found on a log time grid and refined by vectorised bisection; the energy comes from the identity at $x(T)$.
-
-Accuracy against the simulator (positive means the formula over-predicts):
-
-| Technique | Baseline pack: time error | energy error | Dataset median % error: time | energy | 95th percentile: time | energy |
-| --- | --- | --- | --- | --- | --- | --- |
-| Passive | -0.00 % | -0.00 % | 0.01 % | 0.01 % | 0.0 % | 6.5 % |
-| Buck-boost | -0.80 % | +3.96 % | 6.39 % | 10.12 % | 36.7 % | 32.8 % |
-| Flying cap. | -0.74 % | -0.03 % | 1.04 % | 0.05 % | 6.2 % | 0.5 % |
-
-The passive time and energy and the flying-capacitor energy are essentially exact, the flying-capacitor time is within 1 % in the median, and the buck-boost is the weak one (-0.8 % and +4.0 % on the baseline pack, with long tails). The passive check of the plan (within 3 % on the baseline pack) passes for time (-0.0002 %) and for energy (-0.0010 %).
-
-### Four models
-
-(a) the physics formula; (b) per-technique linear regression of log y on log spread, log component value, log frequency (not for passive, where it is constant) and log of the physics prediction; (c) the midsem HGB on the 19 features (log target); (d) the hybrid: an HGB with the same settings on the 19 features plus log of the physics prediction, trained to predict log(y / physics), so the physics formula is the starting point and the HGB learns the correction.
-
-### 5-fold cross-validation
-
-Stratified by technique, fixed seed. Metrics are R², MAE and median absolute percentage error per technique, mean ± std over folds.
-
-Mean absolute error, mean ± std over the 5 folds (balancing time):
-
-| Model | Overall MAE (s) | Passive | Buck-boost | Flying capacitor | Overall R² | Overall median % error |
-| --- | --- | --- | --- | --- | --- | --- |
-| Physics formula | 51.2 ± 2.62 | 0.462 ± 0.00898 | 93.5 ± 7.06 | 59.7 ± 2.34 | 0.9995 | 0.81 % |
-| Log-linear regression | 39.9 ± 1.33 | 0.299 ± 0.00329 | 70.1 ± 2.98 | 49.4 ± 2.09 | 0.9997 | 0.98 % |
-| HGB (midsem model) | 299 ± 16.9 | 304 ± 24 | 172 ± 20.2 | 421 ± 24.8 | 0.9860 | 6.74 % |
-| Hybrid (HGB on log(y / physics)) | 32.6 ± 0.748 | 14.1 ± 1.21 | 46.9 ± 2 | 36.9 ± 1.81 | 0.9998 | 0.69 % |
-
-Mean absolute error, mean ± std over the 5 folds (energy dissipated):
-
-| Model | Overall MAE (J) | Passive | Buck-boost | Flying capacitor | Overall R² | Overall median % error |
-| --- | --- | --- | --- | --- | --- | --- |
-| Physics formula | 15.3 ± 1.25 | 27.7 ± 1.79 | 18.3 ± 4.03 | 0.00806 ± 0.000532 | 0.9995 | 0.13 % |
-| Log-linear regression | 19.1 ± 0.747 | 45.1 ± 1.57 | 12.1 ± 2.05 | 0.00831 ± 0.000753 | 0.9997 | 0.96 % |
-| HGB (midsem model) | 65.8 ± 2.15 | 180 ± 7.47 | 16.9 ± 4.83 | 0.208 ± 0.0117 | 0.9953 | 3.46 % |
-| Hybrid (HGB on log(y / physics)) | 13.6 ± 1.08 | 31.4 ± 1.72 | 9.46 ± 2.27 | 0.0306 ± 0.00219 | 0.9997 | 0.62 % |
-
-A model "beats" another only if its MAE is lower in all 5 folds and the mean fold-by-fold gain exceeds one fold standard deviation (the larger of the two models' fold standard deviations is used, the conservative reading of the rule). The verdicts are written to `claims.md`; the three that matter are:
-
-| Target | Technique | HGB beats physics | Hybrid beats HGB | Hybrid beats physics |
-| --- | --- | --- | --- | --- |
-| balancing time | Passive | no | yes | no |
-| balancing time | Buck-boost | no | yes | yes |
-| balancing time | Flying cap. | no | yes | yes |
-| energy dissipated | Passive | no | yes | no |
-| energy dissipated | Buck-boost | no | yes | yes |
-| energy dissipated | Flying cap. | no | yes | no |
-
-![Cross-validation MAE](results/ml_cv_comparison.png)
-
-What this shows. The midsem HGB alone is the worst model in nearly every cell of the table: for balancing time its error is about 2 times (buck-boost), 7 times (flying capacitor) and 650 times (passive) that of the physics formula, and it never beats the physics formula on time. Its high R² (0.986) hid this, because R² over four orders of magnitude is dominated by the large values. A log-linear regression that only rescales the physics prediction already beats the physics formula on time for every technique. The hybrid has the lowest overall MAE for both targets and beats the plain HGB in all six cases, but it is not the best for every technique, and it beats the physics formula only where the formula is imperfect (the buck-boost time and energy, and the flying-capacitor time): for the passive shunt and for the flying-capacitor energy the physics is already accurate to a small fraction of a percent in the median and no ML model improves on it. So the honest statement is that the ML adds value as a correction on top of physics, not as a replacement for it.
-
-### Out of range
-
-For each technique the models are trained on component values up to the 80th percentile of that technique and tested above it, and separately trained on initial spreads up to 8 % and tested above. Median absolute percentage error over all three techniques:
-
-| Model | Component > p80: time | energy | Spread > 8 %: time | energy |
-| --- | --- | --- | --- | --- |
-| Physics formula | 0.85 % | 0.13 % | 0.59 % | 0.05 % |
-| Log-linear regression | 0.99 % | 1.09 % | 0.65 % | 0.86 % |
-| HGB (midsem model) | 12.73 % | 3.72 % | 15.64 % | 11.78 % |
-| Hybrid (HGB on log(y / physics)) | 0.65 % | 0.68 % | 0.50 % | 0.63 % |
-
-![Out-of-range predictions](results/ml_out_of_range.png)
-
-The plain HGB degrades by an order of magnitude and flattens at the edge of its training range: for the 8 % spread split, 17 % of the passive test times exceed the largest time seen in training, yet 0 % of the HGB predictions do, and its median prediction-to-truth ratio falls from 0.91 near the edge to 0.77 at the far end (flying capacitor energy: 21 % of the truth above the training maximum, none of the predictions). Trees cannot predict above the largest value they saw. The hybrid, the log-linear regression and the physics formula do not have this problem, because the physics prediction carries the trend.
-
-### Prediction intervals
-
-Split-conformal intervals on the best model per target (chosen by cross-validated MAE: the hybrid for both), with the training data split into a fit set (75 %) and a calibration set (25 %), Mondrian by technique, absolute residuals of log y, nominal 90 %. The pass rule is test coverage between 87 % and 93 % for each technique. A single test set of 400 packs per technique has a standard error of about 2 percentage points, so the table also shows the coverage over 10 further random splits.
-
-| Target (best model) | Technique | Test coverage, spec split | Coverage over random splits | Interval factor | Verdict |
-| --- | --- | --- | --- | --- | --- |
-| balancing time (Hybrid) | Passive | 88.00 % | 90.8 ± 1.7 % | x1.006 | PASS |
-| balancing time (Hybrid) | Buck-boost | 90.00 % | 88.5 ± 2.4 % | x1.132 | PASS |
-| balancing time (Hybrid) | Flying cap. | 88.25 % | 91.2 ± 1.6 % | x1.035 | PASS |
-| energy dissipated (Hybrid) | Passive | 85.25 % | 89.4 ± 1.6 % | x1.029 | FAIL |
-| energy dissipated (Hybrid) | Buck-boost | 86.50 % | 90.0 ± 2.8 % | x1.159 | FAIL |
-| energy dissipated (Hybrid) | Flying cap. | 91.50 % | 90.3 ± 1.0 % | x1.011 | PASS |
-
-![Conformal coverage](results/ml_conformal_coverage.png)
-
-On the specified split two of the six cases (energy for the passive shunt and the buck-boost) fall just below 87 % and are reported as FAIL; the rule and the split were not changed. Over repeated splits the mean coverage is 88.5 to 91.2 % for every case, so the intervals are calibrated and the misses are sampling noise at this test-set size, not a systematic shortfall. The interval factors are tight: the 90 % interval is within a few percent of the prediction for the passive shunt and the flying capacitor, and about ±13 to 16 % for the buck-boost, the technique with the least exact physics.
-
-### Timing
-
-Per-pack latency on the host CPU (labelled "host CPU, not target hardware"), median of repeated runs, same machine; the simulator is timed once at batch 1000 because one run takes about 8 s. Batch 1 is the median over one pack per technique. Full numbers are in `results/timing.json`.
-
-| Method | Batch 1: µs per pack | speedup | Batch 1000: µs per pack | speedup |
-| --- | --- | --- | --- | --- |
-| Simulator | 747,125 | 1x | 8,120 | 1x |
-| Physics formulas | 2,444 | 306x | 24 | 341x |
-| HGB (both targets) | 7,244 | 103x | 50 | 163x |
-| Hybrid (physics + HGB) | 9,743 | 77x | 114 | 71x |
-
-The speedups are machine- and batch-dependent. The physics formulas are faster than the HGB model and the hybrid costs the sum of both. The comparison is also flattered by the simulator being a Python loop over 1 s steps.
-
-### Feature design
-
-Retraining the HGB without the four individual cell SOCs (15 instead of 19 features) on the current data:
-
-| Target | Overall MAE change (CV) | Passive | Buck-boost | Flying capacitor | Overall R² change |
-| --- | --- | --- | --- | --- | --- |
-| balancing time | +124 % | +16 % | +112 % | +206 % | -0.045 |
-| energy dissipated | +300 % | +321 % | +74 % | +41 % | -0.077 |
-
-The error rises for both targets and for every technique (the holdout split of section h gives the same picture, +134 % for time and +294 % for energy), so the individual SOCs carry information that spread and standard deviation alone do not: which cells are high and which are low, and so how much charge crosses each link. This replaces the midsem "before" numbers, which are not in the results files.
-
-### What this does and does not show
-
-All of it is about the simulator: the models predict the output of the averaged-equation simulation, so "physics formula" means a closed form of the same equations, not of a real pack. The conclusions are that (1) the midsem HGB should not be presented as better than physics, (2) a hybrid is the right way to use the ML, and (3) the intervals are calibrated for this simulated distribution. They say nothing about real packs, other cells or longer strings.
-
-## r. Balancing under measured drive-cycle current (final phase, block A)
-
-**Method.** The rest simulator of section f is now the special case of a reusable vectorised function `step(state, pack_current_a, control)` in `src/stepper.py` with an explicit frozen `PackState`. With zero (or no) pack current it reproduces the earlier results bit for bit; a test checks this and `metrics.json` was byte-identical before and after the refactor on the same machine. Under load the converter sees each cell's open-circuit voltage minus the load drop across R0, so the same averaged link equations apply. The measured 25 °C "Mixed" cycles of the LG HG2 dataset (CC BY 4.0, DOI 10.17632/b5mj79w5w9.2, fetched and checksummed by `scripts/fetch_hg2.py --group mixed25`) are averaged to 1 s with a charge-preserving time-weighted mean (`scripts/prepare_drive_profiles.py`, cached in `data/processed/drive_profiles_25c.json`) and applied as the series current of the baseline 4-cell pack (10 % SOC spread, fitted parameters, mid-range components). Balancing switches off while the spread is below 1 %.
-
-Scenarios, per technique and without balancing: (a) rest balancing until the spread is below 1 %, then drive without balancing; (b) driving, Mixed 1 repeated until the first cell reaches its lower voltage limit; (c) constant-current charging at 0.5C (1.39 A) until the first cell reaches 4.2 V. Usable Ah is the net pack charge passed until the first cell hits a limit.
-
-**Limits.** The datasheet in the dataset (technical PDF, page 2, printed page 1) gives 4.2 V charge and a 2.0 V end voltage; the dataset readme and the CSV headers give a 4.2 V maximum voltage. The tester stopped every discharge at 2.8 V (minimum voltage in the C/20 and 1C files), and this project uses 2.8 V as the lower limit, which is inside the datasheet window.
-
-**Key numbers** (this pack, Mixed 1; full table in `results/metrics.json` under `drive_cycle`):
-
-| Scenario | None | Passive | Buck-boost | Flying capacitor |
-| --- | --- | --- | --- | --- |
-| Driving: usable Ah | 1.232 | 1.232 | 1.324 | 1.380 |
-| Driving: final spread (%) | 12.4 | 10.3 | 3.8 | 1.0 |
-| Driving: energy dissipated (J) | 0 | 1514 | 162 | 60 |
-| Charging: usable Ah | 1.217 | 1.287 | 1.281 | 1.262 |
-| Charging: final spread (%) | 7.7 | 5.4 | 0.86 | 2.7 |
-| Rest then drive: usable Ah | 1.232 (no rest) | 1.185 | 1.315 | 1.319 |
-
-The 1 % criterion is met only by the buck-boost during charging. Passive balancing cannot raise the usable Ah while driving because it only drains fuller cells; the limiting cell is untouched. Resting first costs the passive pack 0.047 Ah (it burns 7176 J). The "ideal-transfer reference" in the figure equalises the stored charge of all cells before the run (1.395 Ah driving, 1.289 Ah charging); it is a reference, not a strict bound, because cell resistances differ. Results for all eight Mixed cycles are in `cycle_sensitivity_driving_usable_ah`; the ordering none = passive < buck-boost < flying capacitor holds on every one of them (equal for the last two on Mixed 8).
-
-**Checked.** With balancing off each cell's SOC change equals -integral(I dt)/(3600 Q_i) to 1.7e-13 relative (threshold 1e-9, PASS). The balancing energy ledger (net chemical energy removed against converter loss, R0 cross term and RC terms) closes to 0.09 % of the removed energy under load (threshold 1 %, PASS); relative to the dissipated energy the flying capacitor gap is 8 %, because its dissipation is small.
-
-**Assumptions.**
-- Only status `TABLE` rows (the drive) are used; the 600 s pauses are excluded, and the cycle repeats from its start.
-- Lower limit 2.8 V (tester cut-off), not the 2.0 V datasheet end voltage, which the model's open-circuit table (2.88 V at 0 %) could never reach before SOC 0.
-- The limit is checked on the modelled terminal voltage after each 1 s step, so detection can overshoot by one step.
-- Scenario (a) is rest balancing followed by an unbalanced drive; this is how usable Ah is defined for a rest scenario.
-- Charging is constant current only (no constant-voltage phase); 0.5C uses the fitted capacity.
-- One pack and one cycle support the headline numbers: the claims are limited to this pack and these measured cycles.
-
-Figures: `results/drive_cycle_spread.png`, `results/drive_cycle_usable_capacity.png`.
-
-## s. Temperature fits and SOC-error sensitivity (final phase, block B)
-
-### Temperature fits
-
-**Method.** The Phase 1 pipeline (C/20 OCV, HPPC pulse fits, 1RC then 2RC, same selection rule and thresholds: UDDS and LA92 at most 30 mV over the whole cycle and 20 mV in the 20 to 80 % SOC window) was run on the 0, 10, 25 and 40 °C folders of the dataset (`scripts/fetch_hg2.py --group temperature_fits`, `python -m scripts.identify_temperature`). Nothing is fitted on the cycles used for validation. The cached tables are in `data/processed/hg2_temperature.json`; the simulator itself stays at 25 °C.
-
-| Temperature | Capacity C/20 (Ah) | OCV at 50 % (V) | R0 (mΩ) | R1, single branch (mΩ) | Kept model | UDDS whole / window RMSE (mV) | Result |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 °C | 2.599 | 3.768 | 30.2 | 59.4 | 2RC | 38.5 / 33.2 | FAIL |
-| 10 °C | 2.649 | 3.767 | 18.0 | 48.3 | 2RC | 38.4 / 28.1 | FAIL |
-| 25 °C | 2.781 | 3.740 | 11.6 | 35.2 | 2RC | 28.5 / 16.6 | PASS |
-| 40 °C | 2.690 | 3.759 | 10.1 | 28.8 | 2RC | 27.3 / 12.8 | PASS |
-
-The 1RC model fails at every temperature, so the 2RC model is kept as in Phase 1. The low-temperature failures (also LA92 at 0 °C: 45.2 mV) are a result: a SOC-independent two-branch model does not capture the stronger SOC dependence of the resistance in the cold. R0 over temperature is fitted with an Arrhenius form by least squares on ln R0 against 1/T: Ea = 0.201 eV, bootstrap 95 % interval 0.194 to 0.206 eV (500 resamples of the HPPC pulse fits). The Arrhenius form describes the data poorly: the largest deviation of the fit from a measured R0 is 13.5 % (FAIL against a 10 % limit), since R0 flattens above 25 °C. The interval therefore only reflects measurement noise, not this misfit. The OCV at 50 % SOC is 27 mV (0 °C), 27 mV (10 °C) and 19 mV (40 °C) higher than at 25 °C; it does not vary monotonically with temperature (linear slope -0.38 mV/K), and each OCV is normalised by that temperature's own C/20 capacity.
-
-**Data issue.** `582_LA92.csv` (10 °C) is spliced: the first rows run out of time order with blanks, so the file fails the monotonic-time check and is rejected, not repaired. 10 °C is therefore validated on UDDS only.
-
-### SOC-error sensitivity
-
-**Method.** The controller acts on SOC_est = SOC_true + b with b fixed per cell per run, b ~ N(0, σ²), σ in {0, 1, 3} % SOC, on 200 random packs (random 2 to 10 % spreads, same packs and same unit draws for every σ and technique), baseline component values, and stops when the estimated spread is below 1 %. The cap is 12 h (`SocErrorSpec.max_balancing_h`) instead of 48 h to keep `run_all.py` fast.
-
-| Technique | σ (% SOC) | True final spread median / 95th pct (%) | Packs above 1 % | Extra energy, median (J) | Time ratio, median |
-| --- | --- | --- | --- | --- | --- |
-| Passive | 1 | 1.87 / 3.75 | 86 % | +322 | 1.09 |
-| Passive | 3 | 5.54 / 10.2 | 99 % | +1889 | 1.52 |
-| Buck-boost | 1 | 1.91 / 3.62 | 87 % | +8.7 | 1.10 |
-| Buck-boost | 3 | 5.68 / 10.3 | 100 % | +50 | 1.50 |
-| Flying capacitor | 1 | 0.73 / 2.91 | 40 % | +0.10 | 10.5 (censored) |
-| Flying capacitor | 3 | 0.00 / 3.54 | 23 % | +0.27 | 13.9 (censored) |
-
-A 10 mV cell voltage error is 1.07 % SOC at 50 % SOC (fitted OCV slope 9.35 mV per % SOC), so ordinary voltage-sensing error already acts like the σ = 1 % row. In this model the flying-capacitor link current follows the true voltage difference while the controller waits for the estimated spread, so 78 % (σ = 1 %) to 98 % (σ = 3 %) of packs never reach the estimated criterion before the cap; their true spread ends near zero (the cell voltages are equalised) and their times are censored. That is a property of the model, not a result to trust for hardware. With σ = 0 the study reproduces the deterministic simulation exactly (bitwise, 20 packs per technique, checked by a test and by `soc_error.sigma_zero_reproduces_deterministic`).
-
-**Assumptions.**
-- Nominal chamber temperatures (0, 10, 25, 40 °C) are used in the Arrhenius fit; per-temperature OCV is built from that temperature's own C/20 data.
-- The bootstrap for Ea resamples each temperature's pulse fits (same procedure as Phase 1) and refits the line per resample.
-- One bias per cell per run, no drift and no dependence on current or SOC.
-- 48 h cap reduced to 12 h for this study only; packs that reach the cap are reported through `estimated_criterion_reached_fraction`.
-
-Figures: `results/params_vs_temperature.png`, `results/soc_error_true_spread.png`.
-
-## t. SOC estimation: GRU against EKF and coulomb counting (final phase, block C)
-
-**Data and labels.** The drive cycles of the dataset (UDDS, HWFET, LA92, US06 and Mixed 1 to 8) at 0, 10, 25 and 40 °C, only the drive part of each file (status `TABLE`), downsampled to 1 s: current is the charge-preserving mean over the second, voltage and case temperature are taken at the end of the second. The reference SOC is 1 at the start of each file (the cell was charged to 4.2 V with a 50 mA cut-off before) minus the integrated tester current over the C/20 discharge capacity at that temperature (2.599, 2.649, 2.781, 2.690 Ah). The tester accuracy is 0.1 % of a 75 A full scale (dataset readme), so the label can itself drift by up to 75 mA times the cycle time; reported errors include that label uncertainty.
-
-**Fixed splits** (`data/processed/soc_splits.json`, committed before any training, with a test that train, validation and test files are disjoint). Train: Mixed 1 to 6 at 0, 25, 40 °C. Validation: Mixed 7. Test A: Mixed 8, UDDS, HWFET, LA92, US06 at 0, 25, 40 °C. Test B: every cycle at 10 °C. Nothing in Test A or B is used for training, tuning, early stopping or EKF tuning. Files that do not exist or are unusable are listed in the splits file and in `metrics.json`: Mixed 3 is absent at 0 and 10 °C; `562_Mixed4` to `Mixed8` (40 °C) are aborted runs (0.19 Ah, case at 23 °C), so 40 °C has train Mixed 1 to 3 but no validation or Mixed 8 file; HWFET at 25 °C has no current; LA92 at 10 °C is the spliced file of section s. The result is 14 train, 2 validation, 13 Test A and 10 Test B files.
-
-**Estimators.** (1) Coulomb counting from a correct and from a 20 % wrong start, with an injected current offset of 0.5 % of the tester full scale (0.375 A, the value the task prescribes) and, as a fairer baseline, 0.1 % (75 mA, the tester's stated accuracy). Without any offset it equals the label by construction. (2) EKF on the 1RC model (states SOC and V1), per-temperature OCV, capacity and 1RC parameters from the HPPC fits of section s; the process and measurement noise and the choice between constant and SOC-dependent 1RC parameters were grid-searched on the validation files only, by the mean RMSE over the nominal, wrong-start and injected-offset runs (chosen: SOC-dependent table, process std 1e-4, measurement std 20 mV). (2b) A second EKF added in the final phase: two RC branches and a one-state hysteresis term, SOC-dependent HPPC parameters, tuned on the validation files only (process std 1e-4, measurement std 10 mV, hysteresis rate 500); its RMSE is 3.33 % at 0 °C, 0.93 % at 25 °C and 0.84 % at 40 °C. (3) GRU in PyTorch (CPU, deterministic algorithms, one thread): inputs V, I, case temperature over a sliding window, 1 layer, hidden size 32, output SOC at the window end, 3 seeds. The window was chosen on validation from {100, 300} s (RMSE 2.40 ± 0.06 % against 2.24 ± 0.11 %): 300 s. 3585 parameters, 1.008 M MACs per estimate (window 300 s), weights 17 kB each. Training took 130 to 165 s per model (`results/timing.json`); all runs used the full 12 epochs.
-
-**Metrics** (RMSE, MAE, max error over the time after the first 300 s, so every estimator is scored on the same samples; from `metrics.json` under `soc_estimation`). Test A pools 0, 25, 40 °C; Test B is the unseen 10 °C.
-
-| Estimator (nominal inputs unless noted) | Test A RMSE / MAE / max (% SOC) | Test B RMSE / MAE / max (% SOC) |
-| --- | --- | --- |
-| Coulomb counting, 0.5 % FS offset | 25.2 / 20.6 / 59.2 | 20.2 / 16.5 / 56.2 |
-| Coulomb counting, 0.1 % FS offset | 5.05 / 4.12 / 11.8 | 4.03 / 3.29 / 11.2 |
-| EKF | 4.96 / 4.14 / 16.9 | 6.18 / 5.70 / 15.0 |
-| 2RC EKF with hysteresis (final phase) | 2.06 / 1.24 / 15.1 | 2.11 / 1.66 / 9.6 |
-| GRU (mean of 3 seeds) | 2.49 ± 0.10 / 1.97 / 10.8 | 2.97 ± 0.07 / 2.44 / 9.9 |
-
-Robustness (RMSE, Test A / Test B): with 5 mV voltage noise the EKF is unchanged (4.96 / 6.17) and the GRU is unchanged (2.50 / 2.98). With the 0.5 % FS offset on the input current the EKF gives 4.09 / 5.34 and the GRU 3.48 / 4.64. From a start 20 % too low the EKF error 300 s later is 1.79 % (Test A) and 1.95 % (Test B) mean absolute, about the same as from a correct start, because with the prior used here the first voltage measurement already pulls the state; coulomb counting keeps the 20 % error (21 %). The GRU has no state to initialise: its first estimate comes at 300 s and its error there is 2.4 % (Test A), 1.25 % (Test B). By temperature the GRU RMSE is 3.14 (0 °C), 2.09 (25 °C), 2.09 (40 °C) and 2.97 (10 °C, unseen); the EKF 7.44, 3.27, 2.75 and 6.18.
-
-**Who beats whom** (rule: wins on RMSE on both Test A and Test B by more than the seed spread of the GRU, zero spread for the EKF and coulomb counting): the GRU beats the EKF (margins 2.5 and 3.2 points against spreads of 0.10 and 0.07) and coulomb counting at either offset; the EKF beats coulomb counting with the 0.5 % FS offset but has no verdict against coulomb counting with the 0.1 % FS offset (margin +0.08 on Test A, -2.1 on Test B). With the 0.5 % FS offset injected into all three, the GRU still beats the EKF (margins 0.6 and 0.7). The EKF is limited by its model: the 1RC model that feeds it misses the 30 mV validation limit at 25 °C and fails it more at 0 and 10 °C (section s).
-
-**Second EKF.** With two RC branches and hysteresis the EKF reaches 2.06 % RMSE on Test A and 2.11 % on Test B (maximum 15.1 and 9.6 %), which beats the 1RC EKF (margins 2.9 and 4.1 points) and the GRU (margins 0.43 and 0.86 points, GRU seed spread 0.10 and 0.07). It is insensitive to 5 mV voltage noise, gives 2.76 and 2.40 % with the 0.5 % FS offset, and its mean error 300 s after a 20 % wrong start is 1.59 % (Test A) and 2.39 % (Test B, FAIL against the 2 % limit used for the 1RC EKF). With the injected offset on all estimators it still beats the GRU by 0.72 and 2.24 points. The GRU is better only at 0 °C (3.14 % against 3.33 %). Its parameters come from the HPPC fits at each temperature, so at 10 °C it uses parameters measured at 10 °C and not any 10 °C drive cycle.
-
-**Feed-through to balancing.** The SOC-error machinery of section s was rerun with the cell biases drawn from the measured error distribution (signed errors between 30 and 70 % SOC after 300 s, all Test A and B cycles, nominal inputs; std 3.0 % for the 1RC EKF, 2.0 % for the 2RC EKF and 1.8 % for the GRU) instead of a synthetic sigma. True final spread, median and 95th percentile, 200 packs: passive 5.5 / 10.8 % (1RC EKF), 2.9 / 5.9 % (2RC EKF) and 3.4 / 6.3 % (GRU); buck-boost 5.6 / 11.0 %, 3.0 / 6.2 % and 3.6 / 6.3 %. At least 94 % of passive and buck-boost packs end above the 1 % target with every estimator, and the extra dissipated energy is +1951 J, +622 J and +930 J for passive, +44 J, +14 J and +22 J for buck-boost. The flying-capacitor result again reflects the model (links follow true voltage, the estimate only stops the run): 2 %, 10.5 % and 5.5 % of packs reach the estimated criterion within 12 h. A real BMS built on any of these estimators would therefore not reach a 1 % true spread; section z tests balancing on rest voltage instead.
-
-**Assumptions.**
-- SOC reference from C/20 capacity per temperature; the cycle start is taken as 100 % SOC.
-- The 0.5 % full-scale injected offset is 0.375 A (full scale 75 A), a very large offset: coulomb counting without it is the label, so the 0.1 % row is the realistic coulomb-counting baseline.
-- The metric window starts at 300 s for all estimators (the GRU needs a full 300 s window); GRU and EKF are scored on the same cycles, the GRU every 2 s (6 s for robustness runs).
-- The GRU is trained on clean inputs only (no augmentation) and early stopping on the validation files never triggered within 12 epochs.
-- The best GRU for the feed-through is the seed with the lowest validation RMSE; the best EKF is the tuned one.
-
-Figures: `results/soc_est_test_traces.png`, `results/soc_est_error_summary.png`, `results/soc_est_wrong_init.png`. Reproduce with `python -m scripts.make_soc_splits` (already committed), `python -m scripts.train_gru` and `python -m scripts.evaluate_soc`.
-
-## u. Scaling to longer strings (final phase, block D)
-
-**Method.** All three techniques on N = 4, 8, 16, 32 and 96 cells in series (adjacent-cell links only), 200 random packs per N with the per-cell statistics of the 4-cell study (capacity ±5 %, R0 ±10 %, 2 to 10 % max-minus-min SOC spread over the whole string), baseline component values, 1 s steps, cap 1500 h (every pack balanced within it). Results are cached by `python -m scripts.run_scaling` in `data/processed/scaling_results.json` (about 65 minutes with N = 96 on 4 cores, 3 minutes without it).
-
-**Needed model change.** With the fixed 0.2 % link deadband a long string can stall: 15 links each just under the deadband leave a 2.85 % spread that no link acts on (a test shows this). For N > 4 the deadband is therefore min(0.2 %, 0.9 × 1 % / (N - 1)); N = 4 is unchanged.
-
-**Theory.** Flying capacitor: the SOC dynamics are a path-graph diffusion, whose slowest mode decays at a rate proportional to 2 - 2 cos(π/N), so time ∝ N² for a smooth initial profile that excites that mode. Buck-boost: each link carries a fixed current, so time = largest charge crossing a link / link current; for a step profile (top half high) the middle link must pass N/2 cells' excess, time ∝ N; for independent random SOCs the crossing charge is a random-walk bridge, ∝ √N. Passive: cells drain independently to the lowest one, so time depends on the spread and component extremes, not on N. Both profiles were run: random SOCs (project statistics) and the step profile (same packs, SOCs replaced by a half-high, half-low step of the same spread).
-
-**Fitted log-log slopes of median time, N = 8 to 96** (agreement means within 0.25 of theory; the N = 8 to 32 fit gave nearly the same values):
-
-| Technique | Random: fitted / theory | Step: fitted / theory | Step agrees |
-| --- | --- | --- | --- |
-| Passive | -0.01 / 0 | 0.00 / 0 | yes (random: yes) |
-| Buck-boost | 0.22 / 0.5 | 0.92 / 1.0 | yes (random: no) |
-| Flying capacitor | 0.90 / none | 2.00 / 2.00 | yes |
-
-Median times (h), N = 4 / 8 / 16 / 32 / 96, random: passive 2.21 / 2.33 / 2.38 / 2.17 / 2.33, buck-boost 0.39 / 0.47 / 0.50 / 0.57 / 0.82, flying capacitor 0.91 / 1.67 / 2.71 / 4.83 / 15.6. Step: buck-boost 0.78 / 1.73 / 3.51 / 6.34 / 17.3, flying capacitor 1.69 / 6.46 / 25.8 / 100 / 937. The laws are confirmed for the smooth step profile over a factor 24 in N. For random SOCs the N² law does not apply: most modes start below the 1 % target, so the flying capacitor grows much more slowly (0.90), and the buck-boost grows less than √N (0.22) because links work in parallel instead of through one planned crossing.
-
-**ML and physics baselines.** The 4-cell surrogate cannot represent N != 4 (fixed 4-cell inputs). The Phase 3 physics baselines are written for any N and were run unchanged. Median time error at N = 32 on random packs: passive 0 %, flying capacitor 3.3 % (95th percentile 25.7 %), buck-boost 39.8 % (95th percentile 154 %); at N = 96 the buck-boost planned-crossing formula is off by 115 % (median), the flying-capacitor eigen-model by 1.8 % (95th percentile 26 %). On step packs the medians stay within 15 % for all three at every N. Median energy error: at most 5 % except buck-boost, 13.5 % at N = 16 and 29.8 % at N = 96 (random).
-
-**Assumptions.** Medians use balanced packs only (all packs balanced within the cap). The slope tolerance 0.25 and the N >= 8 fit range were fixed before looking at agreement. Figure: `results/scaling_time_vs_n.png`.
-
-## v. Reinforcement learning for active balancing under load (final phase, block E)
-
-**Environment** (`src/rl_env.py`, `src/rl_sim.py`, gymnasium 1.4.0, built on the `step` function of section r). Four cells with the inductor buck-boost links, fitted 25 °C parameters, random cell variation and a random 2 to 10 % initial spread. An episode is the measured 25 °C cycle repeated until the first cell reaches 2.8 V; the control step is 10 s (ten 1 s physics steps). Observation: estimated cell SOCs (true SOC plus a fixed per-episode error of 1 % standard deviation), terminal voltages, pack current, its 60 s mean and the elapsed fraction (scaled to order one). Action: one value in [-1, 1] per link, mapped to direction and duty in [0, D_max]. D_max = 0.4 keeps every link in discontinuous conduction for any cell voltage ratio up to 1.5, and the duty is also clipped at run time to 0.95 / (1 + V_source / V_sink); a test checks the clip and checks that a full rule command reproduces the averaged link model of section f. Reward = pack Ah delivered until the first cell hits its limit minus lambda times the balancing energy lost, with lambda = 1e-4 Ah per joule (1 kJ of loss costs 0.1 Ah; about 0.6 % of the pack energy per 100 J).
-
-**Controllers on identical seeded test episodes** (Mixed 7, Mixed 8, UDDS, US06, 100 fresh packs each): no balancing, the midsem rule-based controller (deadband 0.2 %, stops below 1 % estimated spread, duty 0.4), greedy maximum transfer (every link at full duty toward the lower estimated SOC, no deadband, never stops), PPO (stable-baselines3 2.9.2, 64 by 64 MLP, 3 seeds, trained on Mixed 1 to 6, deterministic actions at test time), and a reference pack whose stored charge is equalised before the run with balancing off.
-
-| Delivered Ah, mean over packs | No balancing | Rule-based | Greedy | PPO (3 seeds) | Ideal-transfer reference |
-| --- | --- | --- | --- | --- | --- |
-| Mixed 7 | 1.291 | 1.335 | 1.334 | 1.289 ± 0.003 | 1.356 |
-| Mixed 8 | 1.257 | 1.307 | 1.302 | 1.253 ± 0.000 | 1.347 |
-| UDDS | 1.299 | 1.355 | 1.347 | 1.267 ± 0.033 | 1.385 |
-| US06 | 1.268 | 1.315 | 1.315 | 1.266 ± 0.002 | 1.354 |
-
-Balancing loss (J) is 0 / 96 / 241 / 21 / 0 on Mixed 7 (none, rule, greedy, PPO, reference) and the final SOC spread 6.5 / 2.3 / 2.2 / 6.6 / 0.1 %; the other cycles are similar (`metrics.json`, key `rl_control`). No cell left its voltage window in any episode (seconds above 4.2 V: 0).
-
-**Result: a null result.** PPO does not beat no balancing, the rule-based controller or the greedy controller on any test cycle (mean paired gains of -0.003 to -0.037 Ah against no balancing and -0.039 to -0.082 Ah against the rule, none above two standard errors). The learned policy converged to almost doing nothing: it avoids the loss term but does not move enough charge to extend the drive. A first configuration (150 000 steps per seed, discount 0.99, default action noise) was worse than no balancing (for example 1.243 Ah against 1.291 on Mixed 7, with 73 J of loss and a 9.7 % final spread, larger than without balancing, so the actions moved charge the wrong way); the reported one (300 000 steps, discount 0.999, GAE lambda 0.98, initial action standard deviation 0.37) was chosen from the training curves and the arguments of the credit-assignment problem, not from test results, and was run once. The reward carries the benefit of balancing only at the end of the episode (a longer drive), so credit assignment over roughly 400 control steps is hard. A better algorithm or reward shaping might do better; this study does not show that.
-
-**Assumptions.** One lambda (above). The per-episode estimation error is 1 % SOC standard deviation for all controllers. Greedy and rule-based controllers see the same estimated SOCs as the policy. The reference pack removes the unbalance by construction (resistance differences remain).
-
-Figures: `results/rl_training_curves.png`, `results/rl_vs_baselines.png`. Reproduce with `python -m scripts.train_rl` (about 12 minutes per seed) and `python -m scripts.evaluate_rl` (under a minute).
-
-## w. Cell and link model additions (final phase, gap fixes)
-
-**Calibrated nonlinear cold-temperature model** (`src/cold_model.py`, `scripts/identify_temperature.py`). The HPPC tables of section s are kept (SOC-dependent R0 and two RC branches). Six scale factors (R0, two RC resistances, two time constants and a current scale for an arcsinh current law) are fitted on drive cycles other than the validation cycles (HWFET, US06, Mixed 1 and Mixed 2 at the same temperature) and the model is validated on UDDS and LA92 at full 0.1 s resolution with the same thresholds as before.
-
-| Temperature | UDDS whole / window (mV) | LA92 whole / window (mV) | Result |
-| --- | --- | --- | --- |
-| 0 °C | 21.3 / 21.2 | 32.4 / 34.0 | FAIL (window and LA92) |
-| 10 °C | 22.0 / 20.03 | not available | FAIL (window by 0.03 mV) |
-| 25 °C | 16.6 / 14.2 | 14.4 / 13.4 | PASS |
-| 40 °C | 13.1 / 11.5 | 11.8 / 10.7 | PASS |
-
-This improves every temperature (0 °C UDDS from 38.5 mV, 10 °C from 38.4 mV) and brings 25 and 40 °C well inside the limits, but the cold cases still fail and are reported as FAIL. Two of the time-constant scales reach the upper bound of 10, which suggests a slow diffusion branch is missing. The model is nonlinear, so the simulator keeps its linear single-branch parameters.
-
-**R0(T) forms.** The single Arrhenius form misses by 12.5 % at worst (13.5 % in the log fit of section s); a log-quadratic form in 1/T has a worst error of 0.7 % when one temperature is left out (Arrhenius plus a constant: 10.1 %, Arrhenius alone: 32 %). It has three parameters on four temperatures, so this is a descriptive fit and not a physical law. The baseline balancing with the simulator cell at each temperature (`temperature.balancing_by_temperature`) gives passive 3.89 h (0 °C), 3.96 h (10 °C), 4.19 h (25 °C), 4.03 h (40 °C); the 0 and 10 °C rows come from parameter sets that failed validation.
-
-**Net-current link model** (`src/coupled_links.py`). The averaged link equations of section f book each cell's R0 per link. The net-current option solves the shared resistance exactly for the flying capacitor (a tridiagonal system) and by fixed-point iteration for the buck-boost, so every cell sees its net current. On 100 random packs per technique the net-current ledger of this model closes to 0.11 % (buck-boost) and 0.04 % (flying capacitor) of the dissipated energy, against 2.0 % and 8.6 % for the per-link model. Balancing times change little (median ratio 1.00 for the buck-boost, 0.94 for the flying capacitor) and so does the energy (0.998 and 1.000). The per-link model stays the default so the midsem regression and every earlier number are unchanged; a test checks that the two models agree for a single link.
-
-**Drive and charge on 200 random packs** (`drive_cycle_population` in `metrics.json`, measured Mixed 1 current). Median gain in usable Ah against no balancing, with the 5th to 95th percentile: driving, buck-boost +0.072 Ah (0.019 to 0.151, 99.5 % of packs gain), flying capacitor +0.074 Ah (0.020 to 0.154, 100 %), passive 0.000 (down to -0.012); charging, passive +0.068, buck-boost +0.078, flying capacitor +0.068 Ah. The 1 % criterion is reached by 50 % (buck-boost) and 77 % (flying capacitor) of packs while driving and by 80 % and 10 % while charging.
-
-**Assumptions.** The calibration cycles are fixed in `CalibrationSpec` before looking at the results. The 40 °C calibration uses HWFET, US06 and Mixed 1 and 2; 25 °C has no HWFET current and uses the other three.
-
-## x. Midsem consistency check (final phase)
-
-**Which model did the midsem numbers come from?** The generic 3 Ah NMC cell of the midsem (`ASSUMED`: R0 30 mΩ, R1 15 mΩ, C1 2000 F, 21-point assumed OCV table, midsem flying-capacitor formula). The fitted HG2 cell (`FITTED_HG2_25C`) replaced it as the default in endsem Phase 1. The baseline pack is the same in both (SOCs 45.0, 47.8, 55.0, 53.1 %; the capacities and resistances scale with the cell). `metrics.json` key `midsem_consistency` holds the full comparison.
-
-| Baseline (10 % spread pack) | Midsem value | Reproduced with the assumed model | Fitted HG2 model (default now) |
-| --- | --- | --- | --- |
-| Passive time, energy | 4.56 h, 7680 J | 4.56 h, 7680 J | 4.19 h, 7176 J |
-| Buck-boost time, energy, efficiency | 1.17 h, 220.8 J, 96.4 % | 1.17 h, 220.8 J, 96.4 % | 1.07 h, 199.9 J, 96.5 % |
-| Flying capacitor time, energy, efficiency | 2.54 h, 20.5 J, 99.6 % | 2.54 h, 20.5 J, 99.6 % | 1.96 h, 29.9 J, 99.4 % |
-
-The assumed model reproduces every midsem value exactly (relative difference 0). The fitted model changes the times by -8 % (passive), -9 % (buck-boost) and -23 % (flying capacitor) and the energies by -7 %, -10 % and +46 %. The flying-capacitor change combines the new cell and the exact two-phase link formula of Phase 2 (section p); the midsem formula is kept as `FlyingCapModel.MIDSEM`.
-
-**Surrogate.** The surrogate that `run_all.py` trains and reports has been trained on the HG2 model since Phase 1. Protocol (identical to the midsem): 2000 random runs per technique, 19 features, `HistGradientBoostingRegressor` with 500 iterations, learning rate 0.05, 31 leaves, log targets, 80/20 split stratified by technique. Retraining it on the assumed model with the current code reproduces the midsem metrics exactly (`scripts/midsem_consistency.py`, cached in `data/processed/midsem_consistency.json`):
-
-| Surrogate test metrics | Time R², MAE | Energy R², MAE |
-| --- | --- | --- |
-| Midsem (assumed model) | 0.9726, 414.6 s | 0.9946, 72.9 J |
-| Retrained now on the assumed model | 0.9726, 414.6 s | 0.9946, 72.9 J |
-| Trained on the fitted HG2 model (default) | 0.9886, 281.7 s | 0.9952, 65.1 J |
-
-The speedup measured at midsem was 93 times (`results/midsem_reference/metrics.json`); the current run reports about 150 times in `results/timing.json`. Both are machine dependent and not claims.
-
-## y. Converter model audit in Python (final phase)
-
-All results are in `metrics.json` under `converter_audit` (code in `src/converter_audit.py`). No default model changed; LTspice or hardware decides what changes later.
-
-**Buck-boost, R0 loss with pulsed current.** The default books the cell R0 loss with the average link current, but a discontinuous-mode link pulls a triangular current: the source cell sees I_pk² D/3 per period instead of I_avg², a factor 4/(3D) = 3.33 at D = 0.4, and the sink cell the same with D2. The option `BuckBoostSpec.ripple_r0_loss` (off by default) uses the RMS current on both cells inside the link equations and in the ledger. At the baseline the dissipated energy rises from 199.9 J to 215.6 J (+7.9 %) and the balancing time from 3845 s to 3851 s; over 100 random packs from the dataset range the energy rises by a median of 7.1 % (95th percentile 7.7 %, maximum 7.8 %) and the time by 0.15 %. The ledger still closes to 0.26 % of the removed energy. The flag applies to the per-link model only. An input capacitor on the cell side would smooth the cell current, so this is an upper bound and stays unsupported until circuit validation.
-
-**Buck-boost peak current and conduction mode.** I_pk = V D / (L f) over L from 10 to 100 µH, f from 10 to 50 kHz and V of 3.0, 3.7, 4.2 V: the worst case is 16.8 A (4.2 V, 10 µH, 10 kHz), 14.8 A at 3.7 V, and 0.90 A at the mid-range baseline point. D + D2 = D (1 + V_source / V_sink) is at most 0.96 over every cell voltage pair from 3.0 to 4.2 V, so the link stays discontinuous with a 4 % margin. The saturation current of a real inductor was not checked.
-
-**Flying capacitor, switched-capacitor effective resistance.** The classic form R_eq = (1/(f C)) coth(1/(4 f R C)) with R = r0 + 2 Rds,on + ESR per phase is mathematically the same as the exact two-phase formula that has been the default since Phase 2 (section p) when both phases have the same resistance: the code (`coth_resistance_ohm`, option `FlyingCapModel.COTH` for unequal cell resistances) agrees with it to 0.0 relative difference on the full C and f grid, and the SPICE comparison of section p (six operating points, 0.04 % worst current error) already covers it. The series form 1/(f C) + 2 Rds,on + ESR + R0a + R0b is the midsem formula (`FlyingCapModel.MIDSEM`). Link resistance at the baseline point (5.5 mF, 5.5 kHz): 83 mΩ (series) against 152 mΩ (coth). Over the full range the series form is 0.40 to 1.12 times the coth form. Baseline balancing: 1.18 h and 29.94 J with the series form, 1.96 h and 29.94 J with the coth form (time ratio 1.66, energy ratio 1.000). So the time depends strongly on the form while the energy does not, as expected from a resistance that does not change which charge moves. Hardware agreement is not supported (claims file).
-
-## z. Voltage-based balancing at rest with sensor error (final phase)
-
-**Why.** Section t showed that balancing on estimated SOC does not reach a 1 % true spread: SOC estimators err by 2 to 3 % and the error is not common to all cells. At rest the cell voltage is a far better measurement: the fitted OCV curve gives 9.35 mV per percent SOC at 50 %, so a voltage error of a few millivolts is a SOC error of a few tenths of a percent.
-
-**Method** (`src/voltage_balancing.py`, `scripts/run_voltage_balancing.py`, cached in `data/processed/voltage_balancing.json`). The controller measures each cell's rest voltage with a sensor error of fixed offset N(0, sigma) per cell plus white noise of sigma / sqrt(60) per second (a 60 s average), maps it to SOC with the fitted OCV curve and applies the same link rules as before. Balancing stops when the estimated spread is below a threshold of 1 % (no margin), 0.5 % or 0.25 %. Sigma is 0.5, 1, 2, 5 and 10 mV; 200 random packs (2 to 10 % spread), the same packs and offsets for every setting, all three techniques, 12 h cap. The result is the fraction of packs whose true final SOC spread is below 1 %.
-
-| Stopping threshold | Passive: packs below 1 % at 0.5 / 1 / 2 / 5 / 10 mV | Buck-boost: the same |
-| --- | --- | --- |
-| 1 % | 47 / 48 / 46 / 29 / 10 % | 48 / 46 / 41 / 27 / 9 % |
-| 0.5 % | 100 / 100 / 94 / 40 / 11 % | 100 / 100 / 93 / 44 / 11 % |
-| 0.25 % | 100 / 100 / 97 / 43 / 12 % | 100 / 100 / 99 / 46 / 11 % |
-
-**Required measurement accuracy.** For at least 95 % of packs to end below a 1 % true spread, passive and buck-boost balancing need a cell voltage error of at most about 1.7 and 1.6 mV (stopping at 0.5 %, interpolated between grid points; 1 mV is the largest grid value that passes) or about 2.1 mV (stopping at 0.25 %). Stopping at the target itself never reaches 95 % (about 46 to 48 % at best), because the controller stops with the true spread scattered around the threshold; a stopping threshold below the target is needed. The cost of the margin is small: with 1 mV and a 0.5 % threshold the median balancing time is 2.65 h and the energy 4043 J for passive (3631 J without margin at 0.5 mV) and 95.5 J for buck-boost (86.6 J). A 10 mV sensor error, a normal figure for a low-cost monitoring chip, leaves only 11 % of packs balanced, about the same as balancing on a 1 % SOC bias (section s). Compared with section t, the SOC estimators would need to be accurate to about 0.2 % SOC to match 2 mV.
-
-**Flying capacitor.** The fractions for the flying capacitor (92 to 100 % at every sensor error) are a property of the model, not a result: its link current follows the true voltage difference, so the cells equalise whatever the estimate says, and the estimated criterion is reached in only 3 to 82 % of the runs (the rest run to the 12 h cap). The headline figure is therefore given for passive and buck-boost only.
-
-**Assumptions.** The sensor sees the open-circuit voltage (the cell is relaxed and no balancing current flows during the measurement); hysteresis and temperature drift of the OCV curve are not included; the offset is fixed over the run and the noise is white and redrawn every step; it drives the link decisions but not the stop test, which sees the offset only, so the stop criterion is slightly optimistic; the OCV slope is taken once at the mean initial SOC. Figure: `results/voltage_balancing.png`.
-
-## aa. Technique selector under a parking time budget (final phase)
-
-**Method** (`src/selector.py`). For each pack the selector asks the section h surrogate (trained on the 80 % training split) for the balancing time and energy of each technique at mid-range component values, discards the techniques predicted to exceed the parking time budget, and picks the one with the least predicted energy; if none is fast enough it picks the fastest. The oracle makes the same choice from ground-truth simulations. The surrogate can show lower mean energy than the oracle only because it violates the budget on some packs. A second selector uses the closed-form physics baselines instead of the surrogate. 300 fresh packs (not in the dataset), budgets of 0.5, 1, 1.5, 2, 3, 4, 6 and 8 h.
-
-| Budget | Packs where some technique is fast enough | Surrogate agrees with oracle | Surrogate misses budget (among feasible) | Mean energy: surrogate / oracle / always buck-boost (J) | Physics selector agrees |
-| --- | --- | --- | --- | --- | --- |
-| 0.5 h | 66 % | 95.0 % | 1.5 % | 77.4 / 76.0 / 81.4 | 99.7 % |
-| 1 h | 99 % | 91.7 % | 7.1 % | 51.5 / 56.3 / 81.4 | 99 % |
-| 1.5 h | 100 % | 97.3 % | 2.3 % | 28.5 / 31.1 / 81.4 | 100 % |
-| 2 h and longer | 100 % | 100 % | 0 % | 12.3 (2 h), 11.1 (3 h and longer) / same / 81.4 | 100 % |
-
-Always using the passive shunt costs 3633 J per pack on average and misses the budget on 99 % (0.5 h), 83 % (1 h) and 55 % (2 h) of packs; always using the flying capacitor is the cheapest (11.1 J) but misses 68 % (0.5 h), 44 % (1 h) and 16 % (1.5 h) of the packs where a technique is fast enough. Against always-buck-boost the selector saves 4 J (0.5 h), 30 J (1 h), 53 J (1.5 h) and 69 to 70 J per pack from 2 h on, against always-passive about 3600 J. Beyond 2 h the problem is trivial in this pack family (the flying capacitor always meets the budget and has the lowest energy), so the useful range is 0.5 to 1.5 h. At 1 h the surrogate lands in the wrong place on 8 % of the packs and misses the budget on 7.1 % of the feasible ones (FAIL against a 5 % limit); the physics selector does better there (99 % agreement, 1.4 % misses), because the physics baselines are close to the simulator and the surrogate error near the budget boundary flips the decision. The oracle itself cannot meet a 0.5 h budget for 34 % of the packs. Figure: `results/technique_selector.png`.
-
-**Assumptions.** Component values are fixed at mid range for all techniques; the budget is the time to reach a 1 % spread; the selector does not account for the energy of waking the converter.
+The measured data are the LG 18650HG2 data set of the Mendeley Data record DOI 10.17632/b5mj79w5w9.2, released under CC BY 4.0, and are downloaded by `scripts/fetch_hg2.py` with checksum verification, not committed. Converter datasheet values come from the vendor datasheets fetched by `scripts/fetch_datasheets.py`. Everything else in the repository is generated by the code in it.

@@ -30,11 +30,11 @@ def test_coth_form_equals_two_phase_for_equal_phases() -> None:
     )
 
 
-def test_flying_capacitor_audit_keeps_the_default_and_orders_the_forms() -> None:
+def test_flying_capacitor_audit_reports_the_circuit_default_and_orders_the_forms() -> None:
     audit = flying_capacitor_audit(CONFIG)
-    assert audit["default_model"] == "two_phase"
+    assert audit["default_model"] == "circuit"
     runs = audit["baseline"]
-    assert runs["coth"]["balancing_time_s"] > runs["midsem"]["balancing_time_s"]
+    assert runs["coth"]["balancing_time_s"] > runs["series"]["balancing_time_s"]
     assert runs["coth"]["balancing_time_s"] == pytest.approx(
         runs["two_phase"]["balancing_time_s"], rel=1e-3
     )

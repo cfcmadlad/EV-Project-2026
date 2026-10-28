@@ -1,7 +1,9 @@
 import json
+import subprocess
 import sys
 from collections.abc import Callable
 
+from scripts.report_claims import render
 from src.config import PROJECT_ROOT
 
 Metrics = dict
@@ -177,19 +179,12 @@ CHECKS: list[Check] = [
         f("scaling.profiles.random.flying_capacitor.fitted_slope_large_n", ".2f"),
     ),
     (
-        "midsem surrogate time R2",
-        f("midsem_consistency.surrogate_midsem_reference.balancing_time_s.r2", ".4f"),
-    ),
-    (
         "HG2 surrogate time R2",
-        f("midsem_consistency.surrogate_trained_on_fitted_hg2_model.balancing_time_s.r2", ".4f"),
+        f("ml.balancing_time_s.overall.r2", ".4f"),
     ),
     (
         "HG2 surrogate energy MAE",
-        f(
-            "midsem_consistency.surrogate_trained_on_fitted_hg2_model.energy_dissipated_j.mae",
-            ".1f",
-        ),
+        f("ml.energy_dissipated_j.overall.mae", ".1f"),
     ),
     (
         "ripple baseline energy",
@@ -224,7 +219,7 @@ CHECKS: list[Check] = [
     ),
     (
         "coth time ratio",
-        f("converter_audit.flying_capacitor.baseline_time_ratio_coth_over_midsem", ".2f"),
+        f("converter_audit.flying_capacitor.baseline_time_ratio_coth_over_series", ".2f"),
     ),
     (
         "selector 1 h agreement",
@@ -249,12 +244,6 @@ CHECKS: list[Check] = [
     (
         "voltage passive 1 mV",
         f(
-            "voltage_balancing.results.passive.stop_0p5pct_sigma_1mv.balancing_time_s_median",
-            ".0f",
-            1 / 3600,
-        )
-        if False
-        else f(
             "voltage_balancing.results.passive.stop_0p5pct_sigma_1mv.energy_dissipated_j_median",
             ".0f",
         ),
@@ -284,19 +273,112 @@ CHECKS: list[Check] = [
     ("rl none Mixed7", f("rl_control.test.Mixed7.none.pack_ah.mean", ".3f")),
     ("rl ppo UDDS", f("rl_control.test.UDDS.ppo_mean_of_seeds.pack_ah.mean", ".3f")),
     ("rl reference Mixed7", f("rl_control.test.Mixed7.ideal_reference.pack_ah.mean", ".3f")),
+    (
+        "lt series max error",
+        f("ltspice_validation.flying_capacitor.real.current_error_series.max_abs", ".2f", 100),
+    ),
+    (
+        "lt coth max error",
+        f("ltspice_validation.flying_capacitor.real.current_error_coth.max_abs", ".2f", 100),
+    ),
+    (
+        "lt coth ideal max error",
+        f("ltspice_validation.flying_capacitor.ideal.current_error_coth.max_abs", ".2f", 100),
+    ),
+    (
+        "lt bb sink in range",
+        f("ltspice_validation.buck_boost.real_sync.in_range.sink_current.max_abs", ".2f", 100),
+    ),
+    (
+        "lt bb loss in range",
+        f("ltspice_validation.buck_boost.real_sync.in_range.loss.max_abs", ".2f", 100),
+    ),
+    (
+        "lt bb calibrated loss",
+        f("ltspice_validation.buck_boost.calibrated_in_range.loss.max_abs", ".2f", 100),
+    ),
+    (
+        "lt fc calibrated current",
+        f("ltspice_validation.flying_capacitor.calibrated.current_error.max_abs", ".2f", 100),
+    ),
+    ("lt d plus d2", f("ltspice_validation.buck_boost.duty_plus_d2_max", ".3f")),
+    (
+        "lt baseline fc ltspice",
+        f("ltspice_validation.baseline_link.flying_capacitor.ltspice_current_a", ".4f"),
+    ),
+    (
+        "lt baseline bb ltspice",
+        f("ltspice_validation.baseline_link.buck_boost.ltspice_current_a", ".4f"),
+    ),
+    ("calibration bb time", f("calibration_effect.1.time_h_calibrated", ".2f")),
+    ("calibration fc energy", f("calibration_effect.2.energy_j_calibrated", ".1f")),
+    (
+        "deep hgb time r2",
+        f("deep_models.surrogates.models.hgb.metrics.balancing_time_s.overall.r2.mean", ".4f"),
+    ),
+    (
+        "deep gru physics time r2",
+        f(
+            "deep_models.surrogates.models.cell_gru_physics.metrics.balancing_time_s.overall.r2.mean",
+            ".4f",
+        ),
+    ),
+    (
+        "deep hgb physics time r2",
+        f(
+            "deep_models.surrogates.models.hgb_physics.metrics.balancing_time_s.overall.r2.mean",
+            ".4f",
+        ),
+    ),
+    (
+        "deep cell gru time r2",
+        f("deep_models.surrogates.models.cell_gru.metrics.balancing_time_s.overall.r2.mean", ".4f"),
+    ),
+    (
+        "deep trajectory spread rmse",
+        f(
+            "deep_models.trajectory.models.gru_decoder.metrics.overall.spread_rmse_percent.mean",
+            ".3f",
+        ),
+    ),
+    (
+        "deep soc hybrid test a",
+        f("deep_models.soc.results.ekf_gru_hybrid.nominal.test_a.rmse_percent", ".2f"),
+    ),
+    (
+        "deep soc hybrid test b",
+        f("deep_models.soc.results.ekf_gru_hybrid.nominal.test_b.rmse_percent", ".2f"),
+    ),
+    ("deep soc int8 bytes", f("deep_models.soc.quantisation.ekf_gru_hybrid.8.weight_bytes", ".0f")),
+    ("deep rl n8 imitation gain", f("deep_models.rl.n8.imitation_plain.mean_gain", ".4f")),
 ]
 
 
 def main() -> int:
     metrics = json.loads((PROJECT_ROOT / "results" / "metrics.json").read_text())
-    readme = (PROJECT_ROOT / "README.md").read_text()
-    figures = (PROJECT_ROOT / "results" / "FIGURES.md").read_text()
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    figures = (PROJECT_ROOT / "results" / "FIGURES.md").read_text(encoding="utf-8")
     text = readme + "\n" + figures
     missing = []
     for label, expected in CHECKS:
-        value = expected(metrics)
+        try:
+            value = expected(metrics)
+        except (KeyError, TypeError, IndexError):
+            missing.append(f"{label}: evidence key missing in metrics.json")
+            continue
         if value not in text:
             missing.append(f"{label}: expected '{value}' somewhere in README.md or FIGURES.md")
+    claims = (PROJECT_ROOT / "results" / "claims.md").read_text(encoding="utf-8")
+    if claims != render(metrics):
+        missing.append("claims.md differs from the claims rendered from metrics.json")
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "-co", "--exclude-standard", "src", "scripts", "ltspice"],
+        cwd=PROJECT_ROOT,
+        text=True,
+    ).split()
+    for path in tracked:
+        if path.rsplit("/", 1)[-1] not in readme and not path.startswith("ltspice/"):
+            missing.append(f"repo map does not list {path}")
     for line in missing:
         print(line)
     print(f"{len(CHECKS) - len(missing)} of {len(CHECKS)} numbers found")

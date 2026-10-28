@@ -1,4 +1,3 @@
-import hashlib
 import json
 import sys
 from time import perf_counter
@@ -10,6 +9,7 @@ from stable_baselines3 import PPO
 from src.config import CONFIG, PROJECT_ROOT
 from src.drive_cycle import PROFILES_PATH, Mode, charge_equalised, load_profiles
 from src.experiments import random_streams
+from src.fingerprint import binary_sha256, text_sha256
 from src.rl_env import (
     greedy_max_transfer,
     max_control_steps,
@@ -26,7 +26,7 @@ FIELDS = ("pack_ah", "spread", "loss_j", "reward", "outside_s", "finished")
 
 
 def digest(path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return binary_sha256(path)
 
 
 def ppo_controller(model: PPO):
@@ -104,7 +104,7 @@ def main() -> int:
         summary[cycle] = block
     payload = {
         "inputs": {
-            "drive_profiles_sha256": digest(PROFILES_PATH),
+            "drive_profiles_sha256": text_sha256(PROFILES_PATH),
             "policies_sha256": {r["file"]: digest(POLICY_DIR / r["file"]) for r in log["runs"]},
         },
         "training": {

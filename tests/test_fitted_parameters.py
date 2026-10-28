@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 
 import numpy as np
 
@@ -30,4 +31,6 @@ def test_fitted_ocv_is_strictly_increasing_and_measured() -> None:
 
 def test_cell_to_cell_spread_stays_assumed() -> None:
     assert FITTED_HG2_25C.pack == ASSUMED.pack
-    assert load_parameter_set(PARAMS_PATH).buck_boost == ASSUMED.buck_boost
+    buck_boost = load_parameter_set(PARAMS_PATH).buck_boost
+    assert buck_boost.circuit_calibrated
+    assert replace(buck_boost, circuit_calibrated=False) == ASSUMED.buck_boost

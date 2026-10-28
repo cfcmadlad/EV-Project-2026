@@ -66,7 +66,7 @@ def test_two_rc_ekf_recovers_from_a_wrong_start() -> None:
     time_s, current, soc = drive_series()
     scales = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1e6])
     voltage = terminal_voltage(time_s, current, soc, MODEL, CURVE, scales)
-    estimate = run_ekf2(build_cell2(entry), current, voltage, 0.8, 1e-5, 0.01, 0.2, 0.0, 1.0)
+    estimate = run_ekf2(build_cell2(entry), current, voltage, 0.8, 1e-5, 0.01, 0.2, 0.0, 1.0)[:, 0]
     assert np.abs(estimate[400:] - soc[400:]).max() < 0.02
 
 

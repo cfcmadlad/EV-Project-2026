@@ -50,6 +50,7 @@ class ScenarioRun:
     removed_j: FloatArray
     transferred_j: FloatArray
     element_loss_j: FloatArray
+    gate_drive_j: FloatArray
     balancing_r0_j: FloatArray
     balancing_v1_j: FloatArray
     trace_time_s: FloatArray
@@ -65,7 +66,7 @@ class ScenarioRun:
 
     @property
     def ledger_j(self) -> FloatArray:
-        return self.element_loss_j + self.balancing_r0_j + self.balancing_v1_j
+        return self.element_loss_j + self.gate_drive_j + self.balancing_r0_j + self.balancing_v1_j
 
 
 def load_profiles(spec: DriveCycleSpec) -> dict | None:
@@ -102,6 +103,8 @@ def run_scenario(
     program: CurrentProgram,
     mode: Mode,
     config: ProjectConfig,
+    soc_bias: FloatArray | None = None,
+    gate_balancing: bool = True,
 ) -> ScenarioRun:
     spec, n = config.drive_cycle, packs.n_packs
     if program.n_programs != n:
@@ -112,7 +115,14 @@ def run_scenario(
     component = np.full(n, 1.0 if hardware is None else hardware.component.mid)
     frequency = np.full(n, 1.0 if hardware is None else hardware.frequency_hz.mid)
     control = build_control(
-        technique, packs, component, frequency, config, track_load=True, gate_balancing=True
+        technique,
+        packs,
+        component,
+        frequency,
+        config,
+        track_load=True,
+        gate_balancing=gate_balancing,
+        soc_bias=soc_bias,
     )
     state = PackState.initial(packs.soc0, cell_ocv(packs.soc0, control))
     sign = 1.0 if mode is Mode.DISCHARGE else -1.0
@@ -129,6 +139,7 @@ def run_scenario(
             "removed_j",
             "transferred_j",
             "element_loss_j",
+            "gate_drive_j",
             "balancing_r0_j",
             "balancing_v1_j",
         )
@@ -180,6 +191,7 @@ def run_scenario(
         removed_j=full["removed_j"],
         transferred_j=full["transferred_j"],
         element_loss_j=full["element_loss_j"],
+        gate_drive_j=full["gate_drive_j"],
         balancing_r0_j=full["balancing_r0_j"],
         balancing_v1_j=full["balancing_v1_j"],
         trace_time_s=np.array(trace_time),
@@ -194,6 +206,7 @@ def _strategy_block(run: ScenarioRun, index: int, tolerance: float) -> dict[str,
         "final_spread": float(run.final_spread[index]),
         "energy_dissipated_j": float(run.energy_dissipated_j[index]),
         "element_loss_j": float(run.element_loss_j[index]),
+        "gate_drive_j": float(run.gate_drive_j[index]),
         "criterion_met": bool(run.final_spread[index] < tolerance),
         "limit_reached": bool(run.limit_reached[index]),
     }

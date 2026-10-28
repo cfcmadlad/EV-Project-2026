@@ -1,0 +1,221 @@
+{
+ "timesteps": 150000,
+ "runs": [
+  {
+   "variant": "residual_plain",
+   "n_cells": 4,
+   "seed": 0,
+   "file": "residual_plain_n4_s0.zip",
+   "bytes": 160143,
+   "clone_loss": null,
+   "training_time_s": 2092.0096821999978
+  },
+  {
+   "variant": "residual_plain",
+   "n_cells": 4,
+   "seed": 1,
+   "file": "residual_plain_n4_s1.zip",
+   "bytes": 160147,
+   "clone_loss": null,
+   "training_time_s": 2081.124796600001
+  },
+  {
+   "variant": "residual_plain",
+   "n_cells": 4,
+   "seed": 2,
+   "file": "residual_plain_n4_s2.zip",
+   "bytes": 160143,
+   "clone_loss": null,
+   "training_time_s": 2101.229099600001
+  },
+  {
+   "variant": "residual_plain",
+   "n_cells": 8,
+   "seed": 0,
+   "file": "residual_plain_n8_s0.zip",
+   "bytes": 182259,
+   "clone_loss": null,
+   "training_time_s": 2130.9185023000027
+  },
+  {
+   "variant": "residual_plain",
+   "n_cells": 8,
+   "seed": 1,
+   "file": "residual_plain_n8_s1.zip",
+   "bytes": 182263,
+   "clone_loss": null,
+   "training_time_s": 2125.3069179000013
+  },
+  {
+   "variant": "residual_plain",
+   "n_cells": 8,
+   "seed": 2,
+   "file": "residual_plain_n8_s2.zip",
+   "bytes": 182259,
+   "clone_loss": null,
+   "training_time_s": 2093.4801160999996
+  },
+  {
+   "variant": "residual_shaped",
+   "n_cells": 4,
+   "seed": 0,
+   "file": "residual_shaped_n4_s0.zip",
+   "bytes": 160143,
+   "clone_loss": null,
+   "training_time_s": 2118.322216499997
+  },
+  {
+   "variant": "residual_shaped",
+   "n_cells": 4,
+   "seed": 1,
+   "file": "residual_shaped_n4_s1.zip",
+   "bytes": 160147,
+   "clone_loss": null,
+   "training_time_s": 2104.7475414999935
+  },
+  {
+   "variant": "residual_shaped",
+   "n_cells": 4,
+   "seed": 2,
+   "file": "residual_shaped_n4_s2.zip",
+   "bytes": 160143,
+   "clone_loss": null,
+   "training_time_s": 1123.5215074000007
+  },
+  {
+   "variant": "residual_shaped",
+   "n_cells": 8,
+   "seed": 0,
+   "file": "residual_shaped_n8_s0.zip",
+   "bytes": 182259,
+   "clone_loss": null,
+   "training_time_s": 1132.6219929
+  },
+  {
+   "variant": "residual_shaped",
+   "n_cells": 8,
+   "seed": 1,
+   "file": "residual_shaped_n8_s1.zip",
+   "bytes": 182263,
+   "clone_loss": null,
+   "training_time_s": 1135.4810829999988
+  },
+  {
+   "variant": "residual_shaped",
+   "n_cells": 8,
+   "seed": 2,
+   "file": "residual_shaped_n8_s2.zip",
+   "bytes": 182259,
+   "clone_loss": null,
+   "training_time_s": 1109.5129375000033
+  },
+  {
+   "variant": "imitation_plain",
+   "n_cells": 4,
+   "seed": 0,
+   "file": "imitation_plain_n4_s0.zip",
+   "bytes": 160143,
+   "clone_loss": 0.0010510821593925357,
+   "training_time_s": 1165.2585974999965
+  },
+  {
+   "variant": "imitation_plain",
+   "n_cells": 4,
+   "seed": 1,
+   "file": "imitation_plain_n4_s1.zip",
+   "bytes": 160147,
+   "clone_loss": 0.0009932765970006585,
+   "training_time_s": 1124.1014630999998
+  },
+  {
+   "variant": "imitation_plain",
+   "n_cells": 4,
+   "seed": 2,
+   "file": "imitation_plain_n4_s2.zip",
+   "bytes": 160143,
+   "clone_loss": 0.0009826479945331812,
+   "training_time_s": 1152.5874030999985
+  },
+  {
+   "variant": "imitation_plain",
+   "n_cells": 8,
+   "seed": 0,
+   "file": "imitation_plain_n8_s0.zip",
+   "bytes": 182259,
+   "clone_loss": 0.0017169452039524913,
+   "training_time_s": 1139.6299523999987
+  },
+  {
+   "variant": "imitation_plain",
+   "n_cells": 8,
+   "seed": 1,
+   "file": "imitation_plain_n8_s1.zip",
+   "bytes": 182263,
+   "clone_loss": 0.0016540936194360256,
+   "training_time_s": 794.789735499995
+  },
+  {
+   "variant": "imitation_plain",
+   "n_cells": 8,
+   "seed": 2,
+   "file": "imitation_plain_n8_s2.zip",
+   "bytes": 182259,
+   "clone_loss": 0.0015768640441820025,
+   "training_time_s": 793.4290464000005
+  },
+  {
+   "variant": "imitation_shaped",
+   "n_cells": 4,
+   "seed": 0,
+   "file": "imitation_shaped_n4_s0.zip",
+   "bytes": 160143,
+   "clone_loss": 0.0010510821593925357,
+   "training_time_s": 781.1514143999957
+  },
+  {
+   "variant": "imitation_shaped",
+   "n_cells": 4,
+   "seed": 1,
+   "file": "imitation_shaped_n4_s1.zip",
+   "bytes": 160147,
+   "clone_loss": 0.0009932765970006585,
+   "training_time_s": 777.9440794999973
+  },
+  {
+   "variant": "imitation_shaped",
+   "n_cells": 4,
+   "seed": 2,
+   "file": "imitation_shaped_n4_s2.zip",
+   "bytes": 160143,
+   "clone_loss": 0.0009826479945331812,
+   "training_time_s": 770.4229437000031
+  },
+  {
+   "variant": "imitation_shaped",
+   "n_cells": 8,
+   "seed": 0,
+   "file": "imitation_shaped_n8_s0.zip",
+   "bytes": 182259,
+   "clone_loss": 0.0017169452039524913,
+   "training_time_s": 759.8445027999987
+  },
+  {
+   "variant": "imitation_shaped",
+   "n_cells": 8,
+   "seed": 1,
+   "file": "imitation_shaped_n8_s1.zip",
+   "bytes": 182263,
+   "clone_loss": 0.0016540936194360256,
+   "training_time_s": 762.222820300005
+  },
+  {
+   "variant": "imitation_shaped",
+   "n_cells": 8,
+   "seed": 2,
+   "file": "imitation_shaped_n8_s2.zip",
+   "bytes": 182259,
+   "clone_loss": 0.0015768640441820025,
+   "training_time_s": 754.2761498999971
+  }
+ ]
+}

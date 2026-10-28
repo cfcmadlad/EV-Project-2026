@@ -58,12 +58,17 @@ class BuckBoostSpec:
     r_inductor_ohm: float = 0.08
     r_ds_on_ohm: float = 0.02
     ripple_r0_loss: bool = False
+    circuit_calibrated: bool = False
 
 
 class FlyingCapModel(StrEnum):
-    MIDSEM = "midsem"
+    SERIES = "series"
     TWO_PHASE = "two_phase"
     COTH = "coth"
+    CIRCUIT = "circuit"
+
+
+ANALYTIC_FLYING_MODELS = (FlyingCapModel.SERIES, FlyingCapModel.TWO_PHASE, FlyingCapModel.COTH)
 
 
 @dataclass(frozen=True, slots=True)
@@ -298,7 +303,7 @@ ASSUMED = ParameterSet(
     pack=PackSpec(),
     passive=PassiveSpec(),
     buck_boost=BuckBoostSpec(),
-    flying_capacitor=FlyingCapSpec(model=FlyingCapModel.MIDSEM),
+    flying_capacitor=FlyingCapSpec(model=FlyingCapModel.SERIES),
 )
 
 

@@ -119,8 +119,8 @@ def plot_current_parity(
         ("buck_boost", "averaged", "Buck-boost", colors[Technique.BUCK_BOOST], True),
         (
             "flying_capacitor",
-            "midsem",
-            "Flying capacitor, midsem formula",
+            "series",
+            "Flying capacitor, series formula",
             colors[Technique.FLYING_CAPACITOR],
             False,
         ),

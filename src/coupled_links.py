@@ -43,6 +43,29 @@ def solve_tridiagonal(
     return solution
 
 
+def bb_parameters(
+    parameter: FloatArray,
+) -> tuple[FloatArray, FloatArray | float, FloatArray | float, FloatArray | float]:
+    if parameter.ndim == 1:
+        return parameter, 1.0, 0.0, 0.0
+    return parameter[:, 0], parameter[:, 1:2], parameter[:, 2:3], parameter[:, 3:4]
+
+
+def gate_supply(
+    active: BoolArray, gate_w: FloatArray | float, ocv_source: FloatArray, forward: BoolArray
+) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
+    power = np.where(active, gate_w, 0.0) * np.ones_like(ocv_source)
+    supply_a = power / ocv_source
+    cell_a = scatter(supply_a, np.zeros_like(supply_a), forward)
+    return supply_a, cell_a, power.sum(axis=1), supply_a.sum(axis=1)
+
+
+def flying_gate_w(magnitude: FloatArray, resistance: FloatArray) -> FloatArray | float:
+    if resistance.shape[1] < 3:
+        return 0.0
+    return resistance[:, 2]
+
+
 def buck_boost_currents_net(
     soc: FloatArray,
     ocv: FloatArray,
@@ -53,27 +76,31 @@ def buck_boost_currents_net(
     deadband: float,
 ) -> StepFlow:
     active, forward = link_state(soc, deadband)
+    inverse_lf, ratio, overhead, gate_w = bb_parameters(inverse_lf)
     ocv_source, ocv_sink = source_sink(ocv, forward)
     conductance = np.where(active, 0.5 * hardware.duty**2 * inverse_lf[:, None], 0.0)
     resistance = hardware.r_inductor_ohm + hardware.r_ds_on_ohm
+    supply_a, supply_cell, gate_power, gate_amps = gate_supply(active, gate_w, ocv_source, forward)
     net = np.zeros_like(emf)
     for _ in range(ITERATIONS):
         terminal = emf - r0 * net
         v_source, v_sink = source_sink(terminal, forward)
-        i_source = conductance * v_source
+        i_source = ratio * conductance * v_source
         i_peak = 2.0 * i_source / hardware.duty
         sink_duty = hardware.duty * v_source / v_sink
         loss = resistance * i_peak**2 * (hardware.duty + sink_duty) / 3.0
-        i_sink = (v_source * i_source - loss) / v_sink
-        net = scatter(i_source, i_sink, forward)
+        i_sink = (v_source * i_source - loss - np.where(active, overhead, 0.0)) / v_sink
+        net = scatter(i_source, i_sink, forward) + supply_cell
     return StepFlow(
         cell_current_a=net,
-        removed_w=np.einsum("ij,ij->i", ocv_source, i_source),
+        removed_w=np.einsum("ij,ij->i", ocv_source, i_source + supply_a),
         delivered_w=np.einsum("ij,ij->i", ocv_sink, i_sink),
         link_source_a=i_source,
         link_sink_a=i_sink,
         link_forward=forward,
         terminal_v=emf - r0 * net,
+        gate_drive_w=gate_power,
+        gate_drive_a=gate_amps,
     )
 
 
@@ -101,11 +128,16 @@ def flying_capacitor_currents_net(
     net = np.zeros_like(emf)
     net[:, :-1] += link
     net[:, 1:] -= link
+    supply_a, supply_cell, gate_power, gate_amps = gate_supply(
+        magnitude > 0.0, flying_gate_w(magnitude, resistance), ocv_source, forward
+    )
     return StepFlow(
-        cell_current_a=net,
-        removed_w=np.einsum("ij,ij->i", ocv_source, magnitude),
+        cell_current_a=net + supply_cell,
+        removed_w=np.einsum("ij,ij->i", ocv_source, magnitude + supply_a),
         delivered_w=np.einsum("ij,ij->i", ocv_sink, magnitude),
         link_source_a=magnitude,
         link_sink_a=magnitude,
         link_forward=forward,
+        gate_drive_w=gate_power,
+        gate_drive_a=gate_amps,
     )

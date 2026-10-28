@@ -14,7 +14,7 @@ TARGET_UNITS = {"balancing_time_s": "s", "energy_dissipated_j": "J"}
 MODEL_LABELS = {
     "physics": "Physics formula",
     "linear": "Log-linear regression",
-    "hgb": "HGB (midsem)",
+    "hgb": "HGB (plain)",
     "hybrid": "Hybrid (HGB on physics residual)",
 }
 MODEL_HATCH = {"physics": "", "linear": "//", "hgb": "..", "hybrid": "xx"}

@@ -12,3 +12,5 @@ class StepFlow:
     link_sink_a: FloatArray
     link_forward: BoolArray
     terminal_v: FloatArray | None = None
+    gate_drive_w: FloatArray | None = None
+    gate_drive_a: FloatArray | None = None

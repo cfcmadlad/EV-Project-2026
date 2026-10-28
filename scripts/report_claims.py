@@ -3,6 +3,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from scripts.claims_base import CheckedClaim, at_most, boolean, is_true, percent
+from scripts.claims_deep import deep_claims
+from scripts.claims_headroom import headroom_claims
+from scripts.claims_ltspice import ltspice_claims
+
 ROOT = Path(__file__).resolve().parents[1]
 METRICS_PATH = ROOT / "results" / "metrics.json"
 CLAIMS_PATH = ROOT / "results" / "claims.md"
@@ -12,8 +17,9 @@ TECHNIQUES = (
     ("flying_capacitor", "flying capacitor"),
 )
 LINK_NOTE = (
-    "averaged link equations book each cell's R0 drop per link, not on the net cell current; "
-    "see README"
+    "inherent approximation of the per-link model, which books each cell's R0 drop per link "
+    "instead of on the net cell current; the optional net-current link model removes it "
+    "(link_coupling); see README section i"
 )
 HEADER = (
     "| Claim | Evidence key | Value | Threshold | Status | Note |",
@@ -22,23 +28,9 @@ HEADER = (
 
 
 @dataclass(frozen=True, slots=True)
-class CheckedClaim:
-    text: str
-    evidence: str
-    threshold: str
-    passes: Callable[[object], bool]
-    render: Callable[[object], str]
-    note: str = ""
-
-
-@dataclass(frozen=True, slots=True)
 class UnsupportedClaim:
     text: str
     reason: str
-
-
-def percent(value: object) -> str:
-    return f"{float(value) * 100.0:.4g} %"
 
 
 def millivolts(value: object) -> str:
@@ -47,14 +39,6 @@ def millivolts(value: object) -> str:
 
 def scientific(value: object) -> str:
     return f"{float(value):.2e}"
-
-
-def boolean(value: object) -> str:
-    return str(bool(value)).lower()
-
-
-def at_most(limit: float) -> Callable[[object], bool]:
-    return lambda value: float(value) <= limit
 
 
 def abs_at_most(limit: float) -> Callable[[object], bool]:
@@ -71,10 +55,6 @@ def positive(value: object) -> bool:
 
 def signed_percent(value: object) -> str:
     return f"{float(value) * 100.0:+.4g} %"
-
-
-def is_true(value: object) -> bool:
-    return value is True
 
 
 def validation_claims() -> list[CheckedClaim]:
@@ -157,8 +137,8 @@ def converter_claims() -> list[CheckedClaim]:
             0.15,
         ),
         (
-            "Midsem flying-capacitor current formula (kept as a named option) matches SPICE",
-            "converter_check.flying_capacitor.midsem.max_abs_current_error",
+            "Series-form flying-capacitor current formula (kept as a named option) matches SPICE",
+            "converter_check.flying_capacitor.series.max_abs_current_error",
             "<= 5 %",
             0.05,
         ),
@@ -181,7 +161,7 @@ def converter_claims() -> list[CheckedClaim]:
 
 
 MODEL_NAMES = {
-    "hgb": "the midsem HGB model",
+    "hgb": "the plain HGB model",
     "physics": "the physics formula",
     "hybrid": "the hybrid (HGB on the physics residual)",
 }
@@ -506,7 +486,7 @@ def scaling_claims() -> list[CheckedClaim]:
     ):
         claims.append(
             CheckedClaim(
-                f"Phase 3 physics baseline for {label} still predicts balancing time at N = 32 "
+                f"The physics baseline for {label} still predicts balancing time at N = 32 "
                 "(random initial SOCs, median error)",
                 f"scaling.profiles.random.{key}.physics_time_median_abs_pct_error_by_n.32",
                 "<= 10 %",
@@ -521,7 +501,7 @@ def rl_claims() -> list[CheckedClaim]:
     claims = []
     for key, label in (
         ("none", "no balancing"),
-        ("rule_based", "the midsem rule-based controller"),
+        ("rule_based", "the rule-based controller"),
         ("greedy", "greedy maximum-transfer balancing"),
     ):
         claims.append(
@@ -548,40 +528,6 @@ def rl_claims() -> list[CheckedClaim]:
     return claims
 
 
-def midsem_claims() -> list[CheckedClaim]:
-    claims = [
-        CheckedClaim(
-            f"The midsem baseline for {label} (time, energy, efficiency) is reproduced by the "
-            "assumed 3 Ah cell model",
-            f"midsem_consistency.baseline.{key}.max_relative_difference_reproduced_vs_midsem",
-            "<= 0.1 %",
-            at_most(0.001),
-            percent,
-            "generic NMC cell of the midsem, not the fitted HG2 cell",
-        )
-        for key, label in (
-            ("passive", "passive"),
-            ("buck_boost", "buck-boost"),
-            ("flying_capacitor", "flying capacitor"),
-        )
-    ]
-    for target in ("balancing_time_s", "energy_dissipated_j"):
-        claims.append(
-            CheckedClaim(
-                f"Retraining the surrogate on the assumed model reproduces the midsem test R2 "
-                f"for {target}",
-                f"midsem_consistency.surrogate_retrained_on_assumed_model.{target}.r2",
-                "within 1e-4 of the midsem value",
-                lambda v, t=target: abs(float(v) - MIDSEM_R2[t]) <= 1e-4,
-                lambda v: f"{float(v):.4f}",
-            )
-        )
-    return claims
-
-
-MIDSEM_R2 = {"balancing_time_s": 0.9726, "energy_dissipated_j": 0.9946}
-
-
 def converter_audit_claims() -> list[CheckedClaim]:
     base = "converter_audit"
     return [
@@ -593,7 +539,9 @@ def converter_audit_claims() -> list[CheckedClaim]:
             "reported; ratio > 1",
             lambda v: float(v) > 1.0,
             lambda v: f"{float(v):.4f}",
-            "default stays on average current until circuit validation",
+            "LTspice (section k) shows the pulsed R0 loss is close to this RMS form; the "
+            "calibrated default keeps the average-current form and absorbs the difference "
+            "in its overhead map",
         ),
         CheckedClaim(
             "Energy ledger still closes with the RMS current flag on (100 random packs, "
@@ -628,7 +576,7 @@ def converter_audit_claims() -> list[CheckedClaim]:
             "<= 1e-9",
             at_most(1e-9),
             scientific,
-            "the default model has used this form since Phase 2",
+            "this form was the default before the LTspice-calibrated model (section k)",
         ),
     ]
 
@@ -701,7 +649,7 @@ def coupling_claims() -> list[CheckedClaim]:
             "<= 1 %",
             at_most(0.01),
             percent,
-            "per-link model remains the default for continuity with midsem results",
+            "per-link model remains the default",
         )
     ]
 
@@ -729,9 +677,9 @@ def drive_population_claims() -> list[CheckedClaim]:
 def checked_claims() -> list[CheckedClaim]:
     claims = [
         CheckedClaim(
-            "Under the ASSUMED parameter set the code reproduces the midsem baseline "
+            "Under the ASSUMED parameter set the code reproduces the pinned reference baseline "
             "times, energies and efficiencies at their printed precision",
-            "physics_checks.midsem_regression.pass",
+            "physics_checks.reference_regression.pass",
             "all 9 values equal",
             is_true,
             boolean,
@@ -803,11 +751,13 @@ def checked_claims() -> list[CheckedClaim]:
         + scaling_claims()
         + rl_claims()
         + coupling_claims()
-        + midsem_claims()
         + converter_audit_claims()
         + voltage_claims()
         + selector_claims()
         + drive_population_claims()
+        + ltspice_claims()
+        + deep_claims()
+        + headroom_claims()
     )
 
 
@@ -833,24 +783,13 @@ UNSUPPORTED = (
     UnsupportedClaim(
         "Flying-capacitor balancing is robust to SOC estimation error in general",
         "in this model the link current follows the true voltage difference while the controller "
-        "stops on the estimate, so 78 % to 98 % of packs never reach the estimated criterion in "
+        "stops on the estimate, so 65 % to 98 % of packs never reach the estimated criterion in "
         "12 h; the result is a property of the model, not a hardware measurement",
     ),
     UnsupportedClaim(
         "Balancing results at 0, 10 or 40 C",
         "only the cell parameters were fitted per temperature; no temperature-dependent "
         "balancing study and the simulator stays at 25 C",
-    ),
-    UnsupportedClaim(
-        "Flying-capacitor link resistance and balancing time match hardware (coth form "
-        "against the series form: baseline time 1.96 h against 1.18 h)",
-        "only ideal-switch SPICE checks exist; circuit validation with real switches, ESR and "
-        "dead time is still open",
-    ),
-    UnsupportedClaim(
-        "The RMS-current R0 loss of the buck-boost (+7 to 8 % energy) is the correct default",
-        "an input capacitor on the cell side would smooth the cell current and remove part "
-        "of the ripple loss; needs circuit validation",
     ),
     UnsupportedClaim(
         "Drive-cycle balancing gains hold for other packs, spreads, cycles or temperatures",
@@ -878,19 +817,10 @@ UNSUPPORTED = (
         "ASSUMED; the dataset has a single cell, so this stays assumed",
     ),
     UnsupportedClaim(
-        "The averaged converter models hold outside the six checked points",
-        "buck-boost checked only in discontinuous conduction at D = 0.4 and three (L, f) points; "
-        "flying capacitor only at three (C, f) points and 4-switch two-phase operation",
-    ),
-    UnsupportedClaim(
         "Converter efficiencies and losses match a built converter",
-        "SPICE used ideal DC sources and ideal-threshold switches; switching transition, gate "
-        "drive, dead-time and core losses are not modelled, so efficiency is an upper bound",
-    ),
-    UnsupportedClaim(
-        "The flying-capacitor split between cell R0 heating and converter heating is exact",
-        "R0 loss is booked with the mean link current; SPICE shows pulsed currents, so the element "
-        "loss differs by 23 to 43 % (total dissipated power agrees)",
+        "LTspice with library MOSFET and diode models covers switching transitions, gate "
+        "drive and dead time (section k), but the circuits still use ideal DC cell sources, a "
+        "linear inductor without core loss and ideal gate drivers; nothing was built or measured",
     ),
     UnsupportedClaim(
         "Converter component values (switch resistance, ESR, inductor resistance, duty) are "
@@ -926,23 +856,28 @@ UNSUPPORTED = (
     ),
     UnsupportedClaim(
         "Balancing results hold when SOC is estimated rather than known exactly",
-        "SOC is assumed known exactly (Phases 4 and 8)",
+        "SOC estimation and its error are simulated (sections l, m and n) from one cell and "
+        "assumed error models; no estimator was run on a pack in hardware",
     ),
     UnsupportedClaim(
         "The ML model fits and runs on a microcontroller",
-        "no embedded export or target measurement (Phase 5)",
+        "MACs and weight bytes are counted (section l) but nothing was exported to or timed on "
+        "a microcontroller",
     ),
     UnsupportedClaim(
         "Balancing results hold under driving or charging current",
-        "only rest balancing is simulated (Phase 6)",
+        "drive-cycle and charging balancing is simulated (section m) from one measured cell at "
+        "25 C and one baseline pack; no hardware or other packs",
     ),
     UnsupportedClaim(
         "Balancing results hold at temperatures other than the parameter-set temperature",
-        "no temperature dependence (Phase 7)",
+        "only the cell parameters and the SOC estimators are fitted per temperature (section j); "
+        "the balancing simulator stays at 25 C",
     ),
     UnsupportedClaim(
         "Results extend to strings longer than 4 cells",
-        "only 4-cell packs simulated (Phase 9)",
+        "strings of 4 to 96 cells are simulated with the averaged models (section m) and the RL "
+        "second attempt covers 4 and 8 cells; no longer string was validated against a circuit",
     ),
 )
 

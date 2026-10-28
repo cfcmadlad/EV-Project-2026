@@ -19,7 +19,6 @@ DATASET_VERSION = 2
 DOI = "10.17632/b5mj79w5w9.2"
 LICENCE = "CC BY 4.0"
 TITLE = "LG 18650HG2 Li-ion Battery Data"
-INSTITUTION = "McMaster University"
 TEMPERATURE_FOLDER = "25degC"
 ROOT_FILES = (
     "Readme file - Description of Experimental Tests.txt",
@@ -215,14 +214,22 @@ def parse_check(name: str, body: bytes) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--group", choices=("base", *GROUPS), default="base")
+    parser.add_argument("--group", choices=("base", "all", *GROUPS), default="base")
     group = parser.parse_args().group
     existing = json.loads(PROVENANCE_PATH.read_text()) if PROVENANCE_PATH.exists() else {}
     known = {(r["folder"], r["name"]): r for r in existing.get("files", [])}
     try:
+        base = select(list_files("root", "root"), ROOT_FILES) + select(
+            list_files(folder_id(TEMPERATURE_FOLDER), TEMPERATURE_FOLDER), FOLDER_FILES
+        )
         if group == "base":
-            wanted = select(list_files("root", "root"), ROOT_FILES) + select(
-                list_files(folder_id(TEMPERATURE_FOLDER), TEMPERATURE_FOLDER), FOLDER_FILES
+            wanted = base
+        elif group == "all":
+            wanted = list(
+                {
+                    (i.folder, i.name): i
+                    for i in base + [x for g in GROUPS for x in select_group(g)]
+                }.values()
             )
         else:
             wanted = select_group(group)
@@ -243,7 +250,6 @@ def main() -> int:
             "doi": DOI,
             "version": DATASET_VERSION,
             "licence": LICENCE,
-            "institution": INSTITUTION,
             "landing_page": f"https://data.mendeley.com/datasets/{DATASET_ID}/{DATASET_VERSION}",
             "api_root": API_ROOT,
         },

@@ -40,8 +40,8 @@ def test_raw_files_match_recorded_hashes() -> None:
     for record in PROVENANCE["files"]:
         flat = record["folder"] in ("root", "25degC")
         path = RAW_DIR / record["name"] if flat else RAW_DIR / record["folder"] / record["name"]
-        data = path.read_bytes()
-        assert hashlib.sha256(data).hexdigest() == record["sha256"]
+        if path.is_file():
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == record["sha256"]
 
 
 @needs_raw

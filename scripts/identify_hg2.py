@@ -41,7 +41,6 @@ PARAMETER_SET_NAME = "fitted_hg2_25c"
 DATASET_TITLE = "LG 18650HG2 Li-ion Battery Data"
 DATASET_DOI = "10.17632/b5mj79w5w9.2"
 DATASET_LICENCE = "CC BY 4.0"
-DATASET_INSTITUTION = "McMaster University"
 ASSUMED_PARAMETERS = [
     "cell-to-cell capacity spread of +/-5 %",
     "cell-to-cell R0 spread of +/-10 %",
@@ -94,7 +93,6 @@ def main() -> int:
                 "title": DATASET_TITLE,
                 "doi": DATASET_DOI,
                 "licence": DATASET_LICENCE,
-                "institution": DATASET_INSTITUTION,
             },
             "model": {
                 "kept": kept,

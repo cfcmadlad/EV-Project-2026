@@ -23,11 +23,21 @@ from src.config import (
 )
 from src.converter_audit import converter_audit_block
 from src.dataset import TARGET_NAMES, Dataset, generate_dataset
+from src.deep_plots import plot_rl_second, plot_soc_deep, plot_surrogates, plot_trajectories
+from src.deep_report import deep_models_block, deep_timing
 from src.drive_cycle import drive_cycle_stage, load_profiles, population_block
 from src.drive_plots import plot_drive_capacity, plot_drive_spread
-from src.experiments import baseline_pack, random_streams, run_baseline
+from src.experiments import baseline_pack, random_streams, run_baseline, with_flying_model
+from src.fingerprint import stale_paths, text_sha256
+from src.headroom import load_cache as load_headroom
+from src.headroom_plots import plot_headroom
 from src.identification import table_slope_mv_per_percent
-from src.midsem import midsem_block
+from src.lt_plots import (
+    plot_averaged_vs_ltspice,
+    plot_loss_breakdown,
+    plot_waveforms,
+)
+from src.lt_report import ltspice_block
 from src.ml_eval import evaluate
 from src.ml_plots import plot_conformal_coverage, plot_cv_comparison, plot_out_of_range
 from src.pack import PackBatch, tile_pack
@@ -80,6 +90,8 @@ def baseline_table(results: dict[Technique, BalanceResult]) -> list[Row]:
             "balancing_time_s": float(result.balancing_time_s[0]),
             "balancing_time_h": float(result.balancing_time_s[0] / SECONDS_PER_HOUR),
             "energy_dissipated_j": float(result.energy_dissipated_j[0]),
+            "energy_cell_side_j": float(result.energy_dissipated_j[0] - result.gate_drive_j[0]),
+            "energy_gate_drive_j": float(result.gate_drive_j[0]),
             "efficiency_pct": float(result.efficiency[0] * PERCENT),
         }
         for technique, result in results.items()
@@ -324,11 +336,6 @@ def cell_stages(
     )
 
 
-def with_flying_model(config: ProjectConfig, model: FlyingCapModel) -> ProjectConfig:
-    spec = replace(config.flying_capacitor, model=model)
-    return replace(config, params=replace(config.params, flying_capacitor=spec))
-
-
 def flying_model_comparison(
     pack: PackBatch,
     config: ProjectConfig,
@@ -358,13 +365,13 @@ def flying_model_comparison(
         }
         sweep["frequency_hz"] = values.tolist()
         sweep[f"balancing_time_s_{model.value}"] = times.tolist()
-    old, new = baseline[FlyingCapModel.MIDSEM.value], baseline[FlyingCapModel.TWO_PHASE.value]
+    old, new = baseline[FlyingCapModel.SERIES.value], baseline[FlyingCapModel.TWO_PHASE.value]
     return {
         "status": "ok",
         "parameter_set": config.params.name,
         "baseline": baseline,
-        "time_ratio_two_phase_over_midsem": new["balancing_time_s"] / old["balancing_time_s"],
-        "energy_ratio_two_phase_over_midsem": new["energy_dissipated_j"]
+        "time_ratio_two_phase_over_series": new["balancing_time_s"] / old["balancing_time_s"],
+        "energy_ratio_two_phase_over_series": new["energy_dissipated_j"]
         / old["energy_dissipated_j"],
         "frequency_sweep": sweep,
         "active_model": config.flying_capacitor.model.value,
@@ -434,6 +441,35 @@ def write_ml_eval_figures(
     )
 
 
+def averaged_config(config: ProjectConfig) -> ProjectConfig:
+    flying = replace(config.flying_capacitor, model=FlyingCapModel.TWO_PHASE)
+    buck = replace(config.buck_boost, circuit_calibrated=False)
+    params = replace(config.params, flying_capacitor=flying, buck_boost=buck)
+    return replace(config, params=params)
+
+
+def calibration_effect(
+    pack: PackBatch, config: ProjectConfig, calibrated: dict[Technique, BalanceResult]
+) -> list[dict[str, float | str]]:
+    averaged_config_ = averaged_config(config)
+    averaged = run_baseline(pack, averaged_config_, trace=False)
+    rows: list[dict[str, float | str]] = []
+    for technique in Technique:
+        old, new = averaged[technique], calibrated[technique]
+        rows.append(
+            {
+                "technique": technique.key,
+                "time_h_averaged": float(old.balancing_time_s[0] / SECONDS_PER_HOUR),
+                "time_h_calibrated": float(new.balancing_time_s[0] / SECONDS_PER_HOUR),
+                "energy_j_averaged": float(old.energy_dissipated_j[0]),
+                "energy_j_calibrated": float(new.energy_dissipated_j[0]),
+                "efficiency_pct_averaged": float(old.efficiency[0] * PERCENT),
+                "efficiency_pct_calibrated": float(new.efficiency[0] * PERCENT),
+            }
+        )
+    return rows
+
+
 def run(config: ProjectConfig, results_dir: Path) -> list[str]:
     start = perf_counter()
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -460,6 +496,7 @@ def _run_stages(
     sweeps = run_sweeps(pack, config)
 
     dataset = generate_dataset(config, streams["dataset"])
+    write_dataset_csv(dataset, results_dir / "dataset.csv")
     n_runs = dataset.features.shape[0]
     simulation_time = dataset.simulation_s / n_runs
     report = train_and_evaluate(dataset, config.ml, config.seed)
@@ -476,6 +513,30 @@ def _run_stages(
     if converter_rows:
         write_comparison_csv(converter_rows, results_dir / "spice_vs_averaged.csv")
         plot_current_parity(converter_rows, config, results_dir / "spice_vs_averaged")
+    ltspice_result = ltspice_block()
+    if ltspice_result["status"] == "ok":
+        plot_waveforms("buck_boost", results_dir / "ltspice_buck_boost_waveform", config.plot)
+        plot_waveforms(
+            "flying_capacitor", results_dir / "ltspice_flying_capacitor_waveform", config.plot
+        )
+        plot_averaged_vs_ltspice(results_dir / "ltspice_vs_averaged", config.plot)
+        plot_loss_breakdown(
+            ltspice_result["buck_boost"]["loss_breakdown_baseline"],
+            results_dir / "ltspice_loss_breakdown",
+            config.plot,
+        )
+    deep_block = deep_models_block(text_sha256(results_dir / "dataset.csv"))
+    for name, plot, key in (
+        ("deep_surrogates", plot_surrogates, "surrogates"),
+        ("deep_trajectories", plot_trajectories, "trajectory"),
+        ("deep_soc", plot_soc_deep, "soc"),
+        ("deep_rl_second_attempt", plot_rl_second, "rl"),
+    ):
+        if deep_block[key]["status"] == "ok":
+            plot(deep_block[key], results_dir / name, config.plot)
+    headroom_result = load_headroom(config)
+    if headroom_result["status"] == "ok":
+        plot_headroom(headroom_result, results_dir / "controller_headroom", config.plot)
     drive_block, drive_traces = drive_cycle_stage(config, pack, baseline)
     population = load_profiles(config.drive_cycle)
     drive_population_result = (
@@ -528,7 +589,6 @@ def _run_stages(
         )
         plot_rl_vs_baselines(rl_cache["test"], results_dir / "rl_vs_baselines", config.plot)
     write_baseline_csv(table, results_dir / "baseline_table.csv")
-    write_dataset_csv(dataset, results_dir / "dataset.csv")
     save_figures(baseline, sweeps, dataset, report, config, results_dir)
     metrics = {
         "seed": config.seed,
@@ -547,6 +607,10 @@ def _run_stages(
         "cell_validation": valid_block,
         "baseline_assumed_vs_fitted": comparison_block,
         "converter_check": converter_block,
+        "ltspice_validation": ltspice_result,
+        "calibration_effect": calibration_effect(pack, config, baseline),
+        "deep_models": deep_block,
+        "headroom": headroom_result,
         "flying_capacitor_model_comparison": flying_model_comparison(
             pack,
             config,
@@ -562,11 +626,13 @@ def _run_stages(
         "rl_control": rl_result,
         "link_coupling": coupling_result,
         "drive_cycle_population": drive_population_result,
-        "midsem_consistency": midsem_block(config, report.metrics),
         "converter_audit": converter_audit_block(config, streams["audit"]),
         "voltage_balancing": voltage_result,
         "technique_selector": selector_result,
     }
+    stale = stale_paths(metrics)
+    if stale and config == CONFIG:
+        raise RuntimeError(f"stale caches, rerun their scripts: {sorted(stale)}")
     write_json(metrics, results_dir / "metrics.json")
     runtime = perf_counter() - start
     timing = {
@@ -576,6 +642,7 @@ def _run_stages(
             "speedup": speedup,
         },
         "ml_eval": ml_timing,
+        "deep_models": deep_timing(),
         "soc_estimation": timing_block(),
         "rl_control": rl_timing_block(),
         "physics_checks_s": checks_time,

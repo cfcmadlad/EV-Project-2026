@@ -5,8 +5,8 @@ import numpy as np
 from src.balancing import simulate
 from src.checks import ledger_discrepancy, random_case
 from src.config import ProjectConfig, Technique
-from src.experiments import baseline_pack
-from src.params import SECONDS_PER_HOUR, FlyingCapModel
+from src.experiments import baseline_pack, with_flying_model
+from src.params import ANALYTIC_FLYING_MODELS, SECONDS_PER_HOUR
 from src.switched_cap import coth_resistance_ohm, link_resistance_ohm
 
 CELL_VOLTAGE_RANGE_V = (3.0, 4.2)
@@ -17,11 +17,6 @@ GRID_POINTS = 25
 def with_buck_boost(config: ProjectConfig, **changes) -> ProjectConfig:
     spec = replace(config.buck_boost, **changes)
     return replace(config, params=replace(config.params, buck_boost=spec))
-
-
-def with_flying_model(config: ProjectConfig, model: FlyingCapModel) -> ProjectConfig:
-    spec = replace(config.flying_capacitor, model=model)
-    return replace(config, params=replace(config.params, flying_capacitor=spec))
 
 
 def baseline_run(config: ProjectConfig, technique: Technique) -> tuple[float, float]:
@@ -113,7 +108,7 @@ def flying_capacitor_audit(config: ProjectConfig) -> dict[str, object]:
     frequency = np.linspace(spec.frequency_hz.low, spec.frequency_hz.high, GRID_POINTS)
     inverse = 1.0 / (capacitance[:, None] * frequency[None, :])
     forms = {
-        "midsem_series": inverse + 2.0 * spec.r_ds_on_ohm + spec.esr_ohm + 2.0 * r0_mean,
+        "series_form": inverse + 2.0 * spec.r_ds_on_ohm + spec.esr_ohm + 2.0 * r0_mean,
         "two_phase": coth_resistance_ohm(inverse, np.full_like(inverse, phase_ohm)),
         "coth": coth_resistance_ohm(inverse, np.full_like(inverse, phase_ohm)),
     }
@@ -121,7 +116,7 @@ def flying_capacitor_audit(config: ProjectConfig) -> dict[str, object]:
     r0_row = pack.r0_ohm[:1]
     at_baseline = {}
     runs = {}
-    for model in FlyingCapModel:
+    for model in ANALYTIC_FLYING_MODELS:
         local = replace(spec, model=model)
         at_baseline[model.value] = float(link_resistance_ohm(mid_inverse, r0_row, local)[0, 0])
         time_s, energy_j = baseline_run(
@@ -143,14 +138,14 @@ def flying_capacitor_audit(config: ProjectConfig) -> dict[str, object]:
             for name, v in forms.items()
         },
         "series_over_coth_at_range_extremes": {
-            "min": float(np.min(forms["midsem_series"] / forms["coth"])),
-            "max": float(np.max(forms["midsem_series"] / forms["coth"])),
+            "min": float(np.min(forms["series_form"] / forms["coth"])),
+            "max": float(np.max(forms["series_form"] / forms["coth"])),
         },
         "baseline": runs,
-        "baseline_time_ratio_coth_over_midsem": runs["coth"]["balancing_time_s"]
-        / runs["midsem"]["balancing_time_s"],
-        "baseline_energy_ratio_coth_over_midsem": runs["coth"]["energy_dissipated_j"]
-        / runs["midsem"]["energy_dissipated_j"],
+        "baseline_time_ratio_coth_over_series": runs["coth"]["balancing_time_s"]
+        / runs["series"]["balancing_time_s"],
+        "baseline_energy_ratio_coth_over_series": runs["coth"]["energy_dissipated_j"]
+        / runs["series"]["energy_dissipated_j"],
         "default_model": config.flying_capacitor.model.value,
     }
 
