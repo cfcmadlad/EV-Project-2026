@@ -15004,6 +15004,354 @@
           }
         }
       }
+    },
+    "abstaining": {
+      "status": "ok",
+      "n_packs": 300,
+      "predictor": {
+        "balancing_time_s": "hybrid",
+        "energy_dissipated_j": "hybrid"
+      },
+      "calibration_rows": 1200,
+      "test_rows": 1200,
+      "calibration": {
+        "balancing_time_s": {
+          "techniques": {
+            "passive": {
+              "coverage": 0.8725,
+              "pass": true,
+              "mean_half_width_log": 0.0038237506778882623,
+              "fixed_half_width_log": 0.006031127834473793,
+              "log_quantile": 0.7789593007891249,
+              "scale_offset": 0.0017105814053284263,
+              "abstain_width_log": 0.006035722900442342,
+              "fixed_coverage": 0.8725
+            },
+            "buck_boost": {
+              "coverage": 0.885,
+              "pass": true,
+              "mean_half_width_log": 0.11005513470327312,
+              "fixed_half_width_log": 0.11661782813357036,
+              "log_quantile": 0.8488833590547569,
+              "scale_offset": 0.052286794735383335,
+              "abstain_width_log": 0.1860574815858667,
+              "fixed_coverage": 0.88
+            },
+            "flying_capacitor": {
+              "coverage": 0.885,
+              "pass": true,
+              "mean_half_width_log": 0.024100791282746094,
+              "fixed_half_width_log": 0.03125482485979436,
+              "log_quantile": 0.7743451097345371,
+              "scale_offset": 0.014226020319159094,
+              "abstain_width_log": 0.03559866929372661,
+              "fixed_coverage": 0.91
+            }
+          },
+          "pass": true
+        },
+        "energy_dissipated_j": {
+          "techniques": {
+            "passive": {
+              "coverage": 0.8725,
+              "pass": true,
+              "mean_half_width_log": 0.024252307430675028,
+              "fixed_half_width_log": 0.027977068086597612,
+              "log_quantile": 1.619787063429883,
+              "scale_offset": 0.00468310027299168,
+              "abstain_width_log": 0.04870143735672799,
+              "fixed_coverage": 0.8525
+            },
+            "buck_boost": {
+              "coverage": 0.895,
+              "pass": true,
+              "mean_half_width_log": 0.15184796757795088,
+              "fixed_half_width_log": 0.1472922486648658,
+              "log_quantile": 0.34337518684994606,
+              "scale_offset": 0.21326854779849325,
+              "abstain_width_log": 0.2096373703059458,
+              "fixed_coverage": 0.885
+            },
+            "flying_capacitor": {
+              "coverage": 0.8825,
+              "pass": true,
+              "mean_half_width_log": 0.02255831994873887,
+              "fixed_half_width_log": 0.0324019470091641,
+              "log_quantile": 0.831068770530348,
+              "scale_offset": 0.01090680229999652,
+              "abstain_width_log": 0.03830577183144022,
+              "fixed_coverage": 0.885
+            }
+          },
+          "pass": true
+        }
+      },
+      "abstain_quantile": 0.9,
+      "abstain_width_log": {
+        "passive": 0.006035722900442342,
+        "buck_boost": 0.1860574815858667,
+        "flying_capacitor": 0.03559866929372661
+      },
+      "min_accuracy": 0.9,
+      "max_violation": 0.05,
+      "by_budget": {
+        "0p5": {
+          "abstention_rate": 0.05,
+          "policies": {
+            "conformal_point": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.9966666666666667,
+              "budget_violation_fraction": 0.3466666666666667,
+              "mean_energy_j": 84.09826389634712,
+              "mean_regret_vs_oracle_j": 0.15359113274511932,
+              "saving_vs_always_passive_j": 3548.644560750439,
+              "saving_vs_always_buck_boost_j": 5.464383008877016
+            },
+            "conformal_upper": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.99,
+              "budget_violation_fraction": 0.3466666666666667,
+              "mean_energy_j": 84.45040577372444,
+              "mean_regret_vs_oracle_j": 0.5057330101224465,
+              "saving_vs_always_passive_j": 3548.292418873061,
+              "saving_vs_always_buck_boost_j": 5.112241131499689
+            },
+            "conformal_abstain": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.9966666666666667,
+              "budget_violation_fraction": 0.3466666666666667,
+              "mean_energy_j": 84.15260825531975,
+              "mean_regret_vs_oracle_j": 0.20793549171773823,
+              "saving_vs_always_passive_j": 3548.590216391466,
+              "saving_vs_always_buck_boost_j": 5.410038649904398
+            }
+          }
+        },
+        "1": {
+          "abstention_rate": 0.056666666666666664,
+          "policies": {
+            "conformal_point": {
+              "budget_violation_fraction_among_feasible": 0.0033783783783783786,
+              "agrees_with_oracle": 0.9966666666666667,
+              "budget_violation_fraction": 0.016666666666666666,
+              "mean_energy_j": 64.27537167048406,
+              "mean_regret_vs_oracle_j": -0.23894408141385762,
+              "saving_vs_always_passive_j": 3568.4674529763015,
+              "saving_vs_always_buck_boost_j": 25.287275234740076
+            },
+            "conformal_upper": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.9866666666666667,
+              "budget_violation_fraction": 0.013333333333333334,
+              "mean_energy_j": 65.80159905823211,
+              "mean_regret_vs_oracle_j": 1.2872833063341802,
+              "saving_vs_always_passive_j": 3566.9412255885536,
+              "saving_vs_always_buck_boost_j": 23.761047846992035
+            },
+            "conformal_abstain": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.9866666666666667,
+              "budget_violation_fraction": 0.013333333333333334,
+              "mean_energy_j": 65.80159905823211,
+              "mean_regret_vs_oracle_j": 1.2872833063341802,
+              "saving_vs_always_passive_j": 3566.9412255885536,
+              "saving_vs_always_buck_boost_j": 23.761047846992035
+            }
+          }
+        },
+        "1p5": {
+          "abstention_rate": 0.07,
+          "policies": {
+            "conformal_point": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.9966666666666667,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 38.94594628279128,
+              "mean_regret_vs_oracle_j": 0.4039279069551064,
+              "saving_vs_always_passive_j": 3593.7968783639944,
+              "saving_vs_always_buck_boost_j": 50.61670062243285
+            },
+            "conformal_upper": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.9933333333333333,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 39.289481025661374,
+              "mean_regret_vs_oracle_j": 0.7474626498251973,
+              "saving_vs_always_passive_j": 3593.4533436211245,
+              "saving_vs_always_buck_boost_j": 50.27316587956276
+            },
+            "conformal_abstain": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.9933333333333333,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 39.289481025661374,
+              "mean_regret_vs_oracle_j": 0.7474626498251973,
+              "saving_vs_always_passive_j": 3593.4533436211245,
+              "saving_vs_always_buck_boost_j": 50.27316587956276
+            }
+          }
+        },
+        "2": {
+          "abstention_rate": 0.07,
+          "policies": {
+            "conformal_point": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 16.852204172842583,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3615.890620473943,
+              "saving_vs_always_buck_boost_j": 72.71044273238155
+            },
+            "conformal_upper": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 16.852204172842583,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3615.890620473943,
+              "saving_vs_always_buck_boost_j": 72.71044273238155
+            },
+            "conformal_abstain": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 16.852204172842583,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3615.890620473943,
+              "saving_vs_always_buck_boost_j": 72.71044273238155
+            }
+          }
+        },
+        "3": {
+          "abstention_rate": 0.07,
+          "policies": {
+            "conformal_point": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "conformal_upper": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "conformal_abstain": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            }
+          }
+        },
+        "4": {
+          "abstention_rate": 0.07,
+          "policies": {
+            "conformal_point": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "conformal_upper": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "conformal_abstain": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            }
+          }
+        },
+        "6": {
+          "abstention_rate": 0.07,
+          "policies": {
+            "conformal_point": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "conformal_upper": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "conformal_abstain": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            }
+          }
+        },
+        "8": {
+          "abstention_rate": 0.07,
+          "policies": {
+            "conformal_point": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "conformal_upper": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "conformal_abstain": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.1148232644036,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            }
+          }
+        }
+      }
     }
   }
 }

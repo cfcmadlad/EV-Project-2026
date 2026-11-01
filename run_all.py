@@ -8,6 +8,8 @@ from time import perf_counter
 
 import numpy as np
 
+from src.abstain import abstaining_selector_block
+from src.abstain_plots import plot_abstaining
 from src.balancing import BalanceResult, simulate, tail_slowdown_ratio
 from src.cell_plots import plot_baseline_comparison
 from src.checks import link_coupling_check, physics_checks
@@ -56,7 +58,7 @@ from src.rl_report import rl_block
 from src.rl_report import timing_block as rl_timing_block
 from src.scaling import scaling_block
 from src.scaling_plots import plot_scaling
-from src.selector import selector_block
+from src.selector import selector_block, selector_inputs
 from src.selector_plots import plot_selector
 from src.soc_error import soc_error_block
 from src.soc_estimation.plots import plot_error_summary, plot_traces, plot_wrong_start
@@ -579,8 +581,26 @@ def _run_stages(
     voltage_result = voltage_balancing_block(config)
     if voltage_result["status"] == "ok":
         plot_voltage_balancing(voltage_result, results_dir / "voltage_balancing", config.plot)
-    selector_result = selector_block(config, streams["selector"], report)
+    selector_in = selector_inputs(config, streams["selector"], report)
+    selector_result = selector_block(config, selector_in)
+    selector_result["abstaining"] = abstaining_selector_block(
+        ml_extra["data"],
+        config,
+        ml_extra["split"],
+        ml_extra["fitted"],
+        ml_extra["best"],
+        ml_eval_block["conformal"],
+        selector_in,
+    )
     plot_selector(selector_result, results_dir / "technique_selector", config.plot)
+    plot_abstaining(
+        selector_result["abstaining"],
+        selector_result,
+        results_dir / "abstaining_selector",
+        config.plot,
+        config.ml_eval.coverage_low,
+        config.ml_eval.coverage_high,
+    )
     rl_result = rl_block(config)
     if rl_result["status"] == "ok":
         rl_cache = json.loads(RL_RESULTS_PATH.read_text())

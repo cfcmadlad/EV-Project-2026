@@ -544,6 +544,8 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 ├── run_all.py                   Runs the full pipeline and writes every output
 ├── src/
 │   ├── __init__.py                  Marks src as a Python package
+│   ├── abstain.py                   Normalised conformal intervals and the abstaining technique selector
+│   ├── abstain_plots.py             Abstaining selector figure
 │   ├── balancing.py                 Averaged balancing models, the calibrated parameter stack and the batched simulator
 │   ├── baselines.py                 Closed-form physics baselines (time and energy per technique)
 │   ├── calibration.py               Correction maps built from results/ltspice, saturation rule and range pruning
@@ -625,6 +627,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── check_readme.py                  Checks README, FIGURES and claims numbers against metrics.json
 │   ├── claims_base.py                   Claim dataclass and threshold helpers
 │   ├── claims_deep.py                   Claims about the deep-learning comparison
+│   ├── claims_extensions.py             Claims about the extensions (abstaining selector)
 │   ├── claims_headroom.py               Claims about the controller headroom bound
 │   ├── claims_ltspice.py                Claims about the LTspice validation
 │   ├── evaluate_rl.py                   Evaluates the first controllers on the test episodes
@@ -679,6 +682,14 @@ Four additions on top of the finished study. Thresholds, budgets and parameters 
 | Thermal limit | Lumped thermal model of each cell and bleed resistor, duty-cycled passive bleed under a temperature-rise ceiling, thermal feasibility in the selector | Ceiling 20 K rise on the resistor; heat in equals ledger dissipation within 1 %; whether passive at the baseline exceeds the ceiling without duty cycling is reported as it comes out. Thermal parameters have no source in the repository: resistor 100 K/W and 0.05 J/K, cell 15 K/W and 47 J/K, all ASSUMED, so no absolute temperature is claimed |
 | Tests and stress | Property-based tests (Hypothesis) and an out-of-range stress test of the surrogate and selector without retraining | Selector violations at most 5 % at 1 h up to 1.25 times the training range of spread, capacity and resistance; error growth reported at 1.25, 1.5 and 2 times |
 | Differentiable control | PyTorch twin of the averaged step and a receding-horizon gradient controller for 8, 16 and 32 cells | Parity with the NumPy step on 200 packs and 1000 steps within 1e-6 relative on SOC and 1e-4 relative on cumulative energy; the controller delivers at least as many Ah as the rule in at least 90 % of packs at each N; it closes at least 25 % of the rule-to-bound gap at N = 32; 50 packs per N, 3 seeds, fixed horizon of 12 intervals of 30 s, 25 Adam iterations at learning rate 0.05 |
+
+### Abstaining selector: results
+
+The predictor is the frozen section o hybrid (closed form times a boosting residual), fitted on 75 % of the training rows; the intervals are calibrated on the other 25 % and scored on the 20 % test rows, with the normaliser u = |ln prediction - ln closed form| + c, where c is the per-technique median of that gap on the calibration rows (label-free). Single split, 400 test rows per technique, so one coverage value has a binomial standard error of about 1.5 percentage points.
+
+- **Coverage.** All six technique and target intervals fall in the 87 to 93 % window (time 87.25, 88.5 and 88.5 %; energy 87.25, 89.5 and 88.25 % for passive, buck-boost and flying capacitor). The fixed-width intervals of section o miss it for passive energy (85.25 %). The normalised intervals are narrower for passive (mean half-width 0.0038 against 0.0060 in log time) and flying capacitor (0.0241 against 0.0313) and slightly wider for buck-boost energy.
+- **Selector at the 1 h budget (300 held-out packs).** The section n boosting selector misses the budget on 6.8 % of the feasible packs. The same decision rule on the hybrid predictor, with point forecasts, misses 0.3 % (99.7 % agreement with the oracle); planning with the upper bound misses none (98.7 % agreement, 65.8 J against 64.3 J mean energy). Abstaining on wide intervals (5.7 % of packs at 1 h) leaves the outcome identical to the upper-bound selector: at the tested budgets abstention changes nothing, and the gain comes from the better predictor, not from the interval. Violations at every budget are 0 to 0.3 % for the three hybrid variants.
+- Figure: `results/abstaining_selector.png`.
 
 ## t. Data and licence
 

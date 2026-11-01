@@ -45,6 +45,7 @@ One line per figure: what it shows and its key number (all from `metrics.json`, 
 - `rl_training_curves.png`: PPO mean training return for the three seeds over 300 000 steps; no seed improves clearly.
 - `rl_vs_baselines.png`: delivered Ah and reward on the four test cycles for no balancing, rule-based, greedy, PPO and the ideal-transfer reference; PPO equals or trails no balancing (for example 1.289 against 1.291 Ah on Mixed 7) while the rule gives 1.335 Ah.
 - `voltage_balancing.png`: fraction of 200 packs below 1 % true SOC spread against cell voltage sensor error for passive, buck-boost and flying capacitor at three stop thresholds; 100 % at 1 mV, 94 % and 93 % at 2 mV, 11 % at 10 mV with the 0.5 % stop.
+- `abstaining_selector.png`: left, test coverage of the 90 % interval per technique and target for fixed-width and normalised conformal intervals (87 to 93 % window shaded); right, budget violations among feasible packs for the boosting selector (6.8 % at 1 h) and the hybrid selectors using point forecasts, the upper bound and abstention (0 to 0.3 %).
 - `technique_selector.png`: budget violations among feasible packs and mean energy against parking time budget for the surrogate selector, physics selector, oracle and fixed policies; surrogate agreement 92.7 % and 6.8 % budget violations at 1 h.
 
 ## Circuit-level validation, deep learning and headroom (sections k, l and n)

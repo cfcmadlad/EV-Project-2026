@@ -22,6 +22,42 @@ def f(path: str, spec: str, scale: float = 1.0) -> Callable[[Metrics], str]:
 
 
 CHECKS: list[Check] = [
+    (
+        "abstaining coverage time passive",
+        f(
+            "technique_selector.abstaining.calibration.balancing_time_s.techniques.passive.coverage",
+            ".2f",
+            100,
+        ),
+    ),
+    (
+        "abstaining coverage energy buck-boost",
+        f(
+            "technique_selector.abstaining.calibration.energy_dissipated_j.techniques.buck_boost.coverage",
+            ".1f",
+            100,
+        ),
+    ),
+    (
+        "abstaining point violations 1 h",
+        f(
+            "technique_selector.abstaining.by_budget.1.policies.conformal_point.budget_violation_fraction_among_feasible",
+            ".1f",
+            100,
+        ),
+    ),
+    (
+        "abstaining upper agreement 1 h",
+        f(
+            "technique_selector.abstaining.by_budget.1.policies.conformal_upper.agrees_with_oracle",
+            ".1f",
+            100,
+        ),
+    ),
+    (
+        "abstention rate 1 h",
+        f("technique_selector.abstaining.by_budget.1.abstention_rate", ".1f", 100),
+    ),
     ("baseline passive time", f("baseline.0.balancing_time_h", ".2f")),
     ("baseline buck-boost time", f("baseline.1.balancing_time_h", ".2f")),
     ("baseline flying capacitor time", f("baseline.2.balancing_time_h", ".2f")),
