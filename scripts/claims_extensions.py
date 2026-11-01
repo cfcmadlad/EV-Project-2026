@@ -40,3 +40,51 @@ def abstaining_claims() -> list[CheckedClaim]:
         ),
     ]
     return claims
+
+
+def thermal_claims() -> list[CheckedClaim]:
+    base = "thermal"
+    return [
+        CheckedClaim(
+            "Heat in the thermal model equals the bleed resistor energy booked in the ledger "
+            "(passive baseline, continuous and duty-cycled)",
+            f"{base}.heat_vs_ledger.resistor_max_relative_gap",
+            "<= 1 %",
+            at_most(0.01),
+            percent,
+        ),
+        CheckedClaim(
+            "Heat in the thermal model equals the cell R0 loss booked in the ledger (baseline, "
+            "all three techniques and duty-cycled passive)",
+            f"{base}.heat_vs_ledger.cell_max_relative_gap",
+            "<= 1 %",
+            at_most(0.01),
+            percent,
+        ),
+        CheckedClaim(
+            "The thermal integrator closes its own energy balance (stored plus rejected equals "
+            "heat in, worst pack)",
+            f"{base}.heat_vs_ledger.max_storage_balance_error",
+            "<= 1 %",
+            at_most(0.01),
+            percent,
+        ),
+        CheckedClaim(
+            "Continuous passive bleeding at the baseline stays under the resistor temperature "
+            "rise ceiling",
+            f"{base}.passive_limited.unconstrained_exceeds_ceiling",
+            "peak rise <= 20 K",
+            lambda v: v is False,
+            boolean,
+            "assumed thermal parameters; FAIL means the ceiling is exceeded",
+        ),
+        CheckedClaim(
+            "Thermally aware selector misses a 1 h budget on at most 5 % of the packs where some "
+            "technique meets it (thermally limited ground truth, 300 packs)",
+            f"{base}.selector.by_budget.1.policies.thermal_selector."
+            "budget_violation_fraction_among_feasible",
+            "<= 5 %",
+            at_most(0.05),
+            percent,
+        ),
+    ]

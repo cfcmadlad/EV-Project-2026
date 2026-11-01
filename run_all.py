@@ -68,6 +68,8 @@ from src.spice_check import converter_check
 from src.spice_plots import plot_current_parity
 from src.temperature import temperature_block
 from src.temperature_plots import plot_params_vs_temperature, plot_soc_error
+from src.thermal import thermal_block
+from src.thermal_plots import plot_thermal
 from src.uncertainty import (
     BOOTSTRAP_PATH,
     IDENTIFICATION_PATH,
@@ -593,6 +595,8 @@ def _run_stages(
         selector_in,
     )
     plot_selector(selector_result, results_dir / "technique_selector", config.plot)
+    thermal_result, thermal_traces = thermal_block(config, baseline_pack(config), selector_in)
+    plot_thermal(thermal_result, thermal_traces, results_dir / "thermal_balancing", config.plot)
     plot_abstaining(
         selector_result["abstaining"],
         selector_result,
@@ -649,6 +653,7 @@ def _run_stages(
         "converter_audit": converter_audit_block(config, streams["audit"]),
         "voltage_balancing": voltage_result,
         "technique_selector": selector_result,
+        "thermal": thermal_result,
     }
     stale = stale_paths(metrics)
     if stale and config == CONFIG:

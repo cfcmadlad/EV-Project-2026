@@ -5,7 +5,7 @@ from pathlib import Path
 
 from scripts.claims_base import CheckedClaim, at_most, boolean, is_true, percent
 from scripts.claims_deep import deep_claims
-from scripts.claims_extensions import abstaining_claims
+from scripts.claims_extensions import abstaining_claims, thermal_claims
 from scripts.claims_headroom import headroom_claims
 from scripts.claims_ltspice import ltspice_claims
 
@@ -760,10 +760,20 @@ def checked_claims() -> list[CheckedClaim]:
         + deep_claims()
         + headroom_claims()
         + abstaining_claims()
+        + thermal_claims()
     )
 
 
 UNSUPPORTED = (
+    UnsupportedClaim(
+        "Absolute cell or bleed resistor temperatures during balancing",
+        "the thermal model uses assumed heat capacities and thermal resistances with no source "
+        "in the repository, so only relative effects (heat balance, duty-cycling) are claimed",
+    ),
+    UnsupportedClaim(
+        "The thermal ceiling holds on a built balancer",
+        "no resistor, board or cell temperature was measured",
+    ),
     UnsupportedClaim(
         "Learned (RL) control improves balancing under load",
         "PPO reached no gain over no balancing and lost to the rule-based controller on all "

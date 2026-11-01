@@ -593,6 +593,8 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── rl_sim.py                    Vectorised pack simulator with commanded buck-boost links
 │   ├── scaling.py                   Strings of 4 to 96 cells, theory slopes and block builder
 │   ├── scaling_plots.py             Scaling figure
+│   ├── thermal.py                   Lumped thermal model, duty-cycled passive bleed and the thermally aware selector
+│   ├── thermal_plots.py             Thermal figure
 │   ├── selector.py                  Technique selector under a parking time budget
 │   ├── selector_plots.py            Technique selector figure
 │   ├── soc_error.py                 SOC-error sensitivity study (fixed bias per cell)
@@ -690,6 +692,16 @@ The predictor is the frozen section o hybrid (closed form times a boosting resid
 - **Coverage.** All six technique and target intervals fall in the 87 to 93 % window (time 87.25, 88.5 and 88.5 %; energy 87.25, 89.5 and 88.25 % for passive, buck-boost and flying capacitor). The fixed-width intervals of section o miss it for passive energy (85.25 %). The normalised intervals are narrower for passive (mean half-width 0.0038 against 0.0060 in log time) and flying capacitor (0.0241 against 0.0313) and slightly wider for buck-boost energy.
 - **Selector at the 1 h budget (300 held-out packs).** The section n boosting selector misses the budget on 6.8 % of the feasible packs. The same decision rule on the hybrid predictor, with point forecasts, misses 0.3 % (99.7 % agreement with the oracle); planning with the upper bound misses none (98.7 % agreement, 65.8 J against 64.3 J mean energy). Abstaining on wide intervals (5.7 % of packs at 1 h) leaves the outcome identical to the upper-bound selector: at the tested budgets abstention changes nothing, and the gain comes from the better predictor, not from the interval. Violations at every budget are 0 to 0.3 % for the three hybrid variants.
 - Figure: `results/abstaining_selector.png`.
+
+### Thermal limit: results
+
+All thermal parameters are ASSUMED (resistor 100 K/W and 0.05 J/K, cell 15 K/W and 47 J/K; nothing in the repository supplies them), so only relative effects are claimed and no absolute temperature is. The ceiling is a 20 K rise of the bleed resistor.
+
+- **Passive at the baseline** (60 ohm bleed, 10 % spread): continuous bleeding reaches a 23.9 K resistor rise, above the ceiling (the claim that it stays under it is a FAIL). Duty-cycling the bleed to hold the ceiling lengthens balancing from 4.19 h to 5.23 h (ratio 1.25) with a 20.7 K peak, the overshoot of one 1 s step. The bleed energy is unchanged (7171 J).
+- **Cell heating** from R0 losses is below 0.01 K for all three techniques at the baseline (0.0007 K passive, 0.0086 K buck-boost, 0.0075 K flying capacitor), so cells are not thermally limiting in this model.
+- **Heat balance.** Heat computed from the reconstructed cell currents equals the resistor and R0 energy booked in the ledger to 1e-13, and the thermal integrator closes its own balance to 1e-14. These are identity checks of the reconstruction, not independent validation of the ledger.
+- **Selector.** The thermally aware selector multiplies the predicted passive time by max(1, peak bleed power / allowed power) and is judged against thermally limited ground truth for 300 packs. It never picks passive at any budget, because passive dissipates two orders of magnitude more energy than the active techniques whenever one of them meets the budget, so the thermal constraint changes no decision. Its violations (6.8 % at 1 h) are those of the section n boosting predictor, and the pre-registered limit of 5 % is missed (FAIL).
+- Figure: `results/thermal_balancing.png`.
 
 ## t. Data and licence
 

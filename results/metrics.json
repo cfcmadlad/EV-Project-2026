@@ -15353,5 +15353,338 @@
         }
       }
     }
+  },
+  "thermal": {
+    "status": "ok",
+    "parameters": {
+      "resistor_rth_k_per_w": 100.0,
+      "resistor_heat_capacity_j_per_k": 0.05,
+      "cell_rth_k_per_w": 15.0,
+      "cell_heat_capacity_j_per_k": 47.0,
+      "resistor_ceiling_rise_k": 20.0,
+      "source": "none in the repository: every thermal parameter is ASSUMED"
+    },
+    "baseline": {
+      "passive": {
+        "balancing_time_s": 15068.0,
+        "peak_resistor_rise_k": 23.89813237695915,
+        "peak_cell_rise_k": 0.0007381543876625065,
+        "resistor_heat_j": 7170.268065892082,
+        "ledger_resistor_j": 7170.268065891464,
+        "cell_heat_j": 1.4636469413859983,
+        "ledger_cell_j": 1.4636469413858868,
+        "storage_balance_error": 9.891695559573659e-15
+      },
+      "buck_boost": {
+        "balancing_time_s": 3897.0,
+        "peak_resistor_rise_k": 0.0,
+        "peak_cell_rise_k": 0.00864027773369709,
+        "resistor_heat_j": 0.0,
+        "ledger_resistor_j": 0.0,
+        "cell_heat_j": 3.4760927573484772,
+        "ledger_cell_j": 3.476092757348472,
+        "storage_balance_error": 6.387764091036637e-16
+      },
+      "flying_capacitor": {
+        "balancing_time_s": 7174.0,
+        "peak_resistor_rise_k": 0.0,
+        "peak_cell_rise_k": 0.0075347077389563396,
+        "resistor_heat_j": 0.0,
+        "ledger_resistor_j": 0.0,
+        "cell_heat_j": 1.7768424505557647,
+        "ledger_cell_j": 1.7768424505557339,
+        "storage_balance_error": 3.249111774791891e-15
+      }
+    },
+    "passive_limited": {
+      "balancing_time_s": 18841.0,
+      "peak_resistor_rise_k": 20.70589139046433,
+      "peak_cell_rise_k": 0.0005924560728782898,
+      "resistor_heat_j": 7171.333082980283,
+      "ledger_resistor_j": 7171.33308298002,
+      "cell_heat_j": 1.4638634630599234,
+      "ledger_cell_j": 1.4638634630598735,
+      "storage_balance_error": 7.988259899104768e-15,
+      "time_ratio_to_unconstrained": 1.2503981948500134,
+      "ceiling_rise_k": 20.0,
+      "unconstrained_exceeds_ceiling": true
+    },
+    "heat_vs_ledger": {
+      "resistor_max_relative_gap": 8.612605509708234e-14,
+      "cell_max_relative_gap": 7.61566116257663e-14,
+      "tolerance": 0.01,
+      "max_storage_balance_error": 2.1495581079772404e-14
+    },
+    "selector": {
+      "n_packs": 300,
+      "passive_limited_time_ratio_median": 1.249575418514357,
+      "max_violation": 0.05,
+      "by_budget": {
+        "0p5": {
+          "passive_chosen_fraction": 0.0,
+          "decision_changed_fraction": 0.0,
+          "policies": {
+            "selector": {
+              "budget_violation_fraction_among_feasible": 0.01020408163265306,
+              "agrees_with_oracle": 0.9533333333333334,
+              "budget_violation_fraction": 0.35333333333333333,
+              "mean_energy_j": 85.58913424692722,
+              "mean_regret_vs_oracle_j": 1.644461483325214,
+              "saving_vs_always_passive_j": 3547.2559450975573,
+              "saving_vs_always_buck_boost_j": 3.9735126582969222
+            },
+            "thermal_selector": {
+              "budget_violation_fraction_among_feasible": 0.01020408163265306,
+              "agrees_with_oracle": 0.9533333333333334,
+              "budget_violation_fraction": 0.35333333333333333,
+              "mean_energy_j": 85.58913424692722,
+              "mean_regret_vs_oracle_j": 1.644461483325214,
+              "saving_vs_always_passive_j": 3547.2559450975573,
+              "saving_vs_always_buck_boost_j": 3.9735126582969222
+            },
+            "oracle": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.3466666666666667,
+              "mean_energy_j": 83.944672763602,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3548.9004065808826,
+              "saving_vs_always_buck_boost_j": 5.6179741416221365
+            }
+          }
+        },
+        "1": {
+          "passive_chosen_fraction": 0.0,
+          "decision_changed_fraction": 0.0,
+          "policies": {
+            "selector": {
+              "budget_violation_fraction_among_feasible": 0.06756756756756757,
+              "agrees_with_oracle": 0.9266666666666666,
+              "budget_violation_fraction": 0.08,
+              "mean_energy_j": 59.50368080441989,
+              "mean_regret_vs_oracle_j": -5.010634947478035,
+              "saving_vs_always_passive_j": 3573.341398540064,
+              "saving_vs_always_buck_boost_j": 30.058966100804252
+            },
+            "thermal_selector": {
+              "budget_violation_fraction_among_feasible": 0.06756756756756757,
+              "agrees_with_oracle": 0.9266666666666666,
+              "budget_violation_fraction": 0.08,
+              "mean_energy_j": 59.50368080441989,
+              "mean_regret_vs_oracle_j": -5.010634947478035,
+              "saving_vs_always_passive_j": 3573.341398540064,
+              "saving_vs_always_buck_boost_j": 30.058966100804252
+            },
+            "oracle": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.013333333333333334,
+              "mean_energy_j": 64.51431575189794,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3568.3307635925858,
+              "saving_vs_always_buck_boost_j": 25.048331153326217
+            }
+          }
+        },
+        "1p5": {
+          "passive_chosen_fraction": 0.0,
+          "decision_changed_fraction": 0.0,
+          "policies": {
+            "selector": {
+              "budget_violation_fraction_among_feasible": 0.023333333333333334,
+              "agrees_with_oracle": 0.9666666666666667,
+              "budget_violation_fraction": 0.023333333333333334,
+              "mean_energy_j": 36.687212481621714,
+              "mean_regret_vs_oracle_j": -1.854805894214469,
+              "saving_vs_always_passive_j": 3596.1578668628617,
+              "saving_vs_always_buck_boost_j": 52.87543442360243
+            },
+            "thermal_selector": {
+              "budget_violation_fraction_among_feasible": 0.023333333333333334,
+              "agrees_with_oracle": 0.9666666666666667,
+              "budget_violation_fraction": 0.023333333333333334,
+              "mean_energy_j": 36.687212481621714,
+              "mean_regret_vs_oracle_j": -1.854805894214469,
+              "saving_vs_always_passive_j": 3596.1578668628617,
+              "saving_vs_always_buck_boost_j": 52.87543442360243
+            },
+            "oracle": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 38.54201837583618,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3594.303060968648,
+              "saving_vs_always_buck_boost_j": 51.020628529387956
+            }
+          }
+        },
+        "2": {
+          "passive_chosen_fraction": 0.0,
+          "decision_changed_fraction": 0.0,
+          "policies": {
+            "selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.9966666666666667,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 17.41752915142829,
+              "mean_regret_vs_oracle_j": 0.5653249785857073,
+              "saving_vs_always_passive_j": 3615.427550193056,
+              "saving_vs_always_buck_boost_j": 72.14511775379584
+            },
+            "thermal_selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 0.9966666666666667,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 17.41752915142829,
+              "mean_regret_vs_oracle_j": 0.5653249785857073,
+              "saving_vs_always_passive_j": 3615.427550193056,
+              "saving_vs_always_buck_boost_j": 72.14511775379584
+            },
+            "oracle": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 16.852204172842583,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3615.992875171642,
+              "saving_vs_always_buck_boost_j": 72.71044273238155
+            }
+          }
+        },
+        "3": {
+          "passive_chosen_fraction": 0.0,
+          "decision_changed_fraction": 0.0,
+          "policies": {
+            "selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "thermal_selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "oracle": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            }
+          }
+        },
+        "4": {
+          "passive_chosen_fraction": 0.0,
+          "decision_changed_fraction": 0.0,
+          "policies": {
+            "selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "thermal_selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "oracle": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            }
+          }
+        },
+        "6": {
+          "passive_chosen_fraction": 0.0,
+          "decision_changed_fraction": 0.0,
+          "policies": {
+            "selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "thermal_selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "oracle": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            }
+          }
+        },
+        "8": {
+          "passive_chosen_fraction": 0.0,
+          "decision_changed_fraction": 0.0,
+          "policies": {
+            "selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "thermal_selector": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            },
+            "oracle": {
+              "budget_violation_fraction_among_feasible": 0.0,
+              "agrees_with_oracle": 1.0,
+              "budget_violation_fraction": 0.0,
+              "mean_energy_j": 15.62800138238227,
+              "mean_regret_vs_oracle_j": 0.0,
+              "saving_vs_always_passive_j": 3617.217077962101,
+              "saving_vs_always_buck_boost_j": 73.93464552284186
+            }
+          }
+        }
+      }
+    }
   }
 }

@@ -22,6 +22,18 @@ def f(path: str, spec: str, scale: float = 1.0) -> Callable[[Metrics], str]:
 
 
 CHECKS: list[Check] = [
+    ("thermal passive peak rise", f("thermal.baseline.passive.peak_resistor_rise_k", ".1f")),
+    ("thermal limited peak rise", f("thermal.passive_limited.peak_resistor_rise_k", ".1f")),
+    ("thermal time ratio", f("thermal.passive_limited.time_ratio_to_unconstrained", ".2f")),
+    ("thermal limited time h", f("thermal.passive_limited.balancing_time_s", ".2f", 1 / 3600)),
+    (
+        "thermal selector violations 1 h",
+        f(
+            "thermal.selector.by_budget.1.policies.thermal_selector.budget_violation_fraction_among_feasible",
+            ".1f",
+            100,
+        ),
+    ),
     (
         "abstaining coverage time passive",
         f(
