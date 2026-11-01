@@ -8,6 +8,8 @@ from time import perf_counter
 
 import numpy as np
 
+from src.abstain import abstaining_selector_block
+from src.abstain_plots import plot_abstaining
 from src.balancing import BalanceResult, simulate, tail_slowdown_ratio
 from src.cell_plots import plot_baseline_comparison
 from src.checks import link_coupling_check, physics_checks
@@ -40,6 +42,8 @@ from src.lt_plots import (
 from src.lt_report import ltspice_block
 from src.ml_eval import evaluate
 from src.ml_plots import plot_conformal_coverage, plot_cv_comparison, plot_out_of_range
+from src.mpc import load_cache as load_mpc
+from src.mpc_plots import plot_mpc
 from src.pack import PackBatch, tile_pack
 from src.params import ASSUMED, SECONDS_PER_HOUR, FlyingCapModel
 from src.plots import (
@@ -56,8 +60,10 @@ from src.rl_report import rl_block
 from src.rl_report import timing_block as rl_timing_block
 from src.scaling import scaling_block
 from src.scaling_plots import plot_scaling
-from src.selector import selector_block
+from src.selector import selector_block, selector_inputs
 from src.selector_plots import plot_selector
+from src.shift import shift_block
+from src.shift_plots import plot_shift
 from src.soc_error import soc_error_block
 from src.soc_estimation.plots import plot_error_summary, plot_traces, plot_wrong_start
 from src.soc_estimation.report import RESULTS_PATH as SOC_RESULTS_PATH
@@ -66,6 +72,9 @@ from src.spice_check import converter_check
 from src.spice_plots import plot_current_parity
 from src.temperature import temperature_block
 from src.temperature_plots import plot_params_vs_temperature, plot_soc_error
+from src.thermal import thermal_block
+from src.thermal_plots import plot_thermal
+from src.twin_parity import parity_check
 from src.uncertainty import (
     BOOTSTRAP_PATH,
     IDENTIFICATION_PATH,
@@ -579,8 +588,57 @@ def _run_stages(
     voltage_result = voltage_balancing_block(config)
     if voltage_result["status"] == "ok":
         plot_voltage_balancing(voltage_result, results_dir / "voltage_balancing", config.plot)
-    selector_result = selector_block(config, streams["selector"], report)
+    selector_in = selector_inputs(config, streams["selector"], report)
+    selector_result = selector_block(config, selector_in)
+    selector_result["abstaining"] = abstaining_selector_block(
+        ml_extra["data"],
+        config,
+        ml_extra["split"],
+        ml_extra["fitted"],
+        ml_extra["best"],
+        ml_eval_block["conformal"],
+        selector_in,
+    )
     plot_selector(selector_result, results_dir / "technique_selector", config.plot)
+    mpc_cache = load_mpc(config)
+    differentiable_result = {
+        "status": mpc_cache["status"],
+        "parity": parity_check(config, streams["mpc"]),
+        "min_win_fraction": config.mpc.min_win_fraction,
+        "min_gap_closed": config.mpc.min_gap_closed,
+        "gap_cells": config.mpc.gap_cells,
+        "plant_tolerance_relative": config.mpc.plant_tolerance_relative,
+        "win_tolerance_ah": config.mpc.win_tolerance_ah,
+        "results": mpc_cache.get("results"),
+    }
+    if mpc_cache["status"] == "ok":
+        plot_mpc(
+            differentiable_result,
+            config.mpc.cells,
+            results_dir / "differentiable_control",
+            config.plot,
+        )
+    shift_result = shift_block(
+        config,
+        streams["shift"],
+        report,
+        ml_extra["data"],
+        ml_extra["split"],
+        ml_extra["fitted"],
+        ml_extra["best"],
+        ml_eval_block["conformal"],
+    )
+    plot_shift(shift_result, results_dir / "range_shift", config.plot)
+    thermal_result, thermal_traces = thermal_block(config, baseline_pack(config), selector_in)
+    plot_thermal(thermal_result, thermal_traces, results_dir / "thermal_balancing", config.plot)
+    plot_abstaining(
+        selector_result["abstaining"],
+        selector_result,
+        results_dir / "abstaining_selector",
+        config.plot,
+        config.ml_eval.coverage_low,
+        config.ml_eval.coverage_high,
+    )
     rl_result = rl_block(config)
     if rl_result["status"] == "ok":
         rl_cache = json.loads(RL_RESULTS_PATH.read_text())
@@ -629,6 +687,9 @@ def _run_stages(
         "converter_audit": converter_audit_block(config, streams["audit"]),
         "voltage_balancing": voltage_result,
         "technique_selector": selector_result,
+        "thermal": thermal_result,
+        "range_shift": shift_result,
+        "differentiable_control": differentiable_result,
     }
     stale = stale_paths(metrics)
     if stale and config == CONFIG:

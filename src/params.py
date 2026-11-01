@@ -397,3 +397,53 @@ class SelectorSpec:
     packs: int = 300
     min_accuracy: float = 0.9
     max_violation: float = 0.05
+
+
+@dataclass(frozen=True, slots=True)
+class AbstainSpec:
+    abstain_quantile: float = 0.9
+    scale_quantile: float = 0.5
+    min_coverage: float = 0.87
+    max_coverage: float = 0.93
+    min_accuracy: float = 0.9
+    max_violation: float = 0.05
+
+
+@dataclass(frozen=True, slots=True)
+class ThermalSpec:
+    resistor_rth_k_per_w: float = 100.0
+    resistor_heat_capacity_j_per_k: float = 0.05
+    cell_rth_k_per_w: float = 15.0
+    cell_heat_capacity_j_per_k: float = 47.0
+    resistor_ceiling_rise_k: float = 20.0
+    conservation_tolerance: float = 0.01
+
+
+@dataclass(frozen=True, slots=True)
+class ShiftSpec:
+    factors: tuple[float, ...] = (1.25, 1.5, 2.0)
+    packs: int = 300
+    claim_factor: float = 1.25
+    budget_h: float = 1.0
+    max_violation: float = 0.05
+
+
+@dataclass(frozen=True, slots=True)
+class MpcSpec:
+    cells: tuple[int, ...] = (8, 16, 32)
+    packs: int = 50
+    seeds: tuple[int, ...] = (0, 1, 2)
+    parity_packs: int = 200
+    parity_steps: int = 1000
+    parity_tolerance_soc: float = 1e-6
+    parity_tolerance_energy: float = 1e-4
+    min_win_fraction: float = 0.90
+    win_tolerance_ah: float = 1e-3
+    plant_tolerance_relative: float = 1e-4
+    min_gap_closed: float = 0.25
+    gap_cells: int = 32
+    horizon_intervals: int = 12
+    interval_s: float = 30.0
+    replan_intervals: int = 4
+    iterations: int = 25
+    learning_rate: float = 0.05

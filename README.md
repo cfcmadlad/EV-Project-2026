@@ -6,13 +6,14 @@
 - **LTspice validation:** the series formula for a flying-capacitor link is wrong by up to 160.48 % and the exact switched-capacitor (coth) form holds within 3.37 %; the averaged buck-boost currents hold within 4.88 % where an inductor saturation rule is met, but the averaged losses miss gate drive and switching by up to 16.63 %, so circuit-calibrated models are the default and the calibrated loss error is 6.87 %.
 - **Learned models:** plain neural surrogates lose to gradient boosting (balancing-time R2 0.9530 for the cell GRU against 0.9825); learning only the residual over the closed-form physics lifts every model to 0.9997 or better; an EKF plus GRU hybrid cuts SOC error from 2.06 % to 0.89 % on Test A and keeps it at int8 weights; PPO controllers do not beat the hand-written rule on every cycle.
 - **Controller headroom bound:** a rule-based controller already sits within 0.88 % (buck-boost) and 0.79 % (flying capacitor) of an ideal-transfer reference in delivered Ah at 4 cells, so there is no meaningful room for a learned controller there; the median gap grows with string length to 1.45 % and 2.57 % at 96 cells, where room exists, and SOC estimation error widens it further for the buck-boost (4.74 %).
-- **Claims:** 289 rows in `results/claims.md`: 163 PASS, 102 FAIL, 24 NOT SUPPORTED. FAIL rows are findings and are kept; section p lists them.
+- **Extensions (section s):** an abstaining selector on normalised conformal intervals (all six intervals in the coverage window; 0 % violations at 1 h against 6.8 % for the boosting selector, owed to the hybrid predictor), a thermal limit on passive bleeding (1.25 times longer balancing under an assumed 20 K ceiling), an out-of-range stress test (boosting selector crosses the 5 % limit at 1.25 times the training ranges, the hybrid stays within it up to 2 times) and a differentiable twin with a gradient controller that does not beat the rule (null result).
+- **Claims:** 322 rows in `results/claims.md`: 183 PASS, 113 FAIL, 26 NOT SUPPORTED. FAIL rows are findings and are kept; section p lists them.
 
 ## Contents
 
 A. Background (sections a to f): motivation, glossary, architecture, cell model, the three techniques.
 B. Results (sections g to o): baseline comparison, ML predictor, verification, fitted cell model, LTspice validation and calibrated models, deep learning, system-level studies, controller headroom bound, model comparison.
-C. Limitations (section p), how to run (section q), project structure (section r), data and licence (section s).
+C. Limitations (section p), how to run (section q), project structure (section r), extensions (section s), data and licence (section t).
 
 ## Reproduce
 
@@ -505,13 +506,15 @@ The physics-residual result is the main modelling lesson: the closed form carrie
 - No PPO variant beats the rule; learned control improving balancing under load is NOT SUPPORTED. The headroom reference is an upper bound.
 - Drive-cycle gains do not extend to other packs, spreads, cycles or temperatures; the 4-cell results do not extend to longer strings except where section m says so.
 - FAIL rows not discussed above: the surrogate selector exceeds its 5 % budget-violation limit (6.8 %), the 2RC EKF recovers from a wrong start to 2.39 % against a 2 % limit, conformal coverage for passive energy is 85.25 % against 87 %, and the 1RC EKF does not beat tester-grade coulomb counting.
+- Extension FAIL rows (section s): continuous passive bleeding exceeds the assumed 20 K resistor ceiling; the thermally aware selector inherits the boosting predictor's 6.8 % violations at 1 h; the boosting selector crosses the 5 % limit at 1.25 times the training ranges.
+- The gradient controller (throttle only, rule direction, preview of the load, one fixed design) does not beat the rule in delivered Ah; richer actuation (direction commands, longer horizons) was not tried, so this is a null result for that design only.
 - Nothing here runs on a microcontroller; memory sizes are stated, latency is not claimed.
 - The gate drive is booked from the LTspice gate-power map at the cell open-circuit voltage; a conversion loss from the cell to the 5 V driver rail is not modelled, and the passive shunt books no gate drive. The ledger closure check cannot detect an error in the gate term, because the same term enters both sides; the 15.4 J and 9.6 J rest on the circuit simulation alone.
 - The choice between the 1RC and 2RC cell model used the UDDS and LA92 voltage errors, and those cycles are also in the SOC-estimation Test A; the cell parameters themselves come from the HPPC pulses only.
 - The scaling and rest-voltage caches are bound to their configuration but not to the circuit maps or the fitted-parameter file, and the trajectory and surrogate caches to the maps and the dataset only; after rebuilding either input the matching script in `scripts/` must be rerun.
 - Besides the simulation seed (2026) and seeds 0 to 2, some studies use derived streams (imitation episodes, augmentation and sensor noise); each is a fixed function of the seed, none was chosen by outcome. The best 8-cell imitation policy was picked on the test cycles and is reported as such.
 
-All 102 FAIL and 24 NOT SUPPORTED rows are in `results/claims.md` with their evidence keys.
+All 113 FAIL and 26 NOT SUPPORTED rows are in `results/claims.md` with their evidence keys.
 
 ## q. How to run
 
@@ -544,6 +547,8 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 ├── run_all.py                   Runs the full pipeline and writes every output
 ├── src/
 │   ├── __init__.py                  Marks src as a Python package
+│   ├── abstain.py                   Normalised conformal intervals and the abstaining technique selector
+│   ├── abstain_plots.py             Abstaining selector figure
 │   ├── balancing.py                 Averaged balancing models, the calibrated parameter stack and the batched simulator
 │   ├── baselines.py                 Closed-form physics baselines (time and energy per technique)
 │   ├── calibration.py               Correction maps built from results/ltspice, saturation rule and range pruning
@@ -591,6 +596,14 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── rl_sim.py                    Vectorised pack simulator with commanded buck-boost links
 │   ├── scaling.py                   Strings of 4 to 96 cells, theory slopes and block builder
 │   ├── scaling_plots.py             Scaling figure
+│   ├── thermal.py                   Lumped thermal model, duty-cycled passive bleed and the thermally aware selector
+│   ├── thermal_plots.py             Thermal figure
+│   ├── diff_sim.py                  PyTorch twin of the averaged buck-boost and flying-capacitor pack step
+│   ├── mpc.py                       Receding-horizon gradient controller, drive loop and study cache
+│   ├── mpc_plots.py                 Gradient control figure
+│   ├── twin_parity.py               Twin against NumPy step parity check
+│   ├── shift.py                     Out-of-range stress test of the surrogates and both selectors
+│   ├── shift_plots.py               Stress test figure
 │   ├── selector.py                  Technique selector under a parking time budget
 │   ├── selector_plots.py            Technique selector figure
 │   ├── soc_error.py                 SOC-error sensitivity study (fixed bias per cell)
@@ -625,6 +638,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── check_readme.py                  Checks README, FIGURES and claims numbers against metrics.json
 │   ├── claims_base.py                   Claim dataclass and threshold helpers
 │   ├── claims_deep.py                   Claims about the deep-learning comparison
+│   ├── claims_extensions.py             Claims about the extensions (abstaining selector, thermal limit, range shift, gradient control)
 │   ├── claims_headroom.py               Claims about the controller headroom bound
 │   ├── claims_ltspice.py                Claims about the LTspice validation
 │   ├── evaluate_rl.py                   Evaluates the first controllers on the test episodes
@@ -643,6 +657,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── prepare_drive_profiles.py        1 s measured current profiles cached in data/processed
 │   ├── report_claims.py                 Writes results/claims.md from results/metrics.json
 │   ├── run_headroom.py                  Runs the controller headroom bound and caches it
+│   ├── run_mpc.py                       Runs the gradient control study for 8, 16 and 32 cells and caches it
 │   ├── run_scaling.py                   Runs the string-length study and caches it
 │   ├── run_spice.py                     Ideal-switch check: generates netlists, runs LTspice, caches the measurements
 │   ├── run_voltage_balancing.py         Voltage-based balancing study
@@ -655,7 +670,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 ├── data/
 │   ├── raw/                     Downloaded dataset files and LTspice scratch (git-ignored)
 │   └── processed/               Provenance, fitted parameters, result caches, small checkpoints
-├── tests/                       30 pytest files (ledger, closed form, charge, LTspice harness, calibration, deep models, freshness, headroom)
+├── tests/                       pytest files (property-based tests included; ledger, closed form, charge, LTspice harness, calibration, deep models, freshness, headroom)
 └── results/
     ├── ltspice/                 CSV results of every LTspice sweep and the waveforms
     ├── metrics.json             All deterministic numeric results
@@ -669,6 +684,53 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
     └── *.png / *.svg            Figures
 ```
 
-## s. Data and licence
+## s. Extensions: balancing decisions with guarantees
+
+Four additions on top of the finished study. Thresholds, budgets and parameters below were fixed in `src/params.py` and in this section before any extension result was computed (three thresholds were added in later pre-registration commits, each before the results it governs (the MPC win tolerance and plant tolerance arrived in the commit that added the MPC code, which was not run until the results commit): the thermally aware selector limit, the scoring of the stress test for both selectors, and the MPC win tolerance, gap definition and plant tolerance); every claim derived from them is in `results/claims.md` with its status, including FAIL, and null results are reported as they come out.
+
+| Item | What is added | Pre-registered claims and thresholds |
+| --- | --- | --- |
+| Abstaining selector | Normalised split-conformal intervals per technique, calibrated on rows the frozen predictor was not fitted on; a selector that plans with the upper bound of the predicted time and falls back to the physics-formula selector when the interval is wide | 90 % interval coverage in the 87 to 93 % window for each technique and both targets; budget violations at most 5 % at the 1 h budget; agreement with the oracle at least 90 % at 1 h; abstention threshold = 90th percentile of the calibration half-widths |
+| Thermal limit | Lumped thermal model of each cell and bleed resistor, duty-cycled passive bleed under a temperature-rise ceiling, thermal feasibility in the selector | Ceiling 20 K rise on the resistor; heat in equals ledger dissipation within 1 %; whether passive at the baseline exceeds the ceiling without duty cycling is reported as it comes out; thermal-limited passive time and its ratio to the unconstrained time are reported; the thermally aware selector misses a 1 h budget on at most 5 % of feasible packs, judged against thermally limited ground truth. Thermal parameters have no source in the repository: resistor 100 K/W and 0.05 J/K, cell 15 K/W and 47 J/K, all ASSUMED, so no absolute temperature is claimed |
+| Tests and stress | Property-based tests (Hypothesis) and an out-of-range stress test of the surrogate and selector without retraining | Selector violations at most 5 % at 1 h up to 1.25 times the training range of spread (upper limit), capacity tolerance and resistance tolerance, scored for the boosting selector and for the hybrid abstaining selector alike; error growth and interval coverage reported at 1, 1.25, 1.5 and 2 times with a fresh 300 packs per factor |
+| Differentiable control | PyTorch twin of the averaged step and a receding-horizon gradient controller for 8, 16 and 32 cells | Parity with the NumPy step on 200 packs and 1000 steps within 1e-6 relative on SOC and 1e-4 relative on cumulative energy; the controller delivers at least as many Ah as the rule in at least 90 % of packs at each N; it closes at least 25 % of the rule-to-bound gap at N = 32; 50 packs per N and seed, 3 seeds, fixed horizon of 12 intervals of 30 s, 25 Adam iterations at learning rate 0.05; scored separately for the buck-boost and the flying capacitor on Mixed 1 and Mixed 7 pooled; a win means delivered Ah at least the rule's minus 1e-3 Ah; gap closed is (mean MPC minus mean rule) over (mean reference minus mean rule); the twin must reproduce the NumPy rule within 1e-4 relative. Design fixed before the run and not tuned afterwards: per-link throttle in [0, 1] on the rule's direction, softmin (5 mV) of the cell terminal voltage margin at the end of the horizon as the objective, replanning every 4 intervals, exact preview of the load |
+
+### Abstaining selector: results
+
+The predictor is the frozen section o hybrid (closed form times a boosting residual), fitted on 75 % of the training rows; the intervals are calibrated on the other 25 % and scored on the 20 % test rows, with the normaliser u = |ln prediction - ln closed form| + c, where c is the per-technique median of that gap on the calibration rows (label-free). Single split, 400 test rows per technique, so one coverage value has a binomial standard error of about 1.5 percentage points.
+
+- **Coverage.** All six technique and target intervals fall in the 87 to 93 % window (time 87.25, 88.5 and 88.5 %; energy 87.25, 89.5 and 88.25 % for passive, buck-boost and flying capacitor). The fixed-width intervals of section o miss it for passive energy (85.25 %). The normalised intervals are narrower for passive (mean half-width 0.0038 against 0.0060 in log time) and flying capacitor (0.0241 against 0.0313) and slightly wider for buck-boost energy.
+- **Selector at the 1 h budget (300 held-out packs).** The section n boosting selector misses the budget on 6.8 % of the feasible packs. The same decision rule on the hybrid predictor, with point forecasts, misses 0.3 % (99.7 % agreement with the oracle); planning with the upper bound misses none (98.7 % agreement, 65.8 J against 64.3 J mean energy). Abstaining on wide intervals (5.7 % of packs at 1 h) leaves the outcome identical to the upper-bound selector: at budgets of 1 h and above abstention changes nothing (at 0.5 h it moves agreement from 99.0 to 99.7 % and mean energy from 84.5 to 84.2 J), and the gain comes from the better predictor, not from the interval. Violations at every budget are 0 to 0.3 % for the three hybrid variants.
+- Figure: `results/abstaining_selector.png`.
+
+### Thermal limit: results
+
+All thermal parameters are ASSUMED (resistor 100 K/W and 0.05 J/K, cell 15 K/W and 47 J/K; nothing in the repository supplies them), so only relative effects are claimed and no absolute temperature is. The ceiling is a 20 K rise of the bleed resistor.
+
+- **Passive at the baseline** (60 ohm bleed, 10 % spread): continuous bleeding reaches a 23.9 K resistor rise, above the ceiling (the claim that it stays under it is a FAIL). Duty-cycling the bleed to hold the ceiling lengthens balancing from 4.19 h to 5.23 h (ratio 1.25) with a 20.7 K peak, the overshoot of one 1 s step. The bleed energy is unchanged (7171 J).
+- **Cell heating** from R0 losses is below 0.01 K for all three techniques at the baseline (0.0007 K passive, 0.0086 K buck-boost, 0.0075 K flying capacitor), so cells are not thermally limiting in this model.
+- **Heat balance.** Heat computed from the reconstructed cell currents equals the resistor and R0 energy booked in the ledger to 1e-13, and the thermal integrator closes its own balance to 3e-14. These are identity checks of the reconstruction, not independent validation of the ledger.
+- **Selector.** The thermally aware selector multiplies the predicted passive time by max(1, peak bleed power / allowed power) and is judged against thermally limited ground truth for 300 packs. It never picks passive at any budget, because passive dissipates two orders of magnitude more energy than the active techniques whenever one of them meets the budget, so the thermal constraint changes no decision. Its violations (6.8 % at 1 h) are those of the section n boosting predictor, and the pre-registered limit of 5 % is missed (FAIL).
+- Figure: `results/thermal_balancing.png`.
+
+### Out-of-range stress test: results
+
+Without retraining, 300 fresh packs per factor were drawn with the SOC spread upper limit, the capacity tolerance and the resistance tolerance multiplied by 1, 1.25, 1.5 and 2 (the widened ranges still contain the training range, so part of each draw is in range).
+
+- **Boosting surrogate and selector.** The median balancing-time error grows from 6.0 % to 7.6 %, 9.7 % and 16.6 %. Budget violations at 1 h among feasible packs are 3.7 % in range, 5.6 % at 1.25 times, 6.5 % at 1.5 times and 8.6 % at 2 times: the pre-registered claim (at most 5 % up to 1.25 times) is a FAIL, and the 5 % limit is first crossed at 1.25 times.
+- **Hybrid surrogate and abstaining selector.** The median balancing-time error stays between 0.6 and 0.7 % and the 90 % time interval keeps its coverage (91.6 % in range, 91.3, 91.0 and 89.3 % at 1.25, 1.5 and 2 times). Violations at 1 h are 0 up to 1.5 times and 1.0 % at 2 times, so the claim passes. The reason is structural: the hybrid multiplies a closed form that extrapolates by a small learned residual, whereas boosting must learn the whole dependence inside its training range.
+- Figure: `results/range_shift.png`.
+
+### Differentiable simulator and gradient control: results
+
+`src/diff_sim.py` is a PyTorch twin of the per-link averaged pack step (calibrated buck-boost and flying-capacitor links, gate-drive drain, RC branch, ledger lines). Against the NumPy step on 200 random packs with random pack currents for 1000 steps it agrees to machine precision (SOC exactly, cumulative energies within 5e-16 relative; the pre-registered limits were 1e-6 and 1e-4). In the drive-cycle plant it reproduces the NumPy rule's delivered Ah exactly.
+
+The controller replans every 120 s: it throttles each link between 0 and 1 (direction as in the rule) by 25 Adam steps over a 360 s horizon, with the exact upcoming load as preview and exact knowledge of the state and parameters (the rule has neither), to maximise a 5 mV softmin of the cell terminal voltage margin at the end of the horizon. The design was fixed before the run and not tuned. Study: 8, 16 and 32 cells, 150 random packs per N and cycle (3 seeds of 50), Mixed 1 and Mixed 7 pooled, 300 pack-cycles per row. Mean gain over the rule in mAh (win fraction, gap closed): buck-boost +0.41 (82 %, 2.6 %), -0.14 (73 %, -0.8 %) and -2.33 (59 %, -11.6 %); flying capacitor -0.90 (72 %, -5.1 %), -0.97 (71 %, -4.2 %) and -1.77 (65 %, -5.9 %) at 8, 16 and 32 cells. The room left by the rule (rule to ideal-transfer reference) is 15.9 to 20.1 mAh for the buck-boost and 17.6 to 30.1 mAh for the flying capacitor.
+
+Every pre-registered claim except parity and plant consistency is a FAIL: the win fraction stays below 90 % at every N and the gap closed at 32 cells is negative. The median gain is exactly 0 at every N (the controller is strictly better by more than 1 mAh on only 10 to 24 % of the packs). Throttling does lower the buck-boost converter loss (by 69, 194 and 520 J per run at 8, 16 and 32 cells) but the charge it keeps does not translate into delivered Ah, and for the flying capacitor loss is unchanged. For reference, the committed PPO policies gain between -0.6 and +2.3 mAh over the rule at 4 and 8 cells under a different protocol (section l). Cost: 925 to 975 Adam iterations per run.
+
+- Figure: `results/differentiable_control.png`.
+
+## t. Data and licence
 
 The measured data are the LG 18650HG2 data set of the Mendeley Data record DOI 10.17632/b5mj79w5w9.2, released under CC BY 4.0, and are downloaded by `scripts/fetch_hg2.py` with checksum verification, not committed. Converter datasheet values come from the vendor datasheets fetched by `scripts/fetch_datasheets.py`. Everything else in the repository is generated by the code in it.

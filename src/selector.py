@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numpy as np
 
 from src.balancing import simulate
@@ -87,22 +89,46 @@ def policy_row(
     }
 
 
-def selector_block(
+@dataclass(frozen=True, slots=True)
+class SelectorInputs:
+    packs: PackBatch
+    true_time: FloatArray
+    true_energy: FloatArray
+    surrogate_time: FloatArray
+    surrogate_energy: FloatArray
+    physics_time: FloatArray
+    physics_energy: FloatArray
+
+
+def selector_inputs(
     config: ProjectConfig, rng: np.random.Generator, report: PredictorReport
-) -> dict[str, object]:
-    spec = config.selector
-    packs = sample_packs(spec.packs, rng, config.cell, config.pack)
+) -> SelectorInputs:
+    packs = sample_packs(config.selector.packs, rng, config.cell, config.pack)
     true_time, true_energy = simulate_all(config, packs)
     surrogate_time, surrogate_energy = surrogate_predictions(config, packs, report)
     physics_time, physics_energy = physics_predictions(config, packs)
+    return SelectorInputs(
+        packs,
+        true_time,
+        true_energy,
+        surrogate_time,
+        surrogate_energy,
+        physics_time,
+        physics_energy,
+    )
+
+
+def selector_block(config: ProjectConfig, inputs: SelectorInputs) -> dict[str, object]:
+    spec = config.selector
+    true_time, true_energy = inputs.true_time, inputs.true_energy
     budgets: dict[str, object] = {}
-    n = packs.n_packs
+    n = inputs.packs.n_packs
     for hours in spec.budgets_h:
         budget_s = hours * SECONDS_PER_HOUR
         oracle = choose(true_time, true_energy, budget_s)
         choices = {
-            "selector": choose(surrogate_time, surrogate_energy, budget_s),
-            "physics_selector": choose(physics_time, physics_energy, budget_s),
+            "selector": choose(inputs.surrogate_time, inputs.surrogate_energy, budget_s),
+            "physics_selector": choose(inputs.physics_time, inputs.physics_energy, budget_s),
             "oracle": oracle,
             **{f"always_{t.key}": np.full(n, int(t)) for t in Technique},
         }

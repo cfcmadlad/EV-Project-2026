@@ -741,4 +741,14 @@ def evaluate(
         "feature_ablation": ablation,
     }
     timing = timing_report(data, fitted, config)
-    return metrics, {"data": data, "out_of_range_arrays": arrays}, timing
+    return (
+        metrics,
+        {
+            "data": data,
+            "out_of_range_arrays": arrays,
+            "split": split,
+            "fitted": fitted,
+            "best": best,
+        },
+        timing,
+    )
