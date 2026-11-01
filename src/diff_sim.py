@@ -8,7 +8,6 @@ from src.params import SECONDS_PER_HOUR, LinkCoupling
 from src.stepper import StepControl
 
 DTYPE = torch.float64
-SUPPLY_FLOOR = 1e-9
 
 
 def tensor(values: np.ndarray | float) -> torch.Tensor:

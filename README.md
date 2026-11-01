@@ -638,7 +638,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── check_readme.py                  Checks README, FIGURES and claims numbers against metrics.json
 │   ├── claims_base.py                   Claim dataclass and threshold helpers
 │   ├── claims_deep.py                   Claims about the deep-learning comparison
-│   ├── claims_extensions.py             Claims about the extensions (abstaining selector)
+│   ├── claims_extensions.py             Claims about the extensions (abstaining selector, thermal limit, range shift, gradient control)
 │   ├── claims_headroom.py               Claims about the controller headroom bound
 │   ├── claims_ltspice.py                Claims about the LTspice validation
 │   ├── evaluate_rl.py                   Evaluates the first controllers on the test episodes
@@ -686,7 +686,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 
 ## s. Extensions: balancing decisions with guarantees
 
-Four additions on top of the finished study. Thresholds, budgets and parameters below were fixed in `src/params.py` and in this section before any extension result was computed; every claim derived from them is in `results/claims.md` with its status, including FAIL, and null results are reported as they come out.
+Four additions on top of the finished study. Thresholds, budgets and parameters below were fixed in `src/params.py` and in this section before any extension result was computed (three thresholds were added in later pre-registration commits, each before the code and results it governs: the thermally aware selector limit, the scoring of the stress test for both selectors, and the MPC win tolerance, gap definition and plant tolerance); every claim derived from them is in `results/claims.md` with its status, including FAIL, and null results are reported as they come out.
 
 | Item | What is added | Pre-registered claims and thresholds |
 | --- | --- | --- |
@@ -725,7 +725,7 @@ Without retraining, 300 fresh packs per factor were drawn with the SOC spread up
 
 `src/diff_sim.py` is a PyTorch twin of the per-link averaged pack step (calibrated buck-boost and flying-capacitor links, gate-drive drain, RC branch, ledger lines). Against the NumPy step on 200 random packs with random pack currents for 1000 steps it agrees to machine precision (SOC exactly, cumulative energies within 5e-16 relative; the pre-registered limits were 1e-6 and 1e-4). In the drive-cycle plant it reproduces the NumPy rule's delivered Ah exactly.
 
-The controller replans every 120 s: it throttles each link between 0 and 1 (direction as in the rule) by 25 Adam steps over a 360 s horizon, with the exact upcoming load as preview, to maximise a 5 mV softmin of the cell terminal voltage margin at the end of the horizon. The design was fixed before the run and not tuned. Study: 8, 16 and 32 cells, 150 random packs per N and cycle (3 seeds of 50), Mixed 1 and Mixed 7 pooled, 300 pack-cycles per row. Mean gain over the rule in mAh (win fraction, gap closed): buck-boost +0.41 (82 %, 2.6 %), -0.14 (73 %, -0.8 %) and -2.33 (59 %, -11.6 %); flying capacitor -0.90 (72 %, -5.1 %), -0.97 (71 %, -4.2 %) and -1.77 (65 %, -5.9 %) at 8, 16 and 32 cells. The room left by the rule (rule to ideal-transfer reference) is 15.9 to 20.1 mAh for the buck-boost and 17.6 to 30.1 mAh for the flying capacitor.
+The controller replans every 120 s: it throttles each link between 0 and 1 (direction as in the rule) by 25 Adam steps over a 360 s horizon, with the exact upcoming load as preview and exact knowledge of the state and parameters (the rule has neither), to maximise a 5 mV softmin of the cell terminal voltage margin at the end of the horizon. The design was fixed before the run and not tuned. Study: 8, 16 and 32 cells, 150 random packs per N and cycle (3 seeds of 50), Mixed 1 and Mixed 7 pooled, 300 pack-cycles per row. Mean gain over the rule in mAh (win fraction, gap closed): buck-boost +0.41 (82 %, 2.6 %), -0.14 (73 %, -0.8 %) and -2.33 (59 %, -11.6 %); flying capacitor -0.90 (72 %, -5.1 %), -0.97 (71 %, -4.2 %) and -1.77 (65 %, -5.9 %) at 8, 16 and 32 cells. The room left by the rule (rule to ideal-transfer reference) is 15.9 to 20.1 mAh for the buck-boost and 17.6 to 30.1 mAh for the flying capacitor.
 
 Every pre-registered claim except parity and plant consistency is a FAIL: the win fraction stays below 90 % at every N and the gap closed at 32 cells is negative. The median gain is exactly 0 at every N (the controller is strictly better by more than 1 mAh on only 10 to 24 % of the packs). Throttling does lower the buck-boost converter loss (by 69, 194 and 520 J per run at 8, 16 and 32 cells) but the charge it keeps does not translate into delivered Ah, and for the flying capacitor loss is unchanged. For reference, the committed PPO policies gain between -0.6 and +2.3 mAh over the rule at 4 and 8 cells under a different protocol (section l). Cost: 925 to 975 Adam iterations per run.
 

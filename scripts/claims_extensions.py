@@ -52,6 +52,7 @@ def thermal_claims() -> list[CheckedClaim]:
             "<= 1 %",
             at_most(0.01),
             percent,
+            "identity check of the reconstruction, not independent validation",
         ),
         CheckedClaim(
             "Heat in the thermal model equals the cell R0 loss booked in the ledger (baseline, "
@@ -60,6 +61,7 @@ def thermal_claims() -> list[CheckedClaim]:
             "<= 1 %",
             at_most(0.01),
             percent,
+            "identity check of the reconstruction, not independent validation",
         ),
         CheckedClaim(
             "The thermal integrator closes its own energy balance (stored plus rejected equals "
@@ -126,7 +128,7 @@ def differentiable_claims() -> list[CheckedClaim]:
         )
         for n_cells in CONFIG.mpc.cells:
             base = f"differentiable_control.results.{technique.key}.{n_cells}"
-            where = f"{label}, {n_cells} cells, Mixed 1 and Mixed 7, 300 packs"
+            where = f"{label}, {n_cells} cells, Mixed 1 and Mixed 7, 150 packs, 300 pack-cycles"
             claims += [
                 CheckedClaim(
                     f"The twin plant reproduces the NumPy rule's delivered Ah ({where})",

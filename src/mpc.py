@@ -18,7 +18,17 @@ CYCLES = ("Mixed1", "Mixed7")
 TECHNIQUES = (Technique.BUCK_BOOST, Technique.FLYING_CAPACITOR)
 NOT_RUN = {"status": "not_run"}
 SOFTMIN_V = 0.005
-SOURCES = ("src/mpc.py", "src/diff_sim.py")
+SOURCES = (
+    "src/mpc.py",
+    "src/diff_sim.py",
+    "src/balancing.py",
+    "src/coupled_links.py",
+    "src/stepper.py",
+    "src/ledger.py",
+    "src/drive_cycle.py",
+    "src/scaling.py",
+    "src/params.py",
+)
 
 
 @dataclass(frozen=True, slots=True)

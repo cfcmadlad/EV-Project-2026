@@ -407,7 +407,6 @@ class AbstainSpec:
     max_coverage: float = 0.93
     min_accuracy: float = 0.9
     max_violation: float = 0.05
-    violation_budget_h: float = 1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -418,7 +417,6 @@ class ThermalSpec:
     cell_heat_capacity_j_per_k: float = 47.0
     resistor_ceiling_rise_k: float = 20.0
     conservation_tolerance: float = 0.01
-    max_balancing_h: float = 48.0
 
 
 @dataclass(frozen=True, slots=True)
