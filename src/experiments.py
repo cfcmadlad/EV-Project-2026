@@ -23,6 +23,8 @@ STREAM_NAMES = (
     "selector",
     "trajectory",
     "headroom",
+    "shift",
+    "mpc",
 )
 
 

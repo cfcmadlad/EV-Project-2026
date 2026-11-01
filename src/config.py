@@ -7,6 +7,7 @@ from numpy.typing import NDArray
 
 from src.fitted import FITTED_HG2_25C
 from src.params import (
+    AbstainSpec,
     BuckBoostSpec,
     CalibrationSpec,
     CellParams,
@@ -18,6 +19,7 @@ from src.params import (
     IdentificationSpec,
     MLEvalSpec,
     MLSpec,
+    MpcSpec,
     PackSpec,
     ParameterSet,
     PassiveSpec,
@@ -25,11 +27,13 @@ from src.params import (
     SanitySpec,
     ScalingSpec,
     SelectorSpec,
+    ShiftSpec,
     SimSpec,
     SocErrorSpec,
     SocEstimationSpec,
     SweepSpec,
     TechniqueSpec,
+    ThermalSpec,
     VoltageBalancingSpec,
 )
 
@@ -114,6 +118,10 @@ class ProjectConfig:
     calibration: CalibrationSpec = CalibrationSpec()
     voltage_balancing: VoltageBalancingSpec = VoltageBalancingSpec()
     selector: SelectorSpec = SelectorSpec()
+    abstain: AbstainSpec = AbstainSpec()
+    thermal: ThermalSpec = ThermalSpec()
+    shift: ShiftSpec = ShiftSpec()
+    mpc: MpcSpec = MpcSpec()
     plot: PlotConfig = PlotConfig()
 
     @property
