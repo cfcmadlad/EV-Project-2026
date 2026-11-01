@@ -23,6 +23,38 @@ def f(path: str, spec: str, scale: float = 1.0) -> Callable[[Metrics], str]:
 
 CHECKS: list[Check] = [
     (
+        "mpc buck-boost gain 8",
+        f("differentiable_control.results.buck_boost.8.mean_gain_ah", ".2f", 1000),
+    ),
+    (
+        "mpc buck-boost gain 32",
+        f("differentiable_control.results.buck_boost.32.mean_gain_ah", ".2f", 1000),
+    ),
+    (
+        "mpc buck-boost win 32",
+        f("differentiable_control.results.buck_boost.32.win_fraction", ".0f", 100),
+    ),
+    (
+        "mpc buck-boost closed 32",
+        f("differentiable_control.results.buck_boost.32.gap_closed", ".1f", 100),
+    ),
+    (
+        "mpc flying gain 32",
+        f("differentiable_control.results.flying_capacitor.32.mean_gain_ah", ".2f", 1000),
+    ),
+    (
+        "mpc flying closed 32",
+        f("differentiable_control.results.flying_capacitor.32.gap_closed", ".1f", 100),
+    ),
+    (
+        "mpc flying gap 32",
+        f("differentiable_control.results.flying_capacitor.32.gap_to_reference_ah", ".1f", 1000),
+    ),
+    (
+        "mpc buck-boost loss change 32",
+        f("differentiable_control.results.buck_boost.32.mean_element_loss_change_j", ".0f", -1),
+    ),
+    (
         "shift boosting violation 1.25",
         f("range_shift.by_factor.1p25.violation_by_budget.selector.1", ".1f", 100),
     ),

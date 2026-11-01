@@ -4,10 +4,11 @@ from hypothesis import strategies as st
 
 from src.balancing import build_control, simulate
 from src.config import CONFIG, Technique
+from src.diff_sim import build_twin, initial_state, tensor, twin_step
 from src.ml_eval import calibration_quantile
 from src.pack import sample_packs
 from src.params import SECONDS_PER_HOUR
-from src.stepper import PackState, step
+from src.stepper import PackState, cell_ocv, step
 
 SLOW = settings(
     max_examples=6,
@@ -94,3 +95,25 @@ def test_conformal_coverage_on_exchangeable_data(seed, n_calibration):
     fresh = np.abs(rng.standard_t(3, 40_000))
     coverage = float(np.mean(fresh <= quantile))
     assert abs(coverage - level) <= 5.0 / np.sqrt(n_calibration)
+
+
+@given(seed=SEEDS, technique=st.sampled_from([Technique.BUCK_BOOST, Technique.FLYING_CAPACITOR]))
+@settings(max_examples=6, deadline=None, derandomize=True)
+def test_torch_twin_matches_the_numpy_step(seed, technique):
+    packs = draw_packs(seed, 8)
+    spec = CONFIG.technique(technique)
+    component = np.full(packs.n_packs, spec.component.mid)
+    frequency = np.full(packs.n_packs, spec.frequency_hz.mid)
+    control = build_control(
+        technique, packs, component, frequency, CONFIG, track_load=True, gate_balancing=True
+    )
+    twin = build_twin(control, technique, CONFIG)
+    reference = PackState.initial(packs.soc0, cell_ocv(packs.soc0, control))
+    mirror = initial_state(twin, tensor(packs.soc0))
+    rng = np.random.default_rng(seed)
+    for _ in range(200):
+        current = rng.uniform(-3.0, 3.0, packs.n_packs)
+        reference = step(reference, current, control)
+        mirror = twin_step(twin, mirror, tensor(current))
+    assert np.allclose(mirror.soc.numpy(), reference.soc, rtol=1e-9, atol=1e-12)
+    assert np.allclose(mirror.removed_j.numpy(), reference.removed_j, rtol=1e-9, atol=1e-9)

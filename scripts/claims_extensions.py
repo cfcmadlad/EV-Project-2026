@@ -1,5 +1,5 @@
-from scripts.claims_base import CheckedClaim, at_most, boolean, is_true, percent
-from src.config import Technique
+from scripts.claims_base import CheckedClaim, at_most, boolean, is_true, percent, scientific
+from src.config import CONFIG, Technique
 from src.dataset import TARGET_NAMES
 
 TARGET_LABELS = {"balancing_time_s": "balancing time", "energy_dissipated_j": "dissipated energy"}
@@ -105,6 +105,55 @@ def shift_claims() -> list[CheckedClaim]:
                 "<= 5 %",
                 at_most(0.05),
                 percent,
+            )
+        )
+    return claims
+
+
+def differentiable_claims() -> list[CheckedClaim]:
+    claims = []
+    for technique in (Technique.BUCK_BOOST, Technique.FLYING_CAPACITOR):
+        label = technique.label.lower()
+        claims.append(
+            CheckedClaim(
+                f"The PyTorch twin reproduces the NumPy {label} step (200 random packs, 1000 "
+                "steps, SOC within 1e-6 and cumulative energies within 1e-4 relative)",
+                f"differentiable_control.parity.{technique.key}.pass",
+                "true",
+                is_true,
+                boolean,
+            )
+        )
+        for n_cells in CONFIG.mpc.cells:
+            base = f"differentiable_control.results.{technique.key}.{n_cells}"
+            where = f"{label}, {n_cells} cells, Mixed 1 and Mixed 7, 300 packs"
+            claims += [
+                CheckedClaim(
+                    f"The twin plant reproduces the NumPy rule's delivered Ah ({where})",
+                    f"{base}.plant_consistency_max_relative",
+                    "<= 1e-4 relative",
+                    at_most(1e-4),
+                    scientific,
+                ),
+                CheckedClaim(
+                    f"Gradient MPC delivers at least as many Ah as the rule in at least 90 % of "
+                    f"packs ({where})",
+                    f"{base}.win_fraction",
+                    ">= 90 %",
+                    lambda v: float(v) >= 0.9,
+                    percent,
+                    "a win is within 1e-3 Ah of the rule or better",
+                ),
+            ]
+        claims.append(
+            CheckedClaim(
+                f"Gradient MPC closes at least 25 % of the rule-to-reference gap ({label}, "
+                "32 cells)",
+                f"differentiable_control.results.{technique.key}.32.gap_closed",
+                ">= 25 %",
+                lambda v: float(v) >= 0.25,
+                percent,
+                "reference is the lossless ideal-transfer bound",
             )
         )
     return claims

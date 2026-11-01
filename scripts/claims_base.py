@@ -16,6 +16,10 @@ def percent(value: object) -> str:
     return f"{float(value) * 100.0:.4g} %"
 
 
+def scientific(value: object) -> str:
+    return f"{float(value):.2e}"
+
+
 def boolean(value: object) -> str:
     return str(bool(value)).lower()
 

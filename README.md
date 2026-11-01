@@ -505,6 +505,7 @@ The physics-residual result is the main modelling lesson: the closed form carrie
 - No PPO variant beats the rule; learned control improving balancing under load is NOT SUPPORTED. The headroom reference is an upper bound.
 - Drive-cycle gains do not extend to other packs, spreads, cycles or temperatures; the 4-cell results do not extend to longer strings except where section m says so.
 - FAIL rows not discussed above: the surrogate selector exceeds its 5 % budget-violation limit (6.8 %), the 2RC EKF recovers from a wrong start to 2.39 % against a 2 % limit, conformal coverage for passive energy is 85.25 % against 87 %, and the 1RC EKF does not beat tester-grade coulomb counting.
+- The gradient controller (throttle only, rule direction, preview of the load, one fixed design) does not beat the rule in delivered Ah; richer actuation (direction commands, longer horizons) was not tried, so this is a null result for that design only.
 - Nothing here runs on a microcontroller; memory sizes are stated, latency is not claimed.
 - The gate drive is booked from the LTspice gate-power map at the cell open-circuit voltage; a conversion loss from the cell to the 5 V driver rail is not modelled, and the passive shunt books no gate drive. The ledger closure check cannot detect an error in the gate term, because the same term enters both sides; the 15.4 J and 9.6 J rest on the circuit simulation alone.
 - The choice between the 1RC and 2RC cell model used the UDDS and LA92 voltage errors, and those cycles are also in the SOC-estimation Test A; the cell parameters themselves come from the HPPC pulses only.
@@ -595,6 +596,10 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── scaling_plots.py             Scaling figure
 │   ├── thermal.py                   Lumped thermal model, duty-cycled passive bleed and the thermally aware selector
 │   ├── thermal_plots.py             Thermal figure
+│   ├── diff_sim.py                  PyTorch twin of the averaged buck-boost and flying-capacitor pack step
+│   ├── mpc.py                       Receding-horizon gradient controller, drive loop and study cache
+│   ├── mpc_plots.py                 Gradient control figure
+│   ├── twin_parity.py               Twin against NumPy step parity check
 │   ├── shift.py                     Out-of-range stress test of the surrogates and both selectors
 │   ├── shift_plots.py               Stress test figure
 │   ├── selector.py                  Technique selector under a parking time budget
@@ -650,6 +655,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── prepare_drive_profiles.py        1 s measured current profiles cached in data/processed
 │   ├── report_claims.py                 Writes results/claims.md from results/metrics.json
 │   ├── run_headroom.py                  Runs the controller headroom bound and caches it
+│   ├── run_mpc.py                       Runs the gradient control study for 8, 16 and 32 cells and caches it
 │   ├── run_scaling.py                   Runs the string-length study and caches it
 │   ├── run_spice.py                     Ideal-switch check: generates netlists, runs LTspice, caches the measurements
 │   ├── run_voltage_balancing.py         Voltage-based balancing study
@@ -712,6 +718,16 @@ Without retraining, 300 fresh packs per factor were drawn with the SOC spread up
 - **Boosting surrogate and selector.** The median balancing-time error grows from 6.0 % to 7.6 %, 9.7 % and 16.6 %. Budget violations at 1 h among feasible packs are 3.7 % in range, 5.6 % at 1.25 times, 6.5 % at 1.5 times and 8.6 % at 2 times: the pre-registered claim (at most 5 % up to 1.25 times) is a FAIL, and the 5 % limit is first crossed at 1.25 times.
 - **Hybrid surrogate and abstaining selector.** The median balancing-time error stays between 0.6 and 0.7 % and the 90 % time interval keeps its coverage (91.6 % in range, 91.3, 91.0 and 89.3 % at 1.25, 1.5 and 2 times). Violations at 1 h are 0 up to 1.5 times and 1.0 % at 2 times, so the claim passes. The reason is structural: the hybrid multiplies a closed form that extrapolates by a small learned residual, whereas boosting must learn the whole dependence inside its training range.
 - Figure: `results/range_shift.png`.
+
+### Differentiable simulator and gradient control: results
+
+`src/diff_sim.py` is a PyTorch twin of the per-link averaged pack step (calibrated buck-boost and flying-capacitor links, gate-drive drain, RC branch, ledger lines). Against the NumPy step on 200 random packs with random pack currents for 1000 steps it agrees to machine precision (SOC exactly, cumulative energies within 5e-16 relative; the pre-registered limits were 1e-6 and 1e-4). In the drive-cycle plant it reproduces the NumPy rule's delivered Ah exactly.
+
+The controller replans every 120 s: it throttles each link between 0 and 1 (direction as in the rule) by 25 Adam steps over a 360 s horizon, with the exact upcoming load as preview, to maximise a 5 mV softmin of the cell terminal voltage margin at the end of the horizon. The design was fixed before the run and not tuned. Study: 8, 16 and 32 cells, 150 random packs per N and cycle (3 seeds of 50), Mixed 1 and Mixed 7 pooled, 300 pack-cycles per row. Mean gain over the rule in mAh (win fraction, gap closed): buck-boost +0.41 (82 %, 2.6 %), -0.14 (73 %, -0.8 %) and -2.33 (59 %, -11.6 %); flying capacitor -0.90 (72 %, -5.1 %), -0.97 (71 %, -4.2 %) and -1.77 (65 %, -5.9 %) at 8, 16 and 32 cells. The room left by the rule (rule to ideal-transfer reference) is 15.9 to 20.1 mAh for the buck-boost and 17.6 to 30.1 mAh for the flying capacitor.
+
+Every pre-registered claim except parity and plant consistency is a FAIL: the win fraction stays below 90 % at every N and the gap closed at 32 cells is negative. The median gain is exactly 0 at every N (the controller is strictly better by more than 1 mAh on only 10 to 24 % of the packs). Throttling does lower the buck-boost converter loss (by 69, 194 and 520 J per run at 8, 16 and 32 cells) but the charge it keeps does not translate into delivered Ah, and for the flying capacitor loss is unchanged. For reference, the committed PPO policies gain between -0.6 and +2.3 mAh over the rule at 4 and 8 cells under a different protocol (section l). Cost: 925 to 975 Adam iterations per run.
+
+- Figure: `results/differentiable_control.png`.
 
 ## t. Data and licence
 
