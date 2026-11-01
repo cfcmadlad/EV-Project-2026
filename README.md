@@ -595,6 +595,8 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 │   ├── scaling_plots.py             Scaling figure
 │   ├── thermal.py                   Lumped thermal model, duty-cycled passive bleed and the thermally aware selector
 │   ├── thermal_plots.py             Thermal figure
+│   ├── shift.py                     Out-of-range stress test of the surrogates and both selectors
+│   ├── shift_plots.py               Stress test figure
 │   ├── selector.py                  Technique selector under a parking time budget
 │   ├── selector_plots.py            Technique selector figure
 │   ├── soc_error.py                 SOC-error sensitivity study (fixed bias per cell)
@@ -660,7 +662,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 ├── data/
 │   ├── raw/                     Downloaded dataset files and LTspice scratch (git-ignored)
 │   └── processed/               Provenance, fitted parameters, result caches, small checkpoints
-├── tests/                       30 pytest files (ledger, closed form, charge, LTspice harness, calibration, deep models, freshness, headroom)
+├── tests/                       pytest files (property-based tests included; ledger, closed form, charge, LTspice harness, calibration, deep models, freshness, headroom)
 └── results/
     ├── ltspice/                 CSV results of every LTspice sweep and the waveforms
     ├── metrics.json             All deterministic numeric results
@@ -702,6 +704,14 @@ All thermal parameters are ASSUMED (resistor 100 K/W and 0.05 J/K, cell 15 K/W a
 - **Heat balance.** Heat computed from the reconstructed cell currents equals the resistor and R0 energy booked in the ledger to 1e-13, and the thermal integrator closes its own balance to 1e-14. These are identity checks of the reconstruction, not independent validation of the ledger.
 - **Selector.** The thermally aware selector multiplies the predicted passive time by max(1, peak bleed power / allowed power) and is judged against thermally limited ground truth for 300 packs. It never picks passive at any budget, because passive dissipates two orders of magnitude more energy than the active techniques whenever one of them meets the budget, so the thermal constraint changes no decision. Its violations (6.8 % at 1 h) are those of the section n boosting predictor, and the pre-registered limit of 5 % is missed (FAIL).
 - Figure: `results/thermal_balancing.png`.
+
+### Out-of-range stress test: results
+
+Without retraining, 300 fresh packs per factor were drawn with the SOC spread upper limit, the capacity tolerance and the resistance tolerance multiplied by 1, 1.25, 1.5 and 2 (the widened ranges still contain the training range, so part of each draw is in range).
+
+- **Boosting surrogate and selector.** The median balancing-time error grows from 6.0 % to 7.6 %, 9.7 % and 16.6 %. Budget violations at 1 h among feasible packs are 3.7 % in range, 5.6 % at 1.25 times, 6.5 % at 1.5 times and 8.6 % at 2 times: the pre-registered claim (at most 5 % up to 1.25 times) is a FAIL, and the 5 % limit is first crossed at 1.25 times.
+- **Hybrid surrogate and abstaining selector.** The median balancing-time error stays between 0.6 and 0.7 % and the 90 % time interval keeps its coverage (91.6 % in range, 91.3, 91.0 and 89.3 % at 1.25, 1.5 and 2 times). Violations at 1 h are 0 up to 1.5 times and 1.0 % at 2 times, so the claim passes. The reason is structural: the hybrid multiplies a closed form that extrapolates by a small learned residual, whereas boosting must learn the whole dependence inside its training range.
+- Figure: `results/range_shift.png`.
 
 ## t. Data and licence
 

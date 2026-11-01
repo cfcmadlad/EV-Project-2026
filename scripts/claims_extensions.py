@@ -88,3 +88,23 @@ def thermal_claims() -> list[CheckedClaim]:
             percent,
         ),
     ]
+
+
+def shift_claims() -> list[CheckedClaim]:
+    claims = []
+    for key, label in (
+        ("selector", "Boosting selector"),
+        ("conformal_abstain", "Hybrid abstaining selector"),
+    ):
+        claims.append(
+            CheckedClaim(
+                f"{label} misses a 1 h budget on at most 5 % of the packs where some technique "
+                "meets it when the spread, capacity and resistance ranges are 1.25 times the "
+                "training ranges (300 packs, no retraining)",
+                f"range_shift.by_factor.1p25.violation_by_budget.{key}.1",
+                "<= 5 %",
+                at_most(0.05),
+                percent,
+            )
+        )
+    return claims

@@ -15351,7 +15351,10 @@
             }
           }
         }
-      }
+      },
+      "time_interval_coverage": 0.9211111111111111,
+      "time_mdape": 0.006255189630692302,
+      "energy_mdape": 0.013922155846932422
     }
   },
   "thermal": {
@@ -15685,6 +15688,165 @@
           }
         }
       }
+    }
+  },
+  "range_shift": {
+    "status": "ok",
+    "factors": [
+      1.0,
+      1.25,
+      1.5,
+      2.0
+    ],
+    "n_packs_per_factor": 300,
+    "budget_h": 1.0,
+    "max_violation": 0.05,
+    "widened": "soc spread upper limit, capacity tolerance and r0 tolerance times the factor",
+    "by_factor": {
+      "1": {
+        "factor": 1.0,
+        "boosting_time_mdape": 0.05950647933461933,
+        "boosting_energy_mdape": 0.04893887102127065,
+        "hybrid_time_mdape": 0.006105126967974081,
+        "hybrid_energy_mdape": 0.014021100117088046,
+        "hybrid_time_interval_coverage": 0.9155555555555556,
+        "oracle_feasible_fraction": 0.9933333333333333,
+        "violation_by_budget": {
+          "selector": {
+            "0p5": 0.015384615384615385,
+            "1": 0.03691275167785235,
+            "1p5": 0.013333333333333334,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "6": 0.0,
+            "8": 0.0
+          },
+          "conformal_abstain": {
+            "0p5": 0.005128205128205128,
+            "1": 0.0,
+            "1p5": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "6": 0.0,
+            "8": 0.0
+          }
+        },
+        "agreement_at_budget": {
+          "selector": 0.94,
+          "conformal_abstain": 0.99
+        }
+      },
+      "1p25": {
+        "factor": 1.25,
+        "boosting_time_mdape": 0.07635565625922511,
+        "boosting_energy_mdape": 0.057143974399223765,
+        "hybrid_time_mdape": 0.005635654385692497,
+        "hybrid_energy_mdape": 0.01314312944495551,
+        "hybrid_time_interval_coverage": 0.9133333333333333,
+        "oracle_feasible_fraction": 0.9,
+        "violation_by_budget": {
+          "selector": {
+            "0p5": 0.027210884353741496,
+            "1": 0.05555555555555555,
+            "1p5": 0.040268456375838924,
+            "2": 0.03,
+            "3": 0.0,
+            "4": 0.0,
+            "6": 0.0,
+            "8": 0.0
+          },
+          "conformal_abstain": {
+            "0p5": 0.013605442176870748,
+            "1": 0.0,
+            "1p5": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "6": 0.0,
+            "8": 0.0
+          }
+        },
+        "agreement_at_budget": {
+          "selector": 0.92,
+          "conformal_abstain": 0.9766666666666667
+        }
+      },
+      "1p5": {
+        "factor": 1.5,
+        "boosting_time_mdape": 0.09700333348700065,
+        "boosting_energy_mdape": 0.07433610554262957,
+        "hybrid_time_mdape": 0.0065057044802863135,
+        "hybrid_energy_mdape": 0.015083201636658227,
+        "hybrid_time_interval_coverage": 0.91,
+        "oracle_feasible_fraction": 0.8166666666666667,
+        "violation_by_budget": {
+          "selector": {
+            "0p5": 0.0,
+            "1": 0.0653061224489796,
+            "1p5": 0.05405405405405406,
+            "2": 0.06,
+            "3": 0.0,
+            "4": 0.0,
+            "6": 0.0,
+            "8": 0.0
+          },
+          "conformal_abstain": {
+            "0p5": 0.008,
+            "1": 0.0,
+            "1p5": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "6": 0.0,
+            "8": 0.0
+          }
+        },
+        "agreement_at_budget": {
+          "selector": 0.9066666666666666,
+          "conformal_abstain": 0.9933333333333333
+        }
+      },
+      "2": {
+        "factor": 2.0,
+        "boosting_time_mdape": 0.165550764524315,
+        "boosting_energy_mdape": 0.1297086647434765,
+        "hybrid_time_mdape": 0.007149710628776933,
+        "hybrid_energy_mdape": 0.016876325479427,
+        "hybrid_time_interval_coverage": 0.8933333333333333,
+        "oracle_feasible_fraction": 0.6566666666666666,
+        "violation_by_budget": {
+          "selector": {
+            "0p5": 0.010309278350515464,
+            "1": 0.08629441624365482,
+            "1p5": 0.12546125461254612,
+            "2": 0.12585034013605442,
+            "3": 0.0,
+            "4": 0.0,
+            "6": 0.0,
+            "8": 0.0
+          },
+          "conformal_abstain": {
+            "0p5": 0.0,
+            "1": 0.01015228426395939,
+            "1p5": 0.0,
+            "2": 0.0,
+            "3": 0.0,
+            "4": 0.0,
+            "6": 0.0,
+            "8": 0.0
+          }
+        },
+        "agreement_at_budget": {
+          "selector": 0.8566666666666667,
+          "conformal_abstain": 0.9733333333333334
+        }
+      }
+    },
+    "first_factor_above_limit": {
+      "selector": 1.25,
+      "conformal_abstain": null
     }
   }
 }

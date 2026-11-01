@@ -22,6 +22,23 @@ def f(path: str, spec: str, scale: float = 1.0) -> Callable[[Metrics], str]:
 
 
 CHECKS: list[Check] = [
+    (
+        "shift boosting violation 1.25",
+        f("range_shift.by_factor.1p25.violation_by_budget.selector.1", ".1f", 100),
+    ),
+    (
+        "shift boosting violation 2",
+        f("range_shift.by_factor.2.violation_by_budget.selector.1", ".1f", 100),
+    ),
+    (
+        "shift hybrid violation 2",
+        f("range_shift.by_factor.2.violation_by_budget.conformal_abstain.1", ".1f", 100),
+    ),
+    ("shift boosting error 2", f("range_shift.by_factor.2.boosting_time_mdape", ".1f", 100)),
+    (
+        "shift hybrid coverage 2",
+        f("range_shift.by_factor.2.hybrid_time_interval_coverage", ".1f", 100),
+    ),
     ("thermal passive peak rise", f("thermal.baseline.passive.peak_resistor_rise_k", ".1f")),
     ("thermal limited peak rise", f("thermal.passive_limited.peak_resistor_rise_k", ".1f")),
     ("thermal time ratio", f("thermal.passive_limited.time_ratio_to_unconstrained", ".2f")),

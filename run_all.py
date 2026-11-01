@@ -60,6 +60,8 @@ from src.scaling import scaling_block
 from src.scaling_plots import plot_scaling
 from src.selector import selector_block, selector_inputs
 from src.selector_plots import plot_selector
+from src.shift import shift_block
+from src.shift_plots import plot_shift
 from src.soc_error import soc_error_block
 from src.soc_estimation.plots import plot_error_summary, plot_traces, plot_wrong_start
 from src.soc_estimation.report import RESULTS_PATH as SOC_RESULTS_PATH
@@ -595,6 +597,17 @@ def _run_stages(
         selector_in,
     )
     plot_selector(selector_result, results_dir / "technique_selector", config.plot)
+    shift_result = shift_block(
+        config,
+        streams["shift"],
+        report,
+        ml_extra["data"],
+        ml_extra["split"],
+        ml_extra["fitted"],
+        ml_extra["best"],
+        ml_eval_block["conformal"],
+    )
+    plot_shift(shift_result, results_dir / "range_shift", config.plot)
     thermal_result, thermal_traces = thermal_block(config, baseline_pack(config), selector_in)
     plot_thermal(thermal_result, thermal_traces, results_dir / "thermal_balancing", config.plot)
     plot_abstaining(
@@ -654,6 +667,7 @@ def _run_stages(
         "voltage_balancing": voltage_result,
         "technique_selector": selector_result,
         "thermal": thermal_result,
+        "range_shift": shift_result,
     }
     stale = stale_paths(metrics)
     if stale and config == CONFIG:

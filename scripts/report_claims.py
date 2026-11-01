@@ -5,7 +5,7 @@ from pathlib import Path
 
 from scripts.claims_base import CheckedClaim, at_most, boolean, is_true, percent
 from scripts.claims_deep import deep_claims
-from scripts.claims_extensions import abstaining_claims, thermal_claims
+from scripts.claims_extensions import abstaining_claims, shift_claims, thermal_claims
 from scripts.claims_headroom import headroom_claims
 from scripts.claims_ltspice import ltspice_claims
 
@@ -761,6 +761,7 @@ def checked_claims() -> list[CheckedClaim]:
         + headroom_claims()
         + abstaining_claims()
         + thermal_claims()
+        + shift_claims()
     )
 
 

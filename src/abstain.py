@@ -216,9 +216,14 @@ def abstaining_selector_block(
                 for key, choice in choices.items()
             },
         }
+    true_log = np.log(true_time)
+    half_error = np.abs(np.log(predictions.time_s) - true_log)
     return {
         "status": "ok",
         "n_packs": n,
+        "time_interval_coverage": float(np.mean(half_error <= predictions.time_half_log)),
+        "time_mdape": float(np.median(np.abs(predictions.time_s - true_time) / true_time)),
+        "energy_mdape": float(np.median(np.abs(predictions.energy_j - true_energy) / true_energy)),
         "predictor": dict(best),
         "calibration_rows": int(split.calibration.size),
         "test_rows": int(split.test.size),
