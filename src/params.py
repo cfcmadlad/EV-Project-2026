@@ -440,6 +440,8 @@ class MpcSpec:
     parity_tolerance_soc: float = 1e-6
     parity_tolerance_energy: float = 1e-4
     min_win_fraction: float = 0.90
+    win_tolerance_ah: float = 1e-3
+    plant_tolerance_relative: float = 1e-4
     min_gap_closed: float = 0.25
     gap_cells: int = 32
     horizon_intervals: int = 12
