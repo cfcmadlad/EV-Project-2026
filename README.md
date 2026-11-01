@@ -6,7 +6,8 @@
 - **LTspice validation:** the series formula for a flying-capacitor link is wrong by up to 160.48 % and the exact switched-capacitor (coth) form holds within 3.37 %; the averaged buck-boost currents hold within 4.88 % where an inductor saturation rule is met, but the averaged losses miss gate drive and switching by up to 16.63 %, so circuit-calibrated models are the default and the calibrated loss error is 6.87 %.
 - **Learned models:** plain neural surrogates lose to gradient boosting (balancing-time R2 0.9530 for the cell GRU against 0.9825); learning only the residual over the closed-form physics lifts every model to 0.9997 or better; an EKF plus GRU hybrid cuts SOC error from 2.06 % to 0.89 % on Test A and keeps it at int8 weights; PPO controllers do not beat the hand-written rule on every cycle.
 - **Controller headroom bound:** a rule-based controller already sits within 0.88 % (buck-boost) and 0.79 % (flying capacitor) of an ideal-transfer reference in delivered Ah at 4 cells, so there is no meaningful room for a learned controller there; the median gap grows with string length to 1.45 % and 2.57 % at 96 cells, where room exists, and SOC estimation error widens it further for the buck-boost (4.74 %).
-- **Claims:** 289 rows in `results/claims.md`: 163 PASS, 102 FAIL, 24 NOT SUPPORTED. FAIL rows are findings and are kept; section p lists them.
+- **Extensions (section s):** an abstaining selector on normalised conformal intervals (all six intervals in the coverage window; 0 % violations at 1 h against 6.8 % for the boosting selector, owed to the hybrid predictor), a thermal limit on passive bleeding (1.25 times longer balancing under an assumed 20 K ceiling), an out-of-range stress test (boosting selector crosses the 5 % limit at 1.25 times the training ranges, the hybrid stays within it up to 2 times) and a differentiable twin with a gradient controller that does not beat the rule (null result).
+- **Claims:** 322 rows in `results/claims.md`: 183 PASS, 113 FAIL, 26 NOT SUPPORTED. FAIL rows are findings and are kept; section p lists them.
 
 ## Contents
 
@@ -505,6 +506,7 @@ The physics-residual result is the main modelling lesson: the closed form carrie
 - No PPO variant beats the rule; learned control improving balancing under load is NOT SUPPORTED. The headroom reference is an upper bound.
 - Drive-cycle gains do not extend to other packs, spreads, cycles or temperatures; the 4-cell results do not extend to longer strings except where section m says so.
 - FAIL rows not discussed above: the surrogate selector exceeds its 5 % budget-violation limit (6.8 %), the 2RC EKF recovers from a wrong start to 2.39 % against a 2 % limit, conformal coverage for passive energy is 85.25 % against 87 %, and the 1RC EKF does not beat tester-grade coulomb counting.
+- Extension FAIL rows (section s): continuous passive bleeding exceeds the assumed 20 K resistor ceiling; the thermally aware selector inherits the boosting predictor's 6.8 % violations at 1 h; the boosting selector crosses the 5 % limit at 1.25 times the training ranges.
 - The gradient controller (throttle only, rule direction, preview of the load, one fixed design) does not beat the rule in delivered Ah; richer actuation (direction commands, longer horizons) was not tried, so this is a null result for that design only.
 - Nothing here runs on a microcontroller; memory sizes are stated, latency is not claimed.
 - The gate drive is booked from the LTspice gate-power map at the cell open-circuit voltage; a conversion loss from the cell to the 5 V driver rail is not modelled, and the passive shunt books no gate drive. The ledger closure check cannot detect an error in the gate term, because the same term enters both sides; the 15.4 J and 9.6 J rest on the circuit simulation alone.
@@ -512,7 +514,7 @@ The physics-residual result is the main modelling lesson: the closed form carrie
 - The scaling and rest-voltage caches are bound to their configuration but not to the circuit maps or the fitted-parameter file, and the trajectory and surrogate caches to the maps and the dataset only; after rebuilding either input the matching script in `scripts/` must be rerun.
 - Besides the simulation seed (2026) and seeds 0 to 2, some studies use derived streams (imitation episodes, augmentation and sensor noise); each is a fixed function of the seed, none was chosen by outcome. The best 8-cell imitation policy was picked on the test cycles and is reported as such.
 
-All 102 FAIL and 24 NOT SUPPORTED rows are in `results/claims.md` with their evidence keys.
+All 113 FAIL and 26 NOT SUPPORTED rows are in `results/claims.md` with their evidence keys.
 
 ## q. How to run
 
