@@ -541,6 +541,7 @@ Each cache stores a hash of its inputs. `run_all.py` raises an error naming any 
 ├── .gitattributes               Line ending normalisation for text files
 ├── .gitignore                   Excludes caches, virtual environments, raw data and LTspice raw files
 ├── README.md                    This document
+├── SUMMARY.md                   One-document summary of the whole study with the key numbers
 ├── pyproject.toml               ruff and pytest configuration
 ├── requirements.txt             Pinned versions of the libraries run_all.py needs
 ├── requirements-dev.txt         Adds pinned pytest, ruff, PyTorch, gymnasium, stable-baselines3
